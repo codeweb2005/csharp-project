@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { PlusOutlined, DeleteOutlined, SaveOutlined, UploadOutlined, StarFilled } from '@ant-design/icons'
 import { Card, Drawer, Form, Input, InputNumber, Button, Switch, Row, Col, Typography, Space, Badge, Popconfirm, Select, Tabs, message, Empty, Spin } from 'antd'
 import { menu as menuApi, pois as poisApi } from '../../api.js'
@@ -8,7 +8,7 @@ import { usePoiSwitcher } from '../../context/PoiSwitcherContext.jsx'
 const { Title, Text, Paragraph } = Typography
 
 function formatPrice(p) {
-    return Number(p).toLocaleString('vi-VN') + ' ₫'
+    return Number(p).toLocaleString('vi-VN') + ' â‚«'
 }
 
 export default function MenuPage() {
@@ -61,7 +61,7 @@ export default function MenuPage() {
             const res = await menuApi.getByPOI(selectedPOI)
             setMenuItems(res.data ?? [])
         } catch (err) {
-            message.error('Cannot load menu.')
+            message.error('Failed to load menu items. Please try again.')
             console.error('[Menu] fetch error:', err)
         } finally {
             setLoading(false)
@@ -196,7 +196,7 @@ export default function MenuPage() {
     const tabItems = [
         {
             key: '1',
-            label: '🇻🇳 VI',
+            label: 'ðŸ‡»ðŸ‡³ VI',
             children: (
                 <>
                     <Form.Item name="name_1" label="Dish name" rules={[{ required: true, message: 'Please enter dish name' }]}>
@@ -210,7 +210,7 @@ export default function MenuPage() {
         },
         {
             key: '2',
-            label: '🇬🇧 EN',
+            label: 'ðŸ‡¬ðŸ‡§ EN',
             children: (
                 <>
                     <Form.Item name="name_2" label="Dish name">
@@ -242,7 +242,7 @@ export default function MenuPage() {
                             optionFilterProp="label"
                         />
                     )}
-                    <Text type="secondary">{menuItems.length} items • {sigCount} signatures</Text>
+                    <Text type="secondary">{menuItems.length} items â€¢ {sigCount} signatures</Text>
                 </Space>
                 <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} disabled={!selectedPOI}>
                     Add new item
@@ -261,7 +261,7 @@ export default function MenuPage() {
                         </Empty>
                     </Col>
                 ) : menuItems.map(item => {
-                    const name = item.translations?.[0]?.name || item.name || '—'
+                    const name = item.translations?.[0]?.name || item.name || 'â€”'
                     const nameEn = item.translations?.[1]?.name || ''
                     const desc = item.translations?.[0]?.description || item.description || ''
                     return (
@@ -283,7 +283,7 @@ export default function MenuPage() {
                                         {item.imageUrl ? (
                                             <img src={item.imageUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 40 }}>🍽️</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 40 }}>ðŸ½ï¸</div>
                                         )}
                                         {item.isSignature && (
                                             <div style={{ position: 'absolute', top: 8, left: 8, backgroundColor: '#f59e0b', color: '#fff', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -349,7 +349,7 @@ export default function MenuPage() {
                 <Form form={form} layout="vertical" onFinish={handleSave}>
                     <Tabs items={tabItems} defaultActiveKey="1" style={{ marginBottom: 16 }} />
 
-                    <Form.Item name="price" label="Price (VNĐ)" rules={[{ required: true, message: 'Please enter price' }]}>
+                    <Form.Item name="price" label="Price (VNÄ)" rules={[{ required: true, message: 'Please enter price' }]}>
                         <InputNumber style={{ width: '100%' }} min={0} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={value => value.replace(/\$\s?|(,*)/g, '')} />
                     </Form.Item>
 
@@ -358,7 +358,7 @@ export default function MenuPage() {
                             <Form.Item name="isSignature" valuePropName="checked">
                                 <Space>
                                     <Switch />
-                                    <span>⭐ Signature dish</span>
+                                    <span>â­ Signature dish</span>
                                 </Space>
                             </Form.Item>
                         </Col>
@@ -366,7 +366,7 @@ export default function MenuPage() {
                             <Form.Item name="isAvailable" valuePropName="checked">
                                 <Space>
                                     <Switch />
-                                    <span>🟢 Available</span>
+                                    <span>ðŸŸ¢ Available</span>
                                 </Space>
                             </Form.Item>
                         </Col>
