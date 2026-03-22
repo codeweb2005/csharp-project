@@ -9,6 +9,11 @@ public interface IAuthService
     Task<ApiResponse<LoginResponse>> RefreshTokenAsync(string refreshToken);
     Task<ApiResponse<bool>> ChangePasswordAsync(int userId, ChangePasswordRequest request);
     Task<ApiResponse<UserDto>> GetCurrentUserAsync(int userId);
+    /// <summary>
+    /// Register a new tourist account (Role = Customer).
+    /// Returns JWT tokens immediately after registration so the user is logged in.
+    /// </summary>
+    Task<ApiResponse<LoginResponse>> RegisterAsync(RegisterRequest request);
 }
 
 // ============ POI Service ============
@@ -19,10 +24,33 @@ public interface IPOIService
         bool? isActive, string sortBy, string order);
     Task<ApiResponse<POIDetailDto>> GetDetailAsync(int id);
     Task<ApiResponse<POIDetailDto>> CreateAsync(CreatePOIRequest request);
-    Task<ApiResponse<POIDetailDto>> UpdateAsync(int id, UpdatePOIRequest request);
+    /// <summary>
+    /// Update an existing POI.
+    /// When <paramref name="callerId"/> is supplied and the caller is a <c>Vendor</c>,
+    /// the service MUST verify that <c>POI.VendorUserId == callerId</c> and return
+    /// a 403-equivalent error if not. Admins may update any POI unconditionally.
+    /// </summary>
+    /// <param name="callerId">ID of the authenticated user (from JWT sub claim).</param>
+    /// <param name="callerRole">Role string of the caller (e.g. "Vendor", "Admin").</param>
+    Task<ApiResponse<POIDetailDto>> UpdateAsync(int id, UpdatePOIRequest request, int? callerId = null, string? callerRole = null);
     Task<ApiResponse<bool>> DeleteAsync(int id);
     Task<ApiResponse<bool>> ToggleActiveAsync(int id);
     Task<ApiResponse<bool>> ToggleFeaturedAsync(int id);
+    /// <summary>
+    /// Returns all active POIs within <paramref name="radiusMeters"/> of the given coordinates,
+    /// sorted by distance ascending. Designed for the mobile app's geofence bootstrap.
+    /// Uses MySQL ST_Distance_Sphere for accurate spherical distance calculation.
+    /// </summary>
+    /// <param name="lat">Requester latitude (-90 to 90)</param>
+    /// <param name="lng">Requester longitude (-180 to 180)</param>
+    /// <param name="radiusMeters">Search radius in meters (max 5000)</param>
+    /// <param name="langId">If provided, filters translations to this language only</param>
+    Task<ApiResponse<List<NearbyPOIDto>>> GetNearbyAsync(double lat, double lng, int radiusMeters, int? langId);
+    /// <summary>
+    /// Returns full POI detail for anonymous mobile access (no authentication required).
+    /// Only returns active POIs. Used by mobile tourist flow.
+    /// </summary>
+    Task<ApiResponse<POIDetailDto>> GetPublicDetailAsync(int id, int? langId);
 }
 
 // ============ Category Service ============
@@ -82,22 +110,40 @@ public interface IUserService
 }
 
 // ============ Dashboard Service ============
+/// <summary>
+/// Aggregated stats for the admin dashboard and the Vendor mini-dashboard.
+/// When <c>vendorPOIId</c> is supplied, ALL queries are scoped to that single POI
+/// so a Vendor only ever sees their own shop's data.
+/// </summary>
 public interface IDashboardService
 {
-    Task<ApiResponse<DashboardStatsDto>> GetStatsAsync();
-    Task<ApiResponse<List<TopPOIDto>>> GetTopPOIsAsync(int count = 5);
-    Task<ApiResponse<List<VisitChartDto>>> GetVisitsChartAsync(DateTime from, DateTime to);
-    Task<ApiResponse<List<LanguageStatDto>>> GetLanguageStatsAsync();
-    Task<ApiResponse<List<RecentActivityDto>>> GetRecentActivityAsync(int count = 10);
+    /// <param name="vendorPOIId">If set, scope all stats to this POI (Vendor portal mode).</param>
+    Task<ApiResponse<DashboardStatsDto>> GetStatsAsync(int? vendorPOIId = null);
+    /// <param name="vendorPOIId">If set, return only the vendor's own POI.</param>
+    Task<ApiResponse<List<TopPOIDto>>>   GetTopPOIsAsync(int count = 5, int? vendorPOIId = null);
+    /// <param name="vendorPOIId">If set, filter visits to this POI only.</param>
+    Task<ApiResponse<List<VisitChartDto>>> GetVisitsChartAsync(DateTime from, DateTime to, int? vendorPOIId = null);
+    /// <param name="vendorPOIId">If set, filter language stats to this POI's visits.</param>
+    Task<ApiResponse<List<LanguageStatDto>>> GetLanguageStatsAsync(int? vendorPOIId = null);
+    /// <param name="vendorPOIId">If set, return only activity for this POI.</param>
+    Task<ApiResponse<List<RecentActivityDto>>> GetRecentActivityAsync(int count = 10, int? vendorPOIId = null);
 }
 
 // ============ Analytics Service ============
+/// <summary>
+/// Detailed analytics data. All methods accept an optional <c>vendorPOIId</c>.
+/// When provided, queries are restricted to visits for that single POI only.
+/// </summary>
 public interface IAnalyticsService
 {
-    Task<ApiResponse<Dictionary<string, TrendDto>>> GetTrendsAsync(string period);
-    Task<ApiResponse<List<VisitChartDto>>> GetVisitsByDayAsync(DateTime from, DateTime to);
-    Task<ApiResponse<List<HourlyVisitDto>>> GetVisitsByHourAsync(DateTime date);
-    Task<ApiResponse<List<LanguageStatDto>>> GetLanguageDistributionAsync(DateTime from, DateTime to);
+    /// <param name="vendorPOIId">Scope to this POI when called by a Vendor.</param>
+    Task<ApiResponse<Dictionary<string, TrendDto>>> GetTrendsAsync(string period, int? vendorPOIId = null);
+    /// <param name="vendorPOIId">Scope to this POI when called by a Vendor.</param>
+    Task<ApiResponse<List<VisitChartDto>>>   GetVisitsByDayAsync(DateTime from, DateTime to, int? vendorPOIId = null);
+    /// <param name="vendorPOIId">Scope to this POI when called by a Vendor.</param>
+    Task<ApiResponse<List<HourlyVisitDto>>>  GetVisitsByHourAsync(DateTime date, int? vendorPOIId = null);
+    /// <param name="vendorPOIId">Scope to this POI when called by a Vendor.</param>
+    Task<ApiResponse<List<LanguageStatDto>>> GetLanguageDistributionAsync(DateTime from, DateTime to, int? vendorPOIId = null);
 }
 
 // ============ Offline Package Service ============
@@ -125,4 +171,13 @@ public interface ISyncService
 {
     Task<ApiResponse<SyncDeltaResponse>> GetDeltaAsync(DateTime since, int languageId);
     Task<ApiResponse<int>> UploadVisitsAsync(VisitBatchRequest request, int? userId);
+}
+
+// ============ Language Service ============
+/// <summary>
+/// Provides the list of supported languages. Anonymous endpoint used by mobile app for the language picker.
+/// </summary>
+public interface ILanguageService
+{
+    Task<ApiResponse<List<LanguageDto>>> GetAllActiveAsync();
 }

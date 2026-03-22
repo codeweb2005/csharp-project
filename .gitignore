@@ -174,3 +174,17 @@ coverage/
 ## Backup files
 *.bak
 *.orig
+
+# -------------------------------------------------------
+# .NET / MAUI build output
+# -------------------------------------------------------
+**/bin/
+**/obj/
+*.apk
+*.aab
+*.ipa
+# Android emulator temp
+.android/
+# MAUI iOS provisioning
+**/*.mobileprovision
+**/*.p12

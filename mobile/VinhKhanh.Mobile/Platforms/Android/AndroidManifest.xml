@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:allowBackup="true"
+                 android:icon="@mipmap/appicon"
+                 android:roundIcon="@mipmap/appicon_round"
+                 android:supportsRtl="true"
+                 android:label="Vinh Khanh Food Tour" />
+
+    <!-- Network access for API calls and audio streaming -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      Location permissions:
+        ACCESS_FINE_LOCATION    → GPS for precise geofence detection (required)
+        ACCESS_COARSE_LOCATION  → Network-based fallback location (required on Android 12+
+                                  when requesting fine location at runtime)
+    -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!--
+      Declare that GPS is required for the core app feature.
+      The Play Store will filter out GPS-less devices.
+    -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="true" />
+</manifest>

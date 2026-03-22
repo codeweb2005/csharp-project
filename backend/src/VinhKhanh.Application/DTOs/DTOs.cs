@@ -47,6 +47,36 @@ public class LoginRequest
     public string Password { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// Request body for tourist self-registration (POST /api/v1/auth/register).
+/// Creates a Customer-role account and returns JWT tokens.
+/// </summary>
+public class RegisterRequest
+{
+    public string Username { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;         // min 8 chars
+    public string? FullName { get; set; }
+    public int? PreferredLanguageId { get; set; }                // optional, set language preference
+}
+
+// ============ Language ============
+
+/// <summary>
+/// Language record returned by GET /api/v1/languages.
+/// Used by mobile app for language picker.
+/// </summary>
+public class LanguageDto
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;            // ISO 639-1: "vi", "en"
+    public string Name { get; set; } = string.Empty;            // "Vietnamese", "English"
+    public string NativeName { get; set; } = string.Empty;      // "Tiếng Việt"
+    public string? TtsCode { get; set; }                        // "vi-VN", "en-US"
+    public string? FlagEmoji { get; set; }
+    public int SortOrder { get; set; }
+}
+
 public class LoginResponse
 {
     public string AccessToken { get; set; } = string.Empty;
@@ -104,6 +134,8 @@ public class POIListDto
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public int GeofenceRadius { get; set; }
+    /// <summary>Higher value = higher priority when multiple geofences overlap on mobile.</summary>
+    public int Priority { get; set; }
     public double Rating { get; set; }
     public int TotalVisits { get; set; }
     public bool IsActive { get; set; }
@@ -112,6 +144,20 @@ public class POIListDto
     public int AudioCount { get; set; }
     public int TranslationCount { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>
+/// Extended POIListDto returned by GET /api/v1/pois/nearby.
+/// Includes distance from the requester's current position.
+/// </summary>
+public class NearbyPOIDto : POIListDto
+{
+    /// <summary>Distance in meters from the query lat/lng to this POI.</summary>
+    public double DistanceMeters { get; set; }
+    /// <summary>Active audio narrations available for this POI. Filtered by langId if supplied.</summary>
+    public List<AudioDto> Audio { get; set; } = [];
+    /// <summary>Translations available. Filtered to requested langId if supplied.</summary>
+    public List<POITranslationDto> Translations { get; set; } = [];
 }
 
 public class POIDetailDto : POIListDto
@@ -138,6 +184,12 @@ public class CreatePOIRequest
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public int GeofenceRadius { get; set; } = 25;
+    /// <summary>
+    /// Priority for geofence conflict resolution on mobile.
+    /// When multiple geofences overlap, the POI with the highest priority plays first.
+    /// Default 0 = normal; use higher values (e.g. 10, 20) to boost specific POIs.
+    /// </summary>
+    public int Priority { get; set; } = 0;
     public decimal? PriceRangeMin { get; set; }
     public decimal? PriceRangeMax { get; set; }
     public string? OpeningHours { get; set; }

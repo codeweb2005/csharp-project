@@ -5,29 +5,48 @@ using VinhKhanh.Application.Services;
 
 namespace VinhKhanh.API.Controllers;
 
+/// <summary>
+/// Base controller for all API controllers.
+/// Provides JWT claim helpers used throughout the application.
+/// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
 public abstract class BaseApiController : ControllerBase
 {
+    /// <summary>Returns the authenticated user's ID from the JWT 'sub' claim.</summary>
     protected int GetUserId() =>
         int.Parse(User.FindFirst("sub")?.Value ?? "0");
 
+    /// <summary>Returns the authenticated user's role string (e.g. "Admin", "Vendor", "Customer").</summary>
     protected string GetUserRole() =>
         User.FindFirst("role")?.Value ?? "";
 
+    /// <summary>
+    /// Returns the Vendor's linked POI ID from the JWT 'vendorPoiId' claim.
+    /// Returns <c>null</c> for Admin and Customer users (claim not present in their tokens).
+    /// Use this to pass vendor scoping into Dashboard/Analytics/POI services.
+    /// </summary>
+    protected int? GetVendorPOIId()
+    {
+        var raw = User.FindFirst("vendorPoiId")?.Value;
+        return raw != null && int.TryParse(raw, out var id) ? id : null;
+    }
+
+    /// <summary>Maps an <see cref="ApiResponse{T}"/> to an appropriate HTTP result.</summary>
     protected IActionResult ApiResult<T>(ApiResponse<T> response)
     {
         if (response.Success) return Ok(response);
         return response.Error?.Code switch
         {
-            "NOT_FOUND" => NotFound(response),
-            "FORBIDDEN" => StatusCode(403, response),
-            "UNAUTHORIZED" => Unauthorized(response),
-            "VALIDATION_ERROR" => BadRequest(response),
-            _ => BadRequest(response)
+            "NOT_FOUND"       => NotFound(response),
+            "FORBIDDEN"       => StatusCode(403, response),
+            "UNAUTHORIZED"    => Unauthorized(response),
+            "VALIDATION_ERROR"=> BadRequest(response),
+            _                 => BadRequest(response)
         };
     }
 }
+
 
 // ================================
 // Auth Controller
@@ -54,6 +73,16 @@ public class AuthController(IAuthService authService) : BaseApiController
     [Authorize]
     public async Task<IActionResult> GetMe()
         => ApiResult(await authService.GetCurrentUserAsync(GetUserId()));
+
+    /// <summary>
+    /// Tourist self-registration. Creates a Customer-role account and returns JWT tokens,
+    /// so the user is immediately authenticated after registering.
+    /// No existing session required — AllowAnonymous.
+    /// </summary>
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        => ApiResult(await authService.RegisterAsync(request));
 }
 
 // ================================
@@ -97,6 +126,68 @@ public class POIsController(IPOIService poiService) : BaseApiController
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Featured(int id)
         => ApiResult(await poiService.ToggleFeaturedAsync(id));
+
+    /// <summary>
+    /// Returns active POIs within a radius of the caller's GPS position.
+    /// Designed for the mobile app — call this on app startup to bootstrap
+    /// the local geofence engine. Anonymous access (no JWT required).
+    ///
+    /// Query params:
+    ///   lat          — latitude   (required)
+    ///   lng          — longitude  (required)
+    ///   radiusMeters — search radius in meters, default 500, max 5000
+    ///   langId       — if supplied, returns translations for that language only
+    /// </summary>
+    [HttpGet("nearby")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetNearby(
+        [FromQuery] double lat,
+        [FromQuery] double lng,
+        [FromQuery] int radiusMeters = 500,
+        [FromQuery] int? langId = null)
+    {
+        // Basic coordinate validation
+        if (lat < -90 || lat > 90)
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "lat must be between -90 and 90"));
+        if (lng < -180 || lng > 180)
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "lng must be between -180 and 180"));
+
+        return ApiResult(await poiService.GetNearbyAsync(lat, lng, radiusMeters, langId));
+    }
+
+    /// <summary>
+    /// Returns full public detail for a single active POI, without authentication.
+    /// Used by the mobile app tourist flow. Returns 404 if the POI is inactive.
+    /// Optional langId param filters translations and audio to a single language.
+    /// </summary>
+    [HttpGet("{id}/public")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicDetail(
+        int id,
+        [FromQuery] int? langId = null)
+        => ApiResult(await poiService.GetPublicDetailAsync(id, langId));
+}
+
+// ================================
+// Languages Controller
+// ================================
+
+/// <summary>
+/// Public endpoint for the mobile app language picker.
+/// Returns all active languages — no authentication required.
+/// </summary>
+[Route("api/v1/languages")]
+public class LanguagesController(ILanguageService languageService) : BaseApiController
+{
+    /// <summary>
+    /// GET /api/v1/languages
+    /// Returns all active languages sorted by SortOrder.
+    /// Mobile app uses this to populate the language selection screen on first run.
+    /// </summary>
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAll()
+        => ApiResult(await languageService.GetAllActiveAsync());
 }
 
 // ================================
@@ -274,53 +365,63 @@ public class UsersController(IUserService svc) : BaseApiController
 }
 
 // ================================
+// ================================
 // Dashboard Controller
 // ================================
+/// <summary>
+/// Dashboard stats endpoint - accessible by both Admin and Vendor.
+/// Vendor calls are automatically scoped to their own POI via the JWT vendorPoiId claim.
+/// </summary>
 [Authorize(Roles = "Admin,Vendor")]
 public class DashboardController(IDashboardService svc) : BaseApiController
 {
     [HttpGet("stats")]
     public async Task<IActionResult> GetStats()
-        => ApiResult(await svc.GetStatsAsync());
+        => ApiResult(await svc.GetStatsAsync(GetVendorPOIId()));
 
     [HttpGet("top-pois")]
     public async Task<IActionResult> GetTopPOIs([FromQuery] int count = 5)
-        => ApiResult(await svc.GetTopPOIsAsync(count));
+        => ApiResult(await svc.GetTopPOIsAsync(count, GetVendorPOIId()));
 
     [HttpGet("visits-chart")]
     public async Task<IActionResult> GetVisitsChart([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetVisitsChartAsync(from, to));
+        => ApiResult(await svc.GetVisitsChartAsync(from, to, GetVendorPOIId()));
 
     [HttpGet("language-stats")]
     public async Task<IActionResult> GetLanguageStats()
-        => ApiResult(await svc.GetLanguageStatsAsync());
+        => ApiResult(await svc.GetLanguageStatsAsync(GetVendorPOIId()));
 
     [HttpGet("recent-activity")]
     public async Task<IActionResult> GetRecentActivity([FromQuery] int count = 10)
-        => ApiResult(await svc.GetRecentActivityAsync(count));
+        => ApiResult(await svc.GetRecentActivityAsync(count, GetVendorPOIId()));
 }
 
 // ================================
+// ================================
 // Analytics Controller
 // ================================
+/// <summary>
+/// Detailed analytics - accessible by Admin and Vendor.
+/// Vendor calls are automatically scoped to their own POI via the JWT vendorPoiId claim.
+/// </summary>
 [Authorize(Roles = "Admin,Vendor")]
 public class AnalyticsController(IAnalyticsService svc) : BaseApiController
 {
     [HttpGet("trends")]
     public async Task<IActionResult> GetTrends([FromQuery] string period = "30d")
-        => ApiResult(await svc.GetTrendsAsync(period));
+        => ApiResult(await svc.GetTrendsAsync(period, GetVendorPOIId()));
 
     [HttpGet("visits-by-day")]
     public async Task<IActionResult> GetVisitsByDay([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetVisitsByDayAsync(from, to));
+        => ApiResult(await svc.GetVisitsByDayAsync(from, to, GetVendorPOIId()));
 
     [HttpGet("visits-by-hour")]
     public async Task<IActionResult> GetVisitsByHour([FromQuery] DateTime date)
-        => ApiResult(await svc.GetVisitsByHourAsync(date));
+        => ApiResult(await svc.GetVisitsByHourAsync(date, GetVendorPOIId()));
 
     [HttpGet("language-distribution")]
     public async Task<IActionResult> GetLanguages([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetLanguageDistributionAsync(from, to));
+        => ApiResult(await svc.GetLanguageDistributionAsync(from, to, GetVendorPOIId()));
 }
 
 // ================================

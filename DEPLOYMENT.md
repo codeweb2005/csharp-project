@@ -1,4 +1,4 @@
-# 🍜 Hướng dẫn Triển khai — Vinh Khánh Food Tour
+# 🍜 Hướng dẫn Triển khai — Vinh Khanh Food Tour
 
 > **Stack:** ASP.NET Core 10 (Clean Architecture) + React 19 / Vite + MySQL  
 > **Tác giả:** VinhKhanh Dev Team  
@@ -24,6 +24,7 @@
 ## 1. Yêu cầu hệ thống
 
 ### Máy chủ (Server)
+
 | Thành phần | Phiên bản tối thiểu | Ghi chú |
 |---|---|---|
 | OS | Ubuntu 22.04 LTS | Khuyến nghị |
@@ -35,6 +36,7 @@
 | Disk | 20 GB | Tối thiểu |
 
 ### Máy phát triển (Dev Machine — Windows)
+
 - .NET SDK 10.0
 - Node.js 20 LTS + npm
 - MySQL 8.0
@@ -116,7 +118,7 @@ Tạo file `admin-frontend/.env.production`:
 
 ```env
 VITE_API_BASE_URL=https://api.vinhkhanh.com/api
-VITE_APP_TITLE=Vinh Khánh Food Tour Admin
+VITE_APP_TITLE=Vinh Khanh Food Tour Admin
 ```
 
 ---
@@ -552,6 +554,6 @@ Thêm domain production vào `WithOrigins(...)` trong `Program.cs` và redeploy.
 ## 📞 Liên hệ & Tài liệu thêm
 
 - **Swagger UI** (dev): `http://localhost:5000/swagger`
-- **MySQL docs**: https://dev.mysql.com/doc/
-- **.NET deployment**: https://learn.microsoft.com/aspnet/core/host-and-deploy/linux-nginx
-- **Certbot SSL**: https://certbot.eff.org/instructions
+- **MySQL docs**: <https://dev.mysql.com/doc/>
+- **.NET deployment**: <https://learn.microsoft.com/aspnet/core/host-and-deploy/linux-nginx>
+- **Certbot SSL**: <https://certbot.eff.org/instructions>

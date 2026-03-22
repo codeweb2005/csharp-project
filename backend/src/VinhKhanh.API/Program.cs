@@ -44,16 +44,20 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// CORS
+// CORS — reads allowed origins from environment variable for production CloudFront support.
+// Local dev:   http://localhost:5173, http://localhost:3000
+// Production:  set CORS_ALLOWED_ORIGINS=https://d1xxxxx.cloudfront.net in ECS task definition
+var corsOrigins = new List<string> { "http://localhost:5173", "http://localhost:3000" };
+var envOrigins = builder.Configuration["CORS_ALLOWED_ORIGINS"];
+if (!string.IsNullOrWhiteSpace(envOrigins))
+    corsOrigins.AddRange(envOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins(
-                "http://localhost:5173",    // Vite dev
-                "http://localhost:3000"     // Alternate
-            )
+            .WithOrigins([.. corsOrigins])
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -78,7 +82,17 @@ builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IOfflinePackageService, OfflinePackageService>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddScoped<ISyncService, SyncService>();
+// Language service — anonymous endpoint for mobile app language picker
+builder.Services.AddScoped<ILanguageService, LanguageService>();
+
+// File storage: switch between local (dev) and S3 (prod) via config.
+// Set FileStorage:Provider=s3 in production ECS environment variables.
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+// TODO: implement S3FileStorageService in Phase 4 and conditionally register:
+// if (builder.Configuration["FileStorage:Provider"] == "s3")
+//     builder.Services.AddScoped<IFileStorageService, S3FileStorageService>();
+// else
+//     builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>

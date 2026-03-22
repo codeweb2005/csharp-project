@@ -1,0 +1,280 @@
+/* ============================================================
+   POIForm Modal Styles
+   ============================================================ */
+
+/* ── Overlay ───────────────────────────────────────────────── */
+.poi-form-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 1000;
+    padding: 24px 16px;
+    overflow-y: auto;
+}
+
+/* ── Modal card ────────────────────────────────────────────── */
+.poi-form-modal {
+    background: var(--bg-primary, #ffffff);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 1100px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────────────── */
+.poi-form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+    background: var(--bg-secondary, #f8fafc);
+}
+
+.poi-form-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--color-primary, #6366f1);
+}
+
+.poi-form-title h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary, #1e293b);
+    margin: 0;
+}
+
+.poi-form-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary, #64748b);
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    transition: background 0.15s;
+}
+
+.poi-form-close:hover {
+    background: var(--bg-tertiary, #f1f5f9);
+    color: var(--text-primary, #1e293b);
+}
+
+/* ── Error banner ──────────────────────────────────────────── */
+.poi-form-error {
+    background: #fef2f2;
+    border-left: 4px solid #ef4444;
+    color: #b91c1c;
+    padding: 12px 20px;
+    font-size: 13px;
+}
+
+/* ── Form body ─────────────────────────────────────────────── */
+.poi-form-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Two-column layout for basic info + map */
+.poi-form-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.poi-form-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ── Section titles ────────────────────────────────────────── */
+.poi-form-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary, #64748b);
+    margin: 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.poi-form-section-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-primary, #6366f1);
+}
+
+.poi-form-hint {
+    font-size: 12px;
+    color: var(--text-secondary, #94a3b8);
+    margin: 0 0 6px;
+}
+
+/* ── Fields ────────────────────────────────────────────────── */
+.poi-form-label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #475569);
+}
+
+.required {
+    color: #ef4444;
+}
+
+.poi-form-input {
+    padding: 8px 12px;
+    border: 1px solid var(--border, #cbd5e1);
+    border-radius: 8px;
+    font-size: 13px;
+    background: var(--bg-primary, #fff);
+    color: var(--text-primary, #1e293b);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+}
+
+.poi-form-input:focus {
+    outline: none;
+    border-color: var(--color-primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.poi-form-textarea {
+    resize: vertical;
+    min-height: 90px;
+}
+
+.poi-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.poi-form-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary, #1e293b);
+    cursor: pointer;
+}
+
+/* ── Translations section ──────────────────────────────────── */
+.poi-form-translations {
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--bg-secondary, #f8fafc);
+}
+
+.poi-form-lang-tabs {
+    display: flex;
+    gap: 6px;
+}
+
+.poi-form-lang-tab {
+    padding: 7px 16px;
+    border: 1px solid var(--border, #cbd5e1);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--bg-primary, #fff);
+    color: var(--text-secondary, #64748b);
+    transition: all 0.15s;
+}
+
+.poi-form-lang-tab:hover {
+    border-color: var(--color-primary, #6366f1);
+    color: var(--color-primary, #6366f1);
+}
+
+.poi-form-lang-tab.active {
+    background: var(--color-primary, #6366f1);
+    border-color: var(--color-primary, #6366f1);
+    color: #fff;
+}
+
+.poi-form-lang-content {
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ── Actions footer ────────────────────────────────────────── */
+.poi-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.poi-form-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+}
+
+.poi-form-btn-cancel {
+    background: var(--bg-secondary, #f1f5f9);
+    color: var(--text-secondary, #64748b);
+    border: 1px solid var(--border, #cbd5e1);
+}
+
+.poi-form-btn-cancel:hover {
+    background: var(--bg-tertiary, #e2e8f0);
+}
+
+.poi-form-btn-save {
+    background: var(--color-primary, #6366f1);
+    color: #fff;
+}
+
+.poi-form-btn-save:hover:not(:disabled) {
+    background: #4f46e5;
+}
+
+.poi-form-btn-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .poi-form-cols {
+        grid-template-columns: 1fr;
+    }
+
+    .poi-form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .poi-form-overlay {
+        padding: 8px;
+    }
+}

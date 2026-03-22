@@ -179,11 +179,11 @@ public class AuthService : IAuthService
             .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)
-            return ApiResponse<UserDto>.Fail("NOT_FOUND", "Không tìm thấy người dùng");
+            return ApiResponse<UserDto>.Fail("NOT_FOUND", "User not found");
 
         var dto = MapToDto(user);
 
-        // If vendor, include shop name
+        // If vendor, include shop name from first available translation
         if (user.VendorPOI != null)
         {
             dto.ShopName = user.VendorPOI.Translations
@@ -193,6 +193,70 @@ public class AuthService : IAuthService
         }
 
         return ApiResponse<UserDto>.Ok(dto);
+    }
+
+    /// <summary>
+    /// Tourist self-registration flow:
+    /// 1. Validate fields (email format, password length, uniqueness)
+    /// 2. Hash password
+    /// 3. Create User with Role = Customer (0)
+    /// 4. Issue JWT access + refresh tokens immediately (tourist is logged in after registration)
+    /// </summary>
+    public async Task<ApiResponse<LoginResponse>> RegisterAsync(RegisterRequest request)
+    {
+        // 1. Basic validation
+        if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains('@'))
+            return ApiResponse<LoginResponse>.Fail("VALIDATION_ERROR", "Invalid email address");
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+            return ApiResponse<LoginResponse>.Fail("VALIDATION_ERROR", "Password must be at least 8 characters");
+
+        if (string.IsNullOrWhiteSpace(request.Username) || request.Username.Length < 3)
+            return ApiResponse<LoginResponse>.Fail("VALIDATION_ERROR", "Username must be at least 3 characters");
+
+        // 2. Check uniqueness of email and username
+        var emailExists = await _db.Users.AnyAsync(u => u.Email.ToLower() == request.Email.ToLower());
+        if (emailExists)
+            return ApiResponse<LoginResponse>.Fail("DUPLICATE_EMAIL", "This email is already registered");
+
+        var usernameExists = await _db.Users.AnyAsync(u => u.Username.ToLower() == request.Username.ToLower());
+        if (usernameExists)
+            return ApiResponse<LoginResponse>.Fail("DUPLICATE_USERNAME", "This username is already taken");
+
+        // 3. Create the user entity (Role = Customer = 0)
+        var user = new User
+        {
+            Username = request.Username.Trim(),
+            Email = request.Email.Trim().ToLower(),
+            PasswordHash = PasswordHasher.Hash(request.Password),
+            FullName = request.FullName ?? request.Username,
+            Role = Domain.Enums.UserRole.Customer,
+            PreferredLanguageId = request.PreferredLanguageId,
+            IsActive = true,
+            EmailConfirmed = false,  // could trigger email verification in the future
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        // 4. Generate tokens and issue login response immediately
+        var accessToken = _jwt.GenerateAccessToken(user);
+        var refreshToken = _jwt.GenerateRefreshToken();
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiry = _jwt.GetRefreshTokenExpiry();
+        user.LastLoginAt = DateTime.UtcNow;
+
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("New tourist registered: {UserId} ({Email})", user.Id, user.Email);
+
+        return ApiResponse<LoginResponse>.Ok(new LoginResponse
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresIn = _jwt.GetExpirySeconds(),
+            User = MapToDto(user)
+        });
     }
 
     // ============ Private helpers ============

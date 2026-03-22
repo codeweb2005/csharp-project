@@ -4,16 +4,19 @@ namespace VinhKhanh.Domain.Entities;
 
 public class Language : BaseEntity
 {
-    public string Code { get; set; } = string.Empty;          // "vi", "en", "zh", "ja", "ko"
-    public string Name { get; set; } = string.Empty;          // "Tiếng Việt"
-    public string NativeName { get; set; } = string.Empty;    // "Tiếng Việt"
+    public string Code { get; set; } = string.Empty;          // ISO 639-1: "vi", "en", "zh"
+    public string Name { get; set; } = string.Empty;          // English name: "Vietnamese"
+    public string NativeName { get; set; } = string.Empty;    // Native: "Tiếng Việt"
     public string FlagEmoji { get; set; } = string.Empty;     // "🇻🇳"
+    /// <summary>Azure TTS locale code, e.g. "vi-VN", "en-US". Null if TTS not supported.</summary>
+    public string? TtsCode { get; set; }
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; }
 }
 
 public class User : BaseEntity
 {
+    public string Username { get; set; } = string.Empty;       // Unique, used for login
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
@@ -22,9 +25,12 @@ public class User : BaseEntity
     public string? AvatarUrl { get; set; }
     public int? PreferredLanguageId { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool EmailConfirmed { get; set; } = false;
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiry { get; set; }
     public DateTime? LastLoginAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
     public Language? PreferredLanguage { get; set; }
@@ -64,6 +70,12 @@ public class POI : BaseEntity
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public int GeofenceRadius { get; set; } = 25;
+    /// <summary>
+    /// Geofence conflict priority. When two POI geofences overlap, the mobile app
+    /// plays the narration for the POI with the highest Priority value.
+    /// Default 0 = normal priority.
+    /// </summary>
+    public int Priority { get; set; } = 0;
     public decimal? PriceRangeMin { get; set; }
     public decimal? PriceRangeMax { get; set; }
     public string? OpeningHours { get; set; }             // JSON
@@ -203,4 +215,15 @@ public class SystemSetting
     public string Value { get; set; } = string.Empty;
     public string? Description { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Projection class used for the raw SQL nearby query in POIService.GetNearbyAsync.
+/// Maps the Id and calculated DistanceMeters columns from ST_Distance_Sphere.
+/// Not a persisted entity — only used for the raw SQL result projection.
+/// </summary>
+public class PoiDistanceResult
+{
+    public int Id { get; set; }
+    public double DistanceMeters { get; set; }
 }
