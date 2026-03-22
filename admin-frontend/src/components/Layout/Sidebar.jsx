@@ -1,145 +1,64 @@
-/**
- * Sidebar — Main navigation for the admin web panel.
- *
- * Role-aware rendering:
- *   - Admin sees all navigation items (full panel access)
- *   - Vendor sees a filtered set: My Shop, My Menu, My Analytics
- *     (Users, Settings, Offline Packages, and the global Dashboard are hidden)
- *
- * The actual access control is enforced server-side (JWT role check on every API call).
- * The sidebar filtering is purely for UX — to avoid showing Vendors pages they cannot use.
- *
- * Uses the `useCurrentUser` hook to read the decoded JWT role claim without an extra API call.
- */
-
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import {
-    LayoutDashboard, MapPin, Tag, Volume2, UtensilsCrossed,
-    Users, BarChart3, Package, Settings, LogOut, ChevronLeft, Menu,
-    Store  // Vendor "My Shop" icon
-} from 'lucide-react'
-import { useState } from 'react'
-import useCurrentUser from '../../hooks/useCurrentUser.js'
-import { clearTokens } from '../../api.js'
-import './Sidebar.css'
-
-// ── Navigation item definitions ──────────────────────────────────────────────
-// Each item has an optional `adminOnly` flag; Vendor users won't see those items.
-const menuItems = [
-    // Admin dashboard (global stats) — hidden for Vendors, they get VendorDashboard instead
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', adminOnly: true },
-
-    // Vendor dashboard — shown only for Vendors (mirrors /dashboard route in App.jsx)
-    { icon: Store, label: 'My Shop', path: '/dashboard', vendorOnly: true },
-
-    { icon: MapPin,           label: 'Points of Interest', path: '/pois'      },
-    { icon: Tag,              label: 'Categories',         path: '/categories' },
-    { icon: Volume2,          label: 'Audio & Media',      path: '/audio'      },
-    { icon: UtensilsCrossed,  label: 'Menu',               path: '/menu'       },
-
-    // Admin-only sections
-    { icon: Users,    label: 'Users',            path: '/users',    adminOnly: true },
-    { icon: BarChart3,label: 'Analytics',        path: '/analytics'              },
-    { icon: Package,  label: 'Offline Packages', path: '/offline',  adminOnly: true },
-    { icon: Settings, label: 'Settings',         path: '/settings', adminOnly: true },
-]
+import { useLocation, Link } from 'react-router-dom'
+import { PieChart, Users, MapPin, List, Radio, BarChart2, Package, Settings, LogOut } from 'lucide-react'
+import useCurrentUser from '../../hooks/useCurrentUser'
+import { useAuth } from '../../context/AuthContext'
 
 export default function Sidebar() {
-    const [collapsed, setCollapsed] = useState(false)
-    const location  = useLocation()
-    const navigate  = useNavigate()
+    const loc = useLocation()
+    const { isVendor } = useCurrentUser()
+    const { logout } = useAuth()
 
-    // Read role from JWT (no API call, pure localStorage decode)
-    const { isVendor, isAdmin, name, role } = useCurrentUser()
+    const allItems = [
+        { path: '/', label: 'Dashboard', icon: PieChart, adminOnly: false },
+        { path: '/pois', label: 'POIs', icon: MapPin, adminOnly: false },
+        { path: '/menu', label: 'Menu', icon: List, adminOnly: false },
+        { path: '/categories', label: 'Categories', icon: Package, adminOnly: false },
+        { path: '/audio', label: 'Audio', icon: Radio, adminOnly: false },
+        { path: '/analytics', label: 'Analytics', icon: BarChart2, adminOnly: false },
+        { path: '/users', label: 'Users', icon: Users, adminOnly: true },
+        { path: '/offline', label: 'Offline', icon: Package, adminOnly: true },
+        { path: '/settings', label: 'Settings', icon: Settings, adminOnly: true },
+    ]
 
-    // Filter menu items based on the current user's role
-    const visibleItems = menuItems.filter(item => {
-        if (item.adminOnly && !isAdmin) return false   // hide admin-only items from Vendors
-        if (item.vendorOnly && !isVendor) return false // hide vendor-only items from Admins
-        return true
-    })
-
-    function handleLogout() {
-        clearTokens()
-        navigate('/login')
-    }
-
-    // Derive the user's avatar initial from their name
-    const avatarInitial = name ? name.charAt(0).toUpperCase() : (isVendor ? 'V' : 'A')
+    const menuItems = allItems.filter(item => isVendor ? !item.adminOnly : true)
 
     return (
-        <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-
-            {/* ── Logo ─────────────────────────────────────────────── */}
-            <div className="sidebar-logo">
-                <div className="sidebar-logo-icon">🍜</div>
-                {!collapsed && (
-                    <div className="sidebar-logo-text">
-                        <span className="sidebar-logo-title">VK Food Tour</span>
-                        {/* Show role badge next to the app title */}
-                        <span className="sidebar-logo-subtitle">
-                            {isVendor ? '🏪 Vendor Portal' : 'Admin Panel'}
-                        </span>
-                    </div>
-                )}
-                <button
-                    className="sidebar-toggle"
-                    onClick={() => setCollapsed(!collapsed)}
-                    title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                >
-                    {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
-                </button>
+        <aside className="w-24 h-screen bg-bg-sidebar border-r border-border-light flex flex-col fixed z-50">
+            {/* Logo area */}
+            <div className="h-15 flex items-center justify-center border-b border-border-light bg-slate-50">
+                <span className="font-bold text-sm text-text-dark uppercase tracking-wide">VK Food</span>
             </div>
 
-            {/* ── Navigation ───────────────────────────────────────── */}
-            <nav className="sidebar-nav" aria-label="Main navigation">
-                {visibleItems.map(item => {
-                    const Icon = item.icon
-                    const isActive = location.pathname === item.path ||
-                        (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
+            {/* Nav list */}
+            <nav className="flex-1 overflow-y-auto pt-4 flex flex-col gap-2">
+                {menuItems.map(item => {
+                    const active = loc.pathname === item.path
                     return (
-                        <NavLink
-                            key={`${item.path}-${item.label}`}
+                        <Link
+                            key={item.path}
                             to={item.path}
-                            className={`sidebar-link ${isActive ? 'active' : ''}`}
-                            title={collapsed ? item.label : ''}
+                            className={`flex flex-col items-center justify-center py-3 mx-2 rounded-md no-underline transition-all duration-200 relative
+                                ${active ? 'text-primary' : 'text-text-muted hover:text-primary hover:bg-bg-app'}`}
                         >
-                            <Icon size={20} />
-                            {!collapsed && <span>{item.label}</span>}
-                            {isActive && <div className="sidebar-indicator" />}
-                        </NavLink>
+                            {active && (
+                                <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-sm" />
+                            )}
+                            <item.icon size={20} strokeWidth={active ? 2.5 : 1.5} className="mb-1.5" />
+                            <span className="text-[0.65rem] font-medium">{item.label}</span>
+                        </Link>
                     )
                 })}
             </nav>
 
-            {/* ── Footer: user info + logout ────────────────────────── */}
-            <div className="sidebar-footer">
-                <div className="sidebar-user">
-                    <div
-                        className="sidebar-avatar"
-                        style={{ background: isVendor ? '#f59e0b' : undefined }}
-                        title={`${name} (${role})`}
-                    >
-                        {avatarInitial}
-                    </div>
-                    {!collapsed && (
-                        <div className="sidebar-user-info">
-                            <span className="sidebar-user-name">{name || 'User'}</span>
-                            <span className="sidebar-user-role">
-                                {isVendor ? 'Shop owner' : 'Administrator'}
-                            </span>
-                        </div>
-                    )}
-                </div>
-                {!collapsed && (
-                    <button
-                        className="sidebar-logout"
-                        title="Logout"
-                        onClick={handleLogout}
-                    >
-                        <LogOut size={18} />
-                    </button>
-                )}
+            <div className="py-4 border-t border-border-light">
+                <button
+                    className="flex flex-col items-center justify-center py-3 w-full text-text-muted hover:text-primary transition-colors duration-200"
+                    onClick={logout}
+                    title="Logout"
+                >
+                    <LogOut size={20} className="mb-1.5" />
+                    <span className="text-[0.65rem] font-medium">Exit</span>
+                </button>
             </div>
         </aside>
     )

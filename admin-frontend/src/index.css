@@ -1,332 +1,92 @@
-/* ============================================================================
-   VK Food Tour — Admin Panel Design System
-   ============================================================================ */
+@import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* ── Custom theme tokens via Tailwind v4 @theme ── */
+@theme {
+  --color-primary: #1e70d6;
+  --color-primary-light: #e6f0fa;
+  --color-primary-hover: #155bb3;
 
-/* ======================== CSS Variables ======================== */
-:root {
-  /* Primary Colors */
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --primary-light: #93bbfd;
-  --primary-bg: #eff6ff;
+  --color-blue-soft: #f0f7ff;
+  --color-red-soft: #fef2f2;
+  --color-orange-soft: #fff7ed;
+  --color-green-soft: #f0fdf4;
+  --color-purple-soft: #f5f3ff;
 
-  /* Status Colors */
-  --success: #22c55e;
-  --success-bg: #f0fdf4;
-  --warning: #f59e0b;
-  --warning-bg: #fffbeb;
-  --danger: #ef4444;
-  --danger-bg: #fef2f2;
-  --purple: #8b5cf6;
-  --purple-bg: #f5f3ff;
-  --orange: #f97316;
-  --orange-bg: #fff7ed;
+  --color-bg-app: #f4f7fe;
+  --color-bg-card: #ffffff;
+  --color-bg-sidebar: #ffffff;
+  --color-bg-topbar: #ffffff;
 
-  /* Sidebar */
-  --sidebar-bg: #0f172a;
-  --sidebar-hover: #1e293b;
-  --sidebar-active: #2563eb;
-  --sidebar-text: #94a3b8;
-  --sidebar-text-active: #ffffff;
-  --sidebar-width: 260px;
-  --sidebar-collapsed-width: 72px;
+  --color-text-dark: #1e293b;
+  --color-text-muted: #64748b;
+  --color-text-light: #94a3b8;
 
-  /* Content */
-  --content-bg: #f8fafc;
-  --card-bg: #ffffff;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --color-border-light: #e2e8f0;
 
-  /* Text */
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
-  --text-white: #ffffff;
+  --font-family-sans: 'Poppins', sans-serif;
 
-  /* Borders */
-  --border: #e2e8f0;
-  --border-light: #f1f5f9;
-
-  /* Radius */
-  --radius-sm: 4px;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-full: 9999px;
-
-  /* Transitions */
-  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --animate-fade-in: fadeIn 0.3s ease;
+  --animate-spin: spin 0.6s linear infinite;
+  --animate-float: floatEmoji 6s ease-in-out infinite;
 }
 
-/* ======================== Reset ======================== */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  font-size: 14px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: var(--text-primary);
-  background: var(--content-bg);
-  line-height: 1.6;
-  overflow-x: hidden;
-}
-
-a {
-  color: var(--primary);
-  text-decoration: none;
-}
-
-img {
-  max-width: 100%;
-  display: block;
-}
-
-button {
-  cursor: pointer;
-  font-family: inherit;
-  border: none;
-  outline: none;
-}
-
-input, select, textarea {
-  font-family: inherit;
-  font-size: 0.93rem;
-  outline: none;
-}
-
-/* ======================== Utilities ======================== */
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.justify-center { justify-content: center; }
-.gap-sm { gap: 8px; }
-.gap-md { gap: 16px; }
-.gap-lg { gap: 24px; }
-.flex-1 { flex: 1; }
-.text-center { text-align: center; }
-.w-full { width: 100%; }
-
-/* ======================== Buttons ======================== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: var(--radius);
-  font-weight: 500;
-  font-size: 0.875rem;
-  transition: var(--transition);
-  white-space: nowrap;
-  line-height: 1;
-}
-
-.btn-primary {
-  background: var(--primary);
-  color: white;
-}
-.btn-primary:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
-}
-
-.btn-secondary {
-  background: var(--card-bg);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-}
-.btn-secondary:hover {
-  background: var(--content-bg);
-  border-color: var(--text-secondary);
-}
-
-.btn-danger {
-  background: var(--danger);
-  color: white;
-}
-.btn-danger:hover {
-  background: #dc2626;
-}
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text-secondary);
-  padding: 8px;
-  border-radius: var(--radius);
-}
-.btn-ghost:hover {
-  background: var(--content-bg);
-  color: var(--text-primary);
-}
-
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 0.8rem;
-}
-
-.btn-lg {
-  padding: 12px 28px;
-  font-size: 1rem;
-}
-
-/* ======================== Cards ======================== */
-.card {
-  background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--card-shadow);
-  padding: 24px;
-  transition: var(--transition);
-}
-
-.card:hover {
-  box-shadow: var(--card-shadow-hover);
-}
-
-.card-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 16px;
-}
-
-/* ======================== Badges ======================== */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-.badge-success {
-  background: var(--success-bg);
-  color: #15803d;
-}
-
-.badge-warning {
-  background: var(--warning-bg);
-  color: #a16207;
-}
-
-.badge-danger {
-  background: var(--danger-bg);
-  color: #b91c1c;
-}
-
-.badge-primary {
-  background: var(--primary-bg);
-  color: var(--primary-dark);
-}
-
-.badge-purple {
-  background: var(--purple-bg);
-  color: #6d28d9;
-}
-
-/* ======================== Form ======================== */
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-label {
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.form-input {
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--card-bg);
-  color: var(--text-primary);
-  transition: var(--transition);
-}
-
-.form-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-
-.form-input::placeholder {
-  color: var(--text-muted);
-}
-
-/* ======================== Animations ======================== */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-16px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.4s ease-out;
-}
-
-.animate-slideIn {
-  animation: slideInLeft 0.3s ease-out;
-}
-
-/* ======================== Scrollbar ======================== */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* ======================== Global Utility ======================== */
-.loading-screen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  font-size: 1.1rem;
-  color: var(--text-secondary);
-  background: var(--content-bg);
-}
-
-.spin {
-  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+@keyframes floatEmoji {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(10deg); }
+}
+
+/* ── Import Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* ── Base Resets ── */
+@layer base {
+  body {
+    @apply font-sans bg-bg-app text-text-dark leading-relaxed overflow-x-hidden;
+  }
+  a { @apply no-underline text-inherit; }
+  button { @apply cursor-pointer border-none bg-transparent font-sans; }
+}
+
+/* ── Reusable Component Classes ── */
+@layer components {
+  .card {
+    @apply bg-bg-card rounded-lg shadow-sm p-5 relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+  .card-title {
+    @apply text-[0.95rem] font-semibold text-text-dark mb-4 flex justify-between items-center;
+  }
+
+  /* Status Badges */
+  .status-badge {
+    @apply inline-flex justify-center items-center px-2.5 py-1 rounded text-xs font-medium;
+  }
+  .badge-completed, .badge-on-hold, .badge-active {
+    @apply bg-green-100 text-green-800;
+  }
+  .badge-pending {
+    @apply bg-sky-100 text-sky-700;
+  }
+  .badge-progress {
+    @apply bg-amber-100 text-amber-700;
+  }
+  .badge-failed, .badge-danger {
+    @apply bg-red-100 text-red-800;
+  }
+  .badge-info {
+    @apply bg-primary text-white;
+  }
+}
+
+/* ── Recharts Overrides ── */
+.recharts-cartesian-axis-tick-value { font-family: 'Poppins'; font-size: 0.75rem; fill: var(--color-text-muted); }
+.recharts-tooltip-wrapper { outline: none !important; }
