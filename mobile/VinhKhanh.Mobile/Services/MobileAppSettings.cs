@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace VinhKhanh.Mobile.Services;
 
@@ -47,7 +47,7 @@ public sealed class MobileAppSettings
         }
         catch
         {
-            return new MobileAppSettings("http://10.0.2.2:5015/api/v1", 500, 3, 5, 5);
+            return new MobileAppSettings("http://10.0.2.2:5015/api/v1", 80, 3, 4, 10);
         }
     }
 }
