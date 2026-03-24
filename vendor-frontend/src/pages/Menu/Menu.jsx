@@ -256,7 +256,7 @@ export default function MenuPage() {
                     </Col>
                 ) : menuItems.length === 0 ? (
                     <Col span={24}>
-                        <Empty description="No items available." image={Empty.PRESENTED_IMAGE_SIMPLE}>
+                        <Empty description="No menu items yet. Add your first dish to get started." image={Empty.PRESENTED_IMAGE_SIMPLE}>
                             <Button type="link" onClick={openCreate}>Add first item?</Button>
                         </Empty>
                     </Col>
