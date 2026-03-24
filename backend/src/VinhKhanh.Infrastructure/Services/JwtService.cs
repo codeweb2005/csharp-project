@@ -83,16 +83,7 @@ public class JwtService
     /// <summary>Validate and extract claims from an expired access token</summary>
     public ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
     {
-        var validation = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = _config["Jwt:Issuer"],
-            ValidAudience = _config["Jwt:Audience"],
-            IssuerSigningKey = _signingKey,
-            ValidateLifetime = false  // allow expired tokens
-        };
+        var validation = BuildTokenValidationParameters(validateLifetime: false);
 
         try
         {
@@ -110,4 +101,16 @@ public class JwtService
             return null;
         }
     }
+
+    private TokenValidationParameters BuildTokenValidationParameters(bool validateLifetime) =>
+        new()
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = _config["Jwt:Issuer"],
+            ValidAudience = _config["Jwt:Audience"],
+            IssuerSigningKey = _signingKey,
+            ValidateLifetime = validateLifetime
+        };
 }
