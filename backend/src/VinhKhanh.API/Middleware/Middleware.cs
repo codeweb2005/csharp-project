@@ -5,6 +5,15 @@ using VinhKhanh.Application.DTOs;
 
 namespace VinhKhanh.API.Middleware;
 
+/// <summary>Shared JSON options for middleware responses (camelCase, matches API controllers).</summary>
+internal static class ApiResponseJsonSerializerOptions
+{
+    public static readonly JsonSerializerOptions CamelCase = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+}
+
 /// <summary>Global exception handler — catches all unhandled exceptions</summary>
 public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
 {
@@ -32,7 +41,7 @@ public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddlewa
             };
 
             await context.Response.WriteAsync(
-                JsonSerializer.Serialize(response, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                JsonSerializer.Serialize(response, ApiResponseJsonSerializerOptions.CamelCase));
         }
     }
 }
@@ -84,7 +93,7 @@ public class MaintenanceMiddleware(RequestDelegate next)
                 }
             };
             await context.Response.WriteAsync(
-                JsonSerializer.Serialize(response, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                JsonSerializer.Serialize(response, ApiResponseJsonSerializerOptions.CamelCase));
             return;
         }
 
