@@ -32,7 +32,7 @@ CREATE TABLE `Users` (
     `Username`              VARCHAR(100)    NOT NULL,
     `Email`                 VARCHAR(255)    NOT NULL,
     `PasswordHash`          VARCHAR(512)    NOT NULL,
-    `PhoneNumber`           VARCHAR(20)     NULL,
+    `Phone`                 VARCHAR(20)     NULL,
     `FullName`              VARCHAR(200)    NULL,
     `AvatarUrl`             VARCHAR(500)    NULL,
     `Role`                  TINYINT         NOT NULL DEFAULT 0,
@@ -42,6 +42,8 @@ CREATE TABLE `Users` (
     `PreferredLanguageId`   INT             NULL,
     `IsActive`              TINYINT(1)      NOT NULL DEFAULT 1,
     `EmailConfirmed`        TINYINT(1)      NOT NULL DEFAULT 0,
+    `RefreshToken`          VARCHAR(512)    NULL,
+    `RefreshTokenExpiry`    DATETIME        NULL,
     `LastLoginAt`           DATETIME        NULL,
     `CreatedAt`             DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `UpdatedAt`             DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -65,6 +67,7 @@ CREATE TABLE `Categories` (
     `SortOrder`     INT             NOT NULL DEFAULT 0,
     `IsActive`      TINYINT(1)      NOT NULL DEFAULT 1,
     `CreatedAt`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `UpdatedAt`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`Id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -94,14 +97,14 @@ CREATE TABLE `CategoryTranslations` (
 
 CREATE TABLE `POIs` (
     `Id`                    INT             NOT NULL AUTO_INCREMENT,
-    `VendorId`              INT             NULL,
+    `VendorUserId`          INT             NULL,
     `CategoryId`            INT             NOT NULL,
     `Latitude`              DECIMAL(10, 7)  NOT NULL,       -- 10.7538000
     `Longitude`             DECIMAL(10, 7)  NOT NULL,       -- 106.6932000
-    `GeofenceRadiusMeters`  INT             NOT NULL DEFAULT 30,
+    `GeofenceRadius`        INT             NOT NULL DEFAULT 30,
         -- Bán kính Geofence (mét). Phố ẩm thực nên dùng 20-40m
     `Address`               VARCHAR(300)    NOT NULL,
-    `PhoneNumber`           VARCHAR(20)     NULL,
+    `Phone`                 VARCHAR(20)     NULL,
     `Website`               VARCHAR(500)    NULL,
     `OpeningHours`          JSON            NULL,
         -- JSON: {"mon":"08:00-22:00","tue":"08:00-22:00",...}
@@ -116,13 +119,13 @@ CREATE TABLE `POIs` (
     `UpdatedAt`             DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`Id`),
-    CONSTRAINT `FK_POIs_Vendor` FOREIGN KEY (`VendorId`)
+    CONSTRAINT `FK_POIs_Vendor` FOREIGN KEY (`VendorUserId`)
         REFERENCES `Users`(`Id`) ON DELETE SET NULL,
     CONSTRAINT `FK_POIs_Category` FOREIGN KEY (`CategoryId`)
         REFERENCES `Categories`(`Id`),
     CONSTRAINT `CK_POIs_Latitude` CHECK (`Latitude` BETWEEN -90.0 AND 90.0),
     CONSTRAINT `CK_POIs_Longitude` CHECK (`Longitude` BETWEEN -180.0 AND 180.0),
-    CONSTRAINT `CK_POIs_GeofenceRadius` CHECK (`GeofenceRadiusMeters` BETWEEN 10 AND 500),
+    CONSTRAINT `CK_POIs_GeofenceRadius` CHECK (`GeofenceRadius` BETWEEN 10 AND 500),
     CONSTRAINT `CK_POIs_Rating` CHECK (`Rating` BETWEEN 0.00 AND 5.00),
     CONSTRAINT `CK_POIs_PriceRange` CHECK (`PriceRangeMin` IS NULL OR `PriceRangeMax` IS NULL
         OR `PriceRangeMin` <= `PriceRangeMax`)
@@ -173,6 +176,7 @@ CREATE TABLE `POIMedia` (
     `SortOrder`     INT             NOT NULL DEFAULT 0,
     `IsPrimary`     TINYINT(1)      NOT NULL DEFAULT 0,
     `CreatedAt`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `UpdatedAt`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`Id`),
     CONSTRAINT `FK_POIMedia_POI` FOREIGN KEY (`POIId`)
@@ -227,6 +231,7 @@ CREATE TABLE `POIMenuItems` (
     `IsSignature`   TINYINT(1)      NOT NULL DEFAULT 0,
     `SortOrder`     INT             NOT NULL DEFAULT 0,
     `CreatedAt`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `UpdatedAt`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`Id`),
     CONSTRAINT `FK_MenuItem_POI` FOREIGN KEY (`POIId`)
@@ -294,6 +299,7 @@ CREATE TABLE `VisitHistory` (
     `Id`                BIGINT          NOT NULL AUTO_INCREMENT,
     `UserId`            INT             NOT NULL,
     `POIId`             INT             NOT NULL,
+    `LanguageId`        INT             NOT NULL DEFAULT 1,
     `VisitedAt`         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `TriggerType`       TINYINT         NOT NULL,
         -- 0=GeofenceEnter, 1=GeofenceExit, 2=ManualTap, 3=ListSelect
@@ -306,12 +312,16 @@ CREATE TABLE `VisitHistory` (
     `UserLongitude`     DECIMAL(10, 7)  NULL,
     `DeviceInfo`        VARCHAR(200)    NULL,
     `IsSynced`          TINYINT(1)      NOT NULL DEFAULT 1,
+    `CreatedAt`         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `UpdatedAt`         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`Id`),
     CONSTRAINT `FK_Visit_User` FOREIGN KEY (`UserId`)
         REFERENCES `Users`(`Id`),
     CONSTRAINT `FK_Visit_POI` FOREIGN KEY (`POIId`)
         REFERENCES `POIs`(`Id`),
+    CONSTRAINT `FK_Visit_Language` FOREIGN KEY (`LanguageId`)
+        REFERENCES `Languages`(`Id`),
     CONSTRAINT `FK_Visit_Audio` FOREIGN KEY (`AudioNarrationId`)
         REFERENCES `AudioNarrations`(`Id`) ON DELETE SET NULL,
     CONSTRAINT `CK_Visit_Trigger` CHECK (`TriggerType` IN (0, 1, 2, 3))
@@ -367,4 +377,19 @@ CREATE TABLE `OfflinePackages` (
         REFERENCES `Languages`(`Id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-SELECT '✅ Tất cả 14 bảng đã được tạo thành công!' AS Status;
+-- ============================================================================
+-- 15. BẢNG SYSTEMSETTINGS — Cài đặt hệ thống
+-- ============================================================================
+
+CREATE TABLE `SystemSettings` (
+    `Id`            INT             NOT NULL AUTO_INCREMENT,
+    `Key`           VARCHAR(100)    NOT NULL,
+    `Value`         VARCHAR(1000)   NOT NULL,
+    `Description`   VARCHAR(500)    NULL,
+    `UpdatedAt`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `UQ_Settings_Key` (`Key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SELECT '✅ Tất cả 15 bảng đã được tạo thành công!' AS Status;

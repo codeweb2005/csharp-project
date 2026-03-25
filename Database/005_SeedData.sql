@@ -24,15 +24,18 @@ INSERT INTO `Users`
     (`Username`, `Email`, `PasswordHash`, `FullName`, `Role`, `PreferredLanguageId`, `IsActive`, `EmailConfirmed`)
 VALUES
     ('admin', 'admin@vinhkhanh.app',
-     '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO',
-     'Quản trị viên', 2, 1, 1, 1);
+     '100000.MBFDqDcr9eiz4Zu26LCgQg==.Vu00Hr5uLHdu+di58ftA+AkmnEPB/P03gCrjrxrv5AQ=',
+     'Quản trị viên', 2, 1, 1, 1),
+    ('superadmin', 'superadmin@vinhkhanh.app',
+     '100000.MBFDqDcr9eiz4Zu26LCgQg==.Vu00Hr5uLHdu+di58ftA+AkmnEPB/P03gCrjrxrv5AQ=',
+     'Super Admin', 2, 1, 1, 1);
 
 -- ============================================================================
 -- 3. CHỦ QUÁN MẪU (Vendors)
 -- ============================================================================
 
 INSERT INTO `Users`
-    (`Username`, `Email`, `PasswordHash`, `FullName`, `PhoneNumber`, `Role`, `PreferredLanguageId`, `IsActive`, `EmailConfirmed`)
+    (`Username`, `Email`, `PasswordHash`, `FullName`, `Phone`, `Role`, `PreferredLanguageId`, `IsActive`, `EmailConfirmed`)
 VALUES
     ('ocdao_owner', 'ocdao@gmail.com',
      '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO',
@@ -121,8 +124,8 @@ INSERT INTO `CategoryTranslations` (`CategoryId`, `LanguageId`, `Name`, `Descrip
 -- ============================================================================
 
 INSERT INTO `POIs`
-    (`Id`, `VendorId`, `CategoryId`, `Latitude`, `Longitude`,
-     `GeofenceRadiusMeters`, `Address`, `PhoneNumber`,
+    (`Id`, `VendorUserId`, `CategoryId`, `Latitude`, `Longitude`,
+     `GeofenceRadius`, `Address`, `Phone`,
      `PriceRangeMin`, `PriceRangeMax`, `Rating`, `IsActive`, `IsFeatured`)
 VALUES
     (1,  2,    2, 10.7538000, 106.6932000, 25, '149 Vĩnh Khánh, P.10, Q.4, TP.HCM', '0283 826 5890', 50000,  200000, 4.50, 1, 1),

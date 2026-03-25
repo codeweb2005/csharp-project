@@ -1,0 +1,94 @@
+# ============================================================
+# Vinh Khanh Food Tour — Docker Compose
+# Stack: MySQL 8.0 + ASP.NET Core 10 API + React/Vite Admin
+# ============================================================
+# Usage:
+#   cp .env.docker .env        (then edit values)
+#   docker compose up -d       (start all services)
+#   docker compose logs -f api (watch API logs)
+#   docker compose down        (stop all)
+# ============================================================
+
+services:
+  # ---- MySQL Database ----
+  db:
+    image: mysql:8.0
+    container_name: vk-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-VinhKhanhFoodTour}
+      MYSQL_USER: ${MYSQL_USER:-vkapp}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-vkpass}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # SQL scripts mounted for the init script to execute
+      - ./Database:/sql-scripts:ro
+      # Init script that runs all SQL in order on first start
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - vk-network
+
+  # ---- Backend API (.NET 10) ----
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vk-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__DefaultConnection: >-
+        Server=db;Port=3306;Database=${MYSQL_DATABASE:-VinhKhanhFoodTour};Uid=${MYSQL_USER:-vkapp};Pwd=${MYSQL_PASSWORD:-vkpass};CharSet=utf8mb4;
+      Jwt__Key: ${JWT_KEY:-VinhKhanhFoodTour2026SuperSecretJWTKey!@#}
+      Jwt__Issuer: VinhKhanhFoodTour
+      Jwt__Audience: VinhKhanhFoodTourAdmin
+      Jwt__ExpiryMinutes: "60"
+      Jwt__RefreshExpiryDays: "7"
+      FileStorage__BasePath: /app/wwwroot/uploads
+      FileStorage__MaxFileSizeMB: "10"
+      CORS_ALLOWED_ORIGINS: "http://localhost:${FRONTEND_PORT:-3000}"
+    ports:
+      - "${API_PORT:-5000}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/wwwroot/uploads
+    networks:
+      - vk-network
+
+  # ---- Admin Frontend (React + Vite + Nginx) ----
+  frontend:
+    build:
+      context: ./admin-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:${API_PORT:-5000}/api/v1
+        VITE_GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+    container_name: vk-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - api
+    networks:
+      - vk-network
+
+volumes:
+  mysql_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+networks:
+  vk-network:
+    driver: bridge

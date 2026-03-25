@@ -10,7 +10,7 @@
 --   3. POIs: add Priority column for geofence conflict resolution
 -- ============================================================
 
-USE vinhkhanh_foodtour;
+USE VinhKhanhFoodTour;
 
 -- -----------------------------------------------------------
 -- 1. Languages.TtsCode
@@ -73,7 +73,7 @@ SELECT 'Migration 006 complete.' AS Status;
 SELECT
     COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT, COLUMN_COMMENT
 FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = 'vinhkhanh_foodtour'
+WHERE TABLE_SCHEMA = 'VinhKhanhFoodTour'
   AND TABLE_NAME IN ('Languages', 'Users', 'POIs')
   AND COLUMN_NAME IN ('TtsCode', 'Username', 'EmailConfirmed', 'Priority')
 ORDER BY TABLE_NAME, COLUMN_NAME;

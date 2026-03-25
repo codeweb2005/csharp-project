@@ -1,0 +1,15 @@
+﻿Field	Type	Null	Key	Default	Extra
+Id	int	NO	PRI	NULL	auto_increment
+Username	varchar(100)	NO	UNI	NULL	
+Email	varchar(255)	NO	UNI	NULL	
+PasswordHash	varchar(512)	NO		NULL	
+Phone	varchar(20)	YES		NULL	
+FullName	varchar(200)	YES		NULL	
+AvatarUrl	varchar(500)	YES		NULL	
+Role	tinyint	NO	MUL	0	
+PreferredLanguageId	int	YES	MUL	NULL	
+IsActive	tinyint(1)	NO		1	
+EmailConfirmed	tinyint(1)	NO		0	
+LastLoginAt	datetime	YES		NULL	
+CreatedAt	datetime	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+UpdatedAt	datetime	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED on update CURRENT_TIMESTAMP

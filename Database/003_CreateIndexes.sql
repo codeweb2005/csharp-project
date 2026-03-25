@@ -18,8 +18,8 @@ CREATE INDEX `IX_POIs_CategoryId`
     ON `POIs` (`CategoryId`, `IsActive`, `Rating`);
 
 -- Tìm POI theo chủ quán
-CREATE INDEX `IX_POIs_VendorId`
-    ON `POIs` (`VendorId`);
+CREATE INDEX `IX_POIs_VendorUserId`
+    ON `POIs` (`VendorUserId`);
 
 -- POI nổi bật
 CREATE INDEX `IX_POIs_Featured`

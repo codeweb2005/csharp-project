@@ -29,7 +29,7 @@ BEGIN
         p.`Id`,
         p.`Latitude`,
         p.`Longitude`,
-        p.`GeofenceRadiusMeters`,
+        p.`GeofenceRadius`,
         p.`Rating`,
         p.`PriceRangeMin`,
         p.`PriceRangeMax`,
@@ -68,7 +68,7 @@ BEGIN
                 COS(RADIANS(p_UserLatitude)) *
                 COS(RADIANS(p.`Latitude`)) *
                 POW(SIN(RADIANS(p.`Longitude` - p_UserLongitude) / 2), 2)
-            ))) <= p.`GeofenceRadiusMeters`
+            ))) <= p.`GeofenceRadius`
             THEN 1
             ELSE 0
         END AS `IsInsideGeofence`
@@ -208,7 +208,7 @@ BEGIN
     -- 1) Thông tin POI chính
     SELECT
         p.`Id`, p.`Latitude`, p.`Longitude`,
-        p.`GeofenceRadiusMeters`, p.`Address`, p.`PhoneNumber`,
+        p.`GeofenceRadius`, p.`Address`, p.`Phone`,
         p.`Website`, p.`OpeningHours`, p.`PriceRangeMin`, p.`PriceRangeMax`,
         p.`Rating`, p.`TotalVisits`, p.`IsFeatured`,
         pt.`Name`, pt.`ShortDescription`, pt.`FullDescription`,
@@ -271,7 +271,7 @@ BEGIN
 
     -- 1) POI mới/cập nhật
     SELECT p.`Id`, p.`CategoryId`, p.`Latitude`, p.`Longitude`,
-           p.`GeofenceRadiusMeters`, p.`Address`, p.`PhoneNumber`,
+           p.`GeofenceRadius`, p.`Address`, p.`Phone`,
            p.`OpeningHours`, p.`PriceRangeMin`, p.`PriceRangeMax`,
            p.`Rating`, p.`IsActive`, p.`IsFeatured`, p.`UpdatedAt`,
            pt.`Name`, pt.`ShortDescription`, pt.`FullDescription`,
