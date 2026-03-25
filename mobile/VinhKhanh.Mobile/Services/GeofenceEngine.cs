@@ -1,4 +1,4 @@
-using VinhKhanh.Mobile.Models;
+﻿using VinhKhanh.Mobile.Models;
 
 namespace VinhKhanh.Mobile.Services;
 
@@ -7,7 +7,7 @@ namespace VinhKhanh.Mobile.Services;
 /// </summary>
 internal enum GeofenceState
 {
-    Unknown,    // Initial state — no reading yet
+    Unknown,    // Initial state â€” no reading yet
     Outside,    // User is outside the geofence radius
     Inside      // User is inside the geofence radius
 }
@@ -17,7 +17,7 @@ internal enum GeofenceState
 ///
 /// Algorithm:
 ///   1. On each GPS update, compute Haversine distance to every loaded POI.
-///   2. Maintain a per-POI state machine (Unknown → Outside ↔ Inside).
+///   2. Maintain a per-POI state machine (Unknown â†’ Outside â†” Inside).
 ///   3. Debounce: only fire GeofenceEntered after DebounceCount consecutive
 ///      in-range readings, preventing false triggers from GPS jitter.
 ///   4. Priority: when multiple POIs trigger simultaneously, only fire the
@@ -27,17 +27,17 @@ internal enum GeofenceState
 ///
 /// Thread-safety: all state is modified on the thread that calls OnLocationUpdated,
 /// which is the background polling thread from LocationService. GeofenceEntered and
-/// GeofenceExited are raised on that same thread — subscribers dispatch to UI thread.
+/// GeofenceExited are raised on that same thread â€” subscribers dispatch to UI thread.
 /// </summary>
 public class GeofenceEngine
 {
-    // ── Dependencies ───────────────────────────────────────────────────────────
+    // â”€â”€ Dependencies â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private readonly ILocationService _locationService;
 
-    // ── Configuration ──────────────────────────────────────────────────────────
+    // â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// <summary>
     /// Number of consecutive in-range GPS readings before GeofenceEntered fires.
-    /// At 5s poll interval, 3 readings ≈ 15 seconds dwell time.
+    /// At 5s poll interval, 3 readings â‰ˆ 15 seconds dwell time.
     /// </summary>
     public int DebounceCount { get; set; } = 3;
 
@@ -48,35 +48,35 @@ public class GeofenceEngine
     /// </summary>
     public TimeSpan CooldownDuration { get; set; } = TimeSpan.FromMinutes(5);
 
-    // ── State ──────────────────────────────────────────────────────────────────
+    // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private List<PoiLocal> _pois = [];
-    private readonly Dictionary<int, GeofenceState> _states    = [];   // POI ID → state
-    private readonly Dictionary<int, int>           _debounce  = [];   // POI ID → in-range reading count
-    private readonly Dictionary<int, DateTime>      _cooldownUntil = []; // POI ID → cooldown expiry (UTC)
+    private readonly Dictionary<int, GeofenceState> _states    = [];   // POI ID â†’ state
+    private readonly Dictionary<int, int>           _debounce  = [];   // POI ID â†’ in-range reading count
+    private readonly Dictionary<int, DateTime>      _cooldownUntil = []; // POI ID â†’ cooldown expiry (UTC)
 
     // Track which POI is currently "active" so we fire GeofenceExited correctly
     private PoiLocal? _activePoi;
 
-    // ── Events ─────────────────────────────────────────────────────────────────
+    // â”€â”€ Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// <summary>Fired when the user has dwelt inside a POI's geofence long enough.</summary>
     public event EventHandler<PoiLocal>? GeofenceEntered;
 
     /// <summary>Fired immediately when the user leaves a POI's geofence.</summary>
     public event EventHandler<PoiLocal>? GeofenceExited;
 
-    // ── Constructor ────────────────────────────────────────────────────────────
+    // â”€â”€ Constructor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public GeofenceEngine(ILocationService locationService)
     {
         _locationService = locationService;
         _locationService.LocationUpdated += OnLocationUpdated;
     }
 
-    // ── Public API ─────────────────────────────────────────────────────────────
+    // â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Replace the POI watch list. Called after fetching nearby POIs from the API.
     /// Resets all debounce counts and states for new/changed POIs.
-    /// Cooldown timers are preserved across list refreshes (intentional —
+    /// Cooldown timers are preserved across list refreshes (intentional â€”
     /// we do not want to replay audio just because the list was refreshed).
     /// </summary>
     public void LoadPOIs(IEnumerable<PoiLocal> pois)
@@ -97,7 +97,7 @@ public class GeofenceEngine
         {
             _states.TryAdd(poi.Id, GeofenceState.Unknown);
             _debounce.TryAdd(poi.Id, 0);
-            // Do NOT reset _cooldownUntil — preserve existing cooldowns
+            // Do NOT reset _cooldownUntil â€” preserve existing cooldowns
         }
     }
 
@@ -112,14 +112,14 @@ public class GeofenceEngine
     }
 
     /// <summary>
-    /// Reset cooldown for a POI — e.g. when user taps "Play Again" manually.
+    /// Reset cooldown for a POI â€” e.g. when user taps "Play Again" manually.
     /// </summary>
     public void ResetCooldown(int poiId)
     {
         _cooldownUntil.Remove(poiId);
     }
 
-    // ── Private ────────────────────────────────────────────────────────────────
+    // â”€â”€ Private â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Called on every GPS fix. Runs the geofence state machine for all POIs.
@@ -152,8 +152,7 @@ public class GeofenceEngine
                     if (now >= cooldown)
                         newEntries.Add(poi);
                     else
-                        Console.WriteLine(
-                            $"[GeofenceEngine] {poi.Name} in cooldown for {(cooldown - now).TotalSeconds:F0}s more.");
+                        System.Diagnostics.Debug.WriteLine($"[GeofenceEngine] {poi.Name} in cooldown for {(cooldown - now).TotalSeconds:F0}s more.");
                 }
             }
             else
@@ -190,7 +189,7 @@ public class GeofenceEngine
     }
 
     /// <summary>
-    /// Haversine formula — great-circle distance between two lat/lng points in metres.
+    /// Haversine formula â€” great-circle distance between two lat/lng points in metres.
     /// More accurate than Euclidean for distances across the Earth's curved surface.
     /// </summary>
     /// <param name="lat1">Latitude of point A in decimal degrees.</param>
