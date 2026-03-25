@@ -1,92 +1,19 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* ── Custom theme tokens via Tailwind v4 @theme ── */
-@theme {
-  --color-primary: #1e70d6;
-  --color-primary-light: #e6f0fa;
-  --color-primary-hover: #155bb3;
-
-  --color-blue-soft: #f0f7ff;
-  --color-red-soft: #fef2f2;
-  --color-orange-soft: #fff7ed;
-  --color-green-soft: #f0fdf4;
-  --color-purple-soft: #f5f3ff;
-
-  --color-bg-app: #f4f7fe;
-  --color-bg-card: #ffffff;
-  --color-bg-sidebar: #ffffff;
-  --color-bg-topbar: #ffffff;
-
-  --color-text-dark: #1e293b;
-  --color-text-muted: #64748b;
-  --color-text-light: #94a3b8;
-
-  --color-border-light: #e2e8f0;
-
-  --font-family-sans: 'Poppins', sans-serif;
-
-  --animate-fade-in: fadeIn 0.3s ease;
-  --animate-spin: spin 0.6s linear infinite;
-  --animate-float: floatEmoji 6s ease-in-out infinite;
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+.animation-delay-2000 {
+  animation-delay: 2s;
 }
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.animation-delay-4000 {
+  animation-delay: 4s;
 }
-
-@keyframes floatEmoji {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(10deg); }
-}
-
-/* ── Import Google Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-
-/* ── Base Resets ── */
-@layer base {
-  body {
-    @apply font-sans bg-bg-app text-text-dark leading-relaxed overflow-x-hidden;
-  }
-  a { @apply no-underline text-inherit; }
-  button { @apply cursor-pointer border-none bg-transparent font-sans; }
-}
-
-/* ── Reusable Component Classes ── */
-@layer components {
-  .card {
-    @apply bg-bg-card rounded-lg shadow-sm p-5 relative;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  }
-  .card-title {
-    @apply text-[0.95rem] font-semibold text-text-dark mb-4 flex justify-between items-center;
-  }
-
-  /* Status Badges */
-  .status-badge {
-    @apply inline-flex justify-center items-center px-2.5 py-1 rounded text-xs font-medium;
-  }
-  .badge-completed, .badge-on-hold, .badge-active {
-    @apply bg-green-100 text-green-800;
-  }
-  .badge-pending {
-    @apply bg-sky-100 text-sky-700;
-  }
-  .badge-progress {
-    @apply bg-amber-100 text-amber-700;
-  }
-  .badge-failed, .badge-danger {
-    @apply bg-red-100 text-red-800;
-  }
-  .badge-info {
-    @apply bg-primary text-white;
-  }
-}
-
-/* ── Recharts Overrides ── */
-.recharts-cartesian-axis-tick-value { font-family: 'Poppins'; font-size: 0.75rem; fill: var(--color-text-muted); }
-.recharts-tooltip-wrapper { outline: none !important; }
