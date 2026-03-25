@@ -1,4 +1,7 @@
-﻿export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5015/api/v1'
+export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5015/api/v1'
+
+/** Auth refresh endpoint (must match backend route). */
+const AUTH_REFRESH_PATH = '/auth/refresh'
 
 function getToken() {
   return localStorage.getItem('accessToken')
@@ -34,7 +37,7 @@ async function request(endpoint, options = {}) {
   if (res.status === 401 && token) {
     const refreshToken = localStorage.getItem('refreshToken')
     if (refreshToken) {
-      const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+      const refreshRes = await fetch(`${API_BASE}${AUTH_REFRESH_PATH}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(refreshToken)
