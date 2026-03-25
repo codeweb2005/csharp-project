@@ -394,6 +394,37 @@ public class DashboardController(IDashboardService svc) : BaseApiController
     [HttpGet("recent-activity")]
     public async Task<IActionResult> GetRecentActivity([FromQuery] int count = 10)
         => ApiResult(await svc.GetRecentActivityAsync(count, GetVendorPOIId()));
+
+    [HttpPost("seed-visits")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SeedVisits([FromServices] VinhKhanh.Infrastructure.Data.AppDbContext db)
+    {
+        var rnd = new Random();
+        var pois = db.POIs.Select(p => p.Id).ToList();
+        if (!pois.Any()) return Ok("No POIs in DB. Please run SQL 005_SeedData.sql first.");
+        
+        var langs = db.Languages.Select(l => l.Id).ToList();
+        var users = db.Users.Select(u => u.Id).ToList();
+        var visits = new List<VinhKhanh.Domain.Entities.VisitHistory>();
+        var now = DateTime.UtcNow;
+        
+        for (int i = 0; i < 800; i++)
+        {
+            visits.Add(new VinhKhanh.Domain.Entities.VisitHistory
+            {
+                POIId = pois[rnd.Next(pois.Count)],
+                LanguageId = langs.Any() ? langs[rnd.Next(langs.Count)] : 1,
+                UserId = users.Any() && rnd.Next(10) > 3 ? users[rnd.Next(users.Count)] : null,
+                VisitedAt = now.AddDays(-rnd.NextDouble() * 90), // Spread over 90 days for trends
+                ListenDuration = rnd.Next(10, 300),
+                NarrationPlayed = rnd.Next(10) > 2,
+                TriggerType = (VinhKhanh.Domain.Enums.TriggerType)rnd.Next(0, 3)
+            });
+        }
+        db.VisitHistory.AddRange(visits);
+        await db.SaveChangesAsync();
+        return Ok(new { message = "Seeded 800 random visits over the last 90 days successfully!" });
+    }
 }
 
 // ================================

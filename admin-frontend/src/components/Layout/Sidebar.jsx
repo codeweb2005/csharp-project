@@ -35,7 +35,7 @@ const menuItems = [
     { icon: MapPin,           label: 'Points of Interest', path: '/pois'      },
     { icon: Tag,              label: 'Categories',         path: '/categories' },
     { icon: Volume2,          label: 'Audio & Media',      path: '/audio'      },
-    { icon: UtensilsCrossed,  label: 'Menu',               path: '/menu'       },
+    { icon: UtensilsCrossed,  label: 'Menu',               path: '/menu',      vendorOnly: true },
 
     // Admin-only sections
     { icon: Users,    label: 'Users',            path: '/users',    adminOnly: true },
