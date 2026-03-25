@@ -100,16 +100,23 @@ public class AnalyticsService : IAnalyticsService
         if (vendorPOIId.HasValue)
             q = q.Where(v => v.POIId == vendorPOIId.Value);
 
-        var data = await q
+        var rawData = await q
             .GroupBy(v => v.VisitedAt.Date)
-            .Select(g => new VisitChartDto
+            .Select(g => new 
             {
-                Date       = g.Key.ToString("dd/MM"),
+                Date       = g.Key,
                 Visits     = g.Count(),
                 Narrations = g.Count(v => v.NarrationPlayed)
             })
             .OrderBy(v => v.Date)
             .ToListAsync();
+
+        var data = rawData.Select(v => new VisitChartDto
+        {
+            Date       = v.Date.ToString("dd/MM"),
+            Visits     = v.Visits,
+            Narrations = v.Narrations
+        }).ToList();
 
         return ApiResponse<List<VisitChartDto>>.Ok(data);
     }

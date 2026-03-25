@@ -1,4 +1,4 @@
-import { Search, Bell, Globe, LogOut } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import './TopBar.css'
@@ -36,19 +36,6 @@ export default function TopBar() {
             </div>
 
             <div className="topbar-right">
-                <div className="topbar-search">
-                    <Search size={16} />
-                    <input type="text" placeholder="Tìm kiếm..." className="topbar-search-input" />
-                </div>
-
-                <button className="topbar-icon-btn" title="Ngôn ngữ">
-                    <Globe size={18} />
-                </button>
-
-                <button className="topbar-icon-btn topbar-bell" title="Thông báo">
-                    <Bell size={18} />
-                    <span className="topbar-bell-dot" />
-                </button>
 
                 <div className="topbar-user">
                     <div className="topbar-user-avatar">{user?.fullName?.[0] || 'A'}</div>

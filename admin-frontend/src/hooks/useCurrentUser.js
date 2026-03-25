@@ -39,8 +39,10 @@ function decodeJwt(token) {
         if (!base64Url) return null
 
         // base64url → base64 → JSON
-        const base64    = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-        const jsonStr   = atob(base64)
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+        const jsonStr = decodeURIComponent(atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
         return JSON.parse(jsonStr)
     } catch {
         return null  // malformed token — treat as unauthenticated
@@ -58,12 +60,12 @@ export default function useCurrentUser() {
 
         if (!payload) {
             return {
-                userId:      null,
-                role:        null,
-                name:        null,
-                email:       null,
-                isAdmin:     false,
-                isVendor:    false,
+                userId: null,
+                role: null,
+                name: null,
+                email: null,
+                isAdmin: false,
+                isVendor: false,
                 vendorPOIId: null,
             }
         }
@@ -71,13 +73,13 @@ export default function useCurrentUser() {
         const role = payload.role ?? ''
 
         return {
-            userId:      parseInt(payload.sub, 10) || null,
+            userId: parseInt(payload.sub, 10) || null,
             role,
-            name:        payload.name  ?? '',
-            email:       payload.email ?? '',
+            name: payload.name ?? '',
+            email: payload.email ?? '',
             // Convenience booleans for conditional rendering
-            isAdmin:     role === 'Admin',
-            isVendor:    role === 'Vendor',
+            isAdmin: role === 'Admin',
+            isVendor: role === 'Vendor',
             // Only present in a Vendor's JWT (added by JwtService.GenerateAccessToken)
             vendorPOIId: payload.vendorPoiId ? parseInt(payload.vendorPoiId, 10) : null,
         }

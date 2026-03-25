@@ -123,16 +123,23 @@ public class DashboardService : IDashboardService
         if (vendorPOIId.HasValue)
             query = query.Where(v => v.POIId == vendorPOIId.Value);
 
-        var visits = await query
+        var rawVisits = await query
             .GroupBy(v => v.VisitedAt.Date)
-            .Select(g => new VisitChartDto
+            .Select(g => new 
             {
-                Date       = g.Key.ToString("dd/MM"),
+                Date       = g.Key,
                 Visits     = g.Count(),
                 Narrations = g.Count(v => v.NarrationPlayed)
             })
             .OrderBy(v => v.Date)
             .ToListAsync();
+
+        var visits = rawVisits.Select(v => new VisitChartDto
+        {
+            Date       = v.Date.ToString("dd/MM"),
+            Visits     = v.Visits,
+            Narrations = v.Narrations
+        }).ToList();
 
         return ApiResponse<List<VisitChartDto>>.Ok(visits);
     }
