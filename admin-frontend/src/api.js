@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5015/api/v1'
+﻿export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5015/api/v1'
 
 function getToken() {
   return localStorage.getItem('accessToken')
@@ -30,7 +30,7 @@ async function request(endpoint, options = {}) {
 
   const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers })
 
-  // Token expired → try refresh
+  // Token expired â†’ try refresh
   if (res.status === 401 && token) {
     const refreshToken = localStorage.getItem('refreshToken')
     if (refreshToken) {
@@ -48,7 +48,7 @@ async function request(endpoint, options = {}) {
         return handleResponse(retryRes)
       }
     }
-    // Refresh failed → logout
+    // Refresh failed â†’ logout
     clearTokens()
     window.location.href = '/login'
     throw new Error('Session expired')
