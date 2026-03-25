@@ -1,4 +1,4 @@
-﻿using VinhKhanh.Mobile.Models;
+using VinhKhanh.Mobile.Models;
 
 namespace VinhKhanh.Mobile.Services;
 
@@ -31,6 +31,9 @@ internal enum GeofenceState
 /// </summary>
 public class GeofenceEngine
 {
+    /// <summary>Default consecutive in-range readings before <see cref="GeofenceEntered"/> fires.</summary>
+    public const int DefaultDebounceReadings = 3;
+
     // â”€â”€ Dependencies â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private readonly ILocationService _locationService;
 
@@ -39,7 +42,7 @@ public class GeofenceEngine
     /// Number of consecutive in-range GPS readings before GeofenceEntered fires.
     /// At 5s poll interval, 3 readings â‰ˆ 15 seconds dwell time.
     /// </summary>
-    public int DebounceCount { get; set; } = 3;
+    public int DebounceCount { get; set; } = DefaultDebounceReadings;
 
     /// <summary>
     /// Minimum time before the same POI can trigger GeofenceEntered again.
