@@ -77,6 +77,9 @@ export default function App() {
                     <Route path="offline"    element={<Offline />} />
                     <Route path="settings"   element={<Settings />} />
                 </Route>
+
+                {/* Catch-all route for unknown URLs: Redirect to / (which evaluates auth and redirects to /login if needed) */}
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
     )

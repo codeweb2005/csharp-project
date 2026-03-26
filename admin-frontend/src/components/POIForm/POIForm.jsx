@@ -2,7 +2,7 @@
  * POIForm — Create / Edit Modal for Points of Interest
  *
  * Features:
- *   - Google Maps coordinate picker (MapPicker component) with geofence circle
+ *   - OpenStreetMap coordinate picker (MapPicker + Leaflet.js) with geofence circle
  *   - Full CRUD fields: name, category, address, phone, hours, price range
  *   - Priority field for geofence conflict resolution
  *   - Multilingual translations tab (VI / EN)
@@ -345,7 +345,7 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
                                 The dashed circle shows the geofence radius.
                             </p>
 
-                            {/* MapPicker — integrates Google Maps */}
+                            {/* MapPicker — integrates OpenStreetMap via Leaflet.js */}
                             <MapPicker
                                 lat={form.latitude}
                                 lng={form.longitude}

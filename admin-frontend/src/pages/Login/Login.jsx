@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import './Login.css'
@@ -11,7 +11,12 @@ export default function Login() {
     const [email, setEmail] = useState('admin@vinhkhanh.app')
     const [password, setPassword] = useState('Admin@123')
     const navigate = useNavigate()
-    const { login } = useAuth()
+    const { login, user, loading: authLoading } = useAuth()
+
+    // Redirect to dashboard immediately if already authenticated
+    if (!authLoading && user) {
+        return <Navigate to="/dashboard" replace />
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()

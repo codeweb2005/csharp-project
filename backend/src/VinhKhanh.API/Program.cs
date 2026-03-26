@@ -114,7 +114,11 @@ app.UseMiddleware<RequestLoggingMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "VK Food Tour API v1"));
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "VK Food Tour API v1");
+        c.RoutePrefix = "swagger";
+    });
 }
 
 app.UseCors("AllowFrontend");
