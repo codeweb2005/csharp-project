@@ -14,6 +14,7 @@ public class ApiClient
 {
     private const string AccessTokenKey = "vk_access_token";
     private const string RefreshTokenKey = "vk_refresh_token";
+    private const string NearbyPoisPath = "pois/nearby";
 
     private readonly HttpClient _http;
     private readonly string _baseUrl;
@@ -44,7 +45,7 @@ public class ApiClient
         {
             var latS = Uri.EscapeDataString(lat.ToString(CultureInfo.InvariantCulture));
             var lngS = Uri.EscapeDataString(lng.ToString(CultureInfo.InvariantCulture));
-            var url = $"{_baseUrl}/pois/nearby?lat={latS}&lng={lngS}&radiusMeters={radiusMeters}&langId={langId}";
+            var url = $"{_baseUrl}/{NearbyPoisPath}?lat={latS}&lng={lngS}&radiusMeters={radiusMeters}&langId={langId}";
 
             var res = await _http.GetFromJsonAsync<ApiEnvelope<List<NearbyPoiResponse>>>(url, JsonRead);
             if (res?.Data is null) return [];
