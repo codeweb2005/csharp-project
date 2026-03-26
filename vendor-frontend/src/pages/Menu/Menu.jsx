@@ -169,7 +169,7 @@ export default function MenuPage() {
             message.success('Deleted item')
             fetchMenu()
         } catch (err) {
-            console.error('[Menu] delete failed:', err)
+            console.error('[Menu] delete error (id=' + item?.id + '):', err?.message || err)
             message.error('Error deleting item')
         }
     }
