@@ -87,12 +87,11 @@ builder.Services.AddScoped<ILanguageService, LanguageService>();
 
 // File storage: switch between local (dev) and S3 (prod) via config.
 // Set FileStorage:Provider=s3 in production ECS environment variables.
-builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
-// TODO: implement S3FileStorageService in Phase 4 and conditionally register:
-// if (builder.Configuration["FileStorage:Provider"] == "s3")
-//     builder.Services.AddScoped<IFileStorageService, S3FileStorageService>();
-// else
-//     builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+var storageProvider = builder.Configuration["FileStorage:Provider"];
+if (storageProvider?.Equals("s3", StringComparison.OrdinalIgnoreCase) == true)
+    builder.Services.AddScoped<IFileStorageService, S3FileStorageService>();
+else
+    builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>

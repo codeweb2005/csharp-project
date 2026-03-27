@@ -391,6 +391,7 @@ public class OfflinePackageDto
     public int Progress { get; set; }
     public string? CurrentStep { get; set; }
     public long? FileSize { get; set; }
+    public string? FilePath { get; set; }   // S3 key or local relative path for download redirect
     public string? Checksum { get; set; }
     public int DownloadCount { get; set; }
     public int POICount { get; set; }

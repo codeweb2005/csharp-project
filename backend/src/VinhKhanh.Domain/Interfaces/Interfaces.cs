@@ -34,6 +34,13 @@ public interface IFileStorageService
     Task DeleteAsync(string filePath);
     Task<Stream?> GetFileAsync(string filePath);
     string GetFileUrl(string filePath);
+    /// <summary>
+    /// Returns a short-lived presigned URL for private files (S3 only).
+    /// For local storage, returns the same value as GetFileUrl.
+    /// </summary>
+    string GetSignedUrl(string key, int expiryMinutes = 60);
+    /// <summary>Returns true if the backend is using S3 (cloud) storage.</summary>
+    bool IsCloudStorage { get; }
 }
 
 /// <summary>TTS service</summary>

@@ -91,6 +91,7 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
 
     const [activeLang, setActiveLang] = useState(0)   // index into LANGUAGES
     const [saving, setSaving] = useState(false)
+    const [geocoding, setGeocoding] = useState(false)
     const [error, setError] = useState(null)
 
     // ── Handlers ───────────────────────────────────────────────────────
@@ -112,6 +113,30 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
     /** Called by MapPicker when user clicks/drags the marker */
     function handleLocationChange({ lat, lng }) {
         setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))
+    }
+
+    /** Use OpenStreetMap Nominatim API to find coordinates from Address text */
+    async function handleGeocodeAddress() {
+        if (!form.address.trim()) {
+            setError('Please enter an address to locate on the map.')
+            return
+        }
+        setGeocoding(true)
+        setError(null)
+        try {
+            const q = encodeURIComponent(form.address)
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`)
+            const data = await res.json()
+            if (data && data.length > 0) {
+                setForm(prev => ({ ...prev, latitude: data[0].lat, longitude: data[0].lon }))
+            } else {
+                setError('Could not find coordinates for this address. Try being more specific (e.g., add "Hồ Chí Minh").')
+            }
+        } catch (err) {
+            setError('Failed to look up address via OpenStreetMap.')
+        } finally {
+            setGeocoding(false)
+        }
     }
 
     /** Submit to API */
@@ -225,13 +250,24 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
 
                             {/* Address */}
                             <label className="poi-form-label">
-                                Address
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Address</span>
+                                    <button 
+                                        type="button" 
+                                        className="btn-link" 
+                                        onClick={handleGeocodeAddress}
+                                        disabled={geocoding}
+                                        style={{ fontSize: '0.78rem' }}
+                                    >
+                                        {geocoding ? 'Locating…' : '📍 Locate on Map'}
+                                    </button>
+                                </div>
                                 <input
                                     className="poi-form-input"
                                     type="text"
                                     value={form.address}
                                     onChange={e => setField('address', e.target.value)}
-                                    placeholder="e.g. 149 Vĩnh Khánh, P.10, Q.4"
+                                    placeholder="e.g. 149 Vĩnh Khánh, P.10, Q.4, Hồ Chí Minh"
                                 />
                             </label>
 

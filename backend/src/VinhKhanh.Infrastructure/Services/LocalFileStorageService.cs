@@ -62,4 +62,14 @@ public class LocalFileStorageService : IFileStorageService
     {
         return $"{_baseUrl}/{filePath.Replace('\\', '/')}";
     }
+
+    /// <summary>
+    /// Local storage has no signed URLs — returns a plain relative URL.
+    /// This is fine because local uploads are served as static files.
+    /// </summary>
+    public string GetSignedUrl(string key, int expiryMinutes = 60)
+        => GetFileUrl(key);
+
+    /// <summary>Always false for local storage.</summary>
+    public bool IsCloudStorage => false;
 }

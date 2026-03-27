@@ -26,6 +26,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Search, Plus, Star, Edit2, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
 import { pois as poisApi, categories as catsApi } from '../../api.js'
 import POIForm from '../../components/POIForm/POIForm.jsx'
+import POIMiniMap from '../../components/POIMiniMap/POIMiniMap.jsx'
 import useCurrentUser from '../../hooks/useCurrentUser.js'
 import './POIList.css'
 
@@ -55,6 +56,9 @@ export default function POIList() {
     const [showForm, setShowForm] = useState(false)
     const [editingPOI, setEditingPOI] = useState(null)  // null = create mode
 
+    // Mini-map selection: highlighted row/pin
+    const [selectedPoiId, setSelectedPoiId] = useState(null)
+
     // ── Data fetching ──────────────────────────────────────────────────
 
     const fetchData = useCallback(async () => {
@@ -68,7 +72,7 @@ export default function POIList() {
                 categoryId: categoryFilter !== 'all' ? Number(categoryFilter) : undefined,
             })
             setData(result.data?.items ?? [])
-            setTotal(result.data?.totalCount ?? 0)
+            setTotal(result.data?.pagination?.totalItems ?? 0)
         } catch (err) {
             setError('Failed to load POIs. Ensure the backend is running.')
             console.error('[POIList] fetch error:', err)
@@ -176,11 +180,6 @@ export default function POIList() {
                     ))}
                 </select>
 
-                {/*
-                  * "Add POI" button — hidden for Vendors.
-                  * Vendors cannot create new POIs; that is an Admin responsibility.
-                  * The backend also enforces this (POIsController.Create is Admin-only).
-                  */}
                 {!isVendor && (
                     <button className="btn btn-primary" onClick={openCreate}>
                         <Plus size={16} />
@@ -189,11 +188,14 @@ export default function POIList() {
                 )}
             </div>
 
-            {/* Error / Loading states */}
             {error && <div className="poi-error-banner">⚠️ {error}</div>}
 
-            {/* Table */}
-            <div className="card poi-table-card">
+            {/* Two-column layout: table + mini-map */}
+            <div className="poi-layout">
+
+                {/* Table column */}
+                <div className="poi-table-col">
+                <div className="card poi-table-card">
                 {loading ? (
                     <div className="poi-loading">Loading…</div>
                 ) : (
@@ -222,7 +224,15 @@ export default function POIList() {
                                     </td>
                                 </tr>
                             ) : data.map(poi => (
-                                <tr key={poi.id} className={!poi.isActive ? 'inactive-row' : ''}>
+                                <tr
+                                    key={poi.id}
+                                    className={[
+                                        !poi.isActive ? 'inactive-row' : '',
+                                        selectedPoiId === poi.id ? 'selected-row' : ''
+                                    ].filter(Boolean).join(' ')}
+                                    onClick={() => setSelectedPoiId(poi.id === selectedPoiId ? null : poi.id)}
+                                    style={{ cursor: 'pointer' }}
+                                >
                                     <td className="poi-id">{poi.id}</td>
                                     <td>
                                         <div className="poi-name-cell">
@@ -253,7 +263,7 @@ export default function POIList() {
                                             {poi.isActive ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td onClick={e => e.stopPropagation()}>
                                         <div className="poi-actions">
                                             {/* Toggle active — shown for all roles */}
                                             <button
@@ -344,7 +354,19 @@ export default function POIList() {
                         >»</button>
                     </div>
                 </div>
-            </div>
+                </div>{/* end poi-table-card */}
+                </div>{/* end poi-table-col */}
+
+                {/* Mini-map column */}
+                <div className="poi-map-col">
+                    <POIMiniMap
+                        pois={data}
+                        selectedPoiId={selectedPoiId}
+                        onSelectPoi={poi => setSelectedPoiId(poi.id === selectedPoiId ? null : poi.id)}
+                    />
+                </div>
+
+            </div>{/* end poi-layout */}
 
             {/* POI Create / Edit Modal */}
             {showForm && (

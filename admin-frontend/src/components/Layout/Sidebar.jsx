@@ -32,22 +32,22 @@ const menuItems = [
     // Vendor dashboard — shown only for Vendors (mirrors /dashboard route in App.jsx)
     { icon: Store, label: 'My Shop', path: '/dashboard', vendorOnly: true },
 
-    { icon: MapPin,           label: 'Points of Interest', path: '/pois'      },
-    { icon: Tag,              label: 'Categories',         path: '/categories' },
-    { icon: Volume2,          label: 'Audio & Media',      path: '/audio'      },
-    { icon: UtensilsCrossed,  label: 'Menu',               path: '/menu',      vendorOnly: true },
+    { icon: MapPin, label: 'Points of Interest', path: '/pois' },
+    { icon: Tag, label: 'Categories', path: '/categories' },
+    { icon: Volume2, label: 'Audio & Media', path: '/audio' },
+    { icon: UtensilsCrossed, label: 'Menu', path: '/menu', vendorOnly: true },
 
     // Admin-only sections
-    { icon: Users,    label: 'Users',            path: '/users',    adminOnly: true },
-    { icon: BarChart3,label: 'Analytics',        path: '/analytics'              },
-    { icon: Package,  label: 'Offline Packages', path: '/offline',  adminOnly: true },
-    { icon: Settings, label: 'Settings',         path: '/settings', adminOnly: true },
+    { icon: Users, label: 'Users', path: '/users', adminOnly: true },
+    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
+    { icon: Package, label: 'Offline Packages', path: '/offline', adminOnly: true },
+    { icon: Settings, label: 'Settings', path: '/settings', adminOnly: true },
 ]
 
 export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(false)
-    const location  = useLocation()
-    const navigate  = useNavigate()
+    const location = useLocation()
+    const navigate = useNavigate()
 
     // Read role from JWT (no API call, pure localStorage decode)
     const { isVendor, isAdmin, name, role } = useCurrentUser()
@@ -72,16 +72,6 @@ export default function Sidebar() {
 
             {/* ── Logo ─────────────────────────────────────────────── */}
             <div className="sidebar-logo">
-                <div className="sidebar-logo-icon">🍜</div>
-                {!collapsed && (
-                    <div className="sidebar-logo-text">
-                        <span className="sidebar-logo-title">VK Food Tour</span>
-                        {/* Show role badge next to the app title */}
-                        <span className="sidebar-logo-subtitle">
-                            {isVendor ? '🏪 Vendor Portal' : 'Admin Panel'}
-                        </span>
-                    </div>
-                )}
                 <button
                     className="sidebar-toggle"
                     onClick={() => setCollapsed(!collapsed)}
