@@ -235,6 +235,12 @@ export const offlinePackages = {
   getDownloadUrl: (id) => `${API_BASE}/offlinepackages/${id}/download`,
 }
 
+// ============ Sync ============
+export const sync = {
+  getDelta: (since, langId = 1) => request('/sync/delta?since=' + since + '&languageId=' + langId),
+  uploadVisits: (visits) => request('/sync/visits', { method: 'POST', body: JSON.stringify({ visits }) }),
+}
+
 // ============ Settings ============
 export const settings = {
   getAll: () => request('/settings'),
