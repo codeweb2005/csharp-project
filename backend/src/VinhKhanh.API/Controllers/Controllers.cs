@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VinhKhanh.Application.DTOs;
 using VinhKhanh.Application.Services;
@@ -63,6 +64,8 @@ public class AuthController(IAuthService authService) : BaseApiController
 {
     [HttpPost("login")]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
         => ApiResult(await authService.LoginAsync(request));
 
@@ -78,6 +81,8 @@ public class AuthController(IAuthService authService) : BaseApiController
 
     [HttpGet("me")]
     [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<UserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMe()
         => ApiResult(await authService.GetCurrentUserAsync(GetUserId()));
 
