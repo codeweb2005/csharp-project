@@ -53,7 +53,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<NarrationPlayer>();
         builder.Services.AddSingleton<INarrationPlayer>(sp => sp.GetRequiredService<NarrationPlayer>());
 
-        builder.Services.AddHttpClient("VinhKhanh");
+        builder.Services.AddHttpClient("VinhKhanh", client =>
+        {
+            // Explicit default (100s) — large offline package downloads may need headroom later.
+            client.Timeout = TimeSpan.FromSeconds(100);
+        });
         builder.Services.AddSingleton<ApiClient>();
         builder.Services.AddSingleton<OfflineCacheStore>();
         builder.Services.AddSingleton<OfflinePackageSyncService>();
