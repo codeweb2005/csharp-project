@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Form, Input, Button, Checkbox, Typography, message } from 'antd'
+import { MailOutlined, LockOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useAuth } from '../../context/AuthContext'
 import './Login.css'
 
+const { Title, Text } = Typography
+
 export default function Login() {
-    const [showPw, setShowPw] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
-    const [email, setEmail] = useState('admin@vinhkhanh.app')
-    const [password, setPassword] = useState('Admin@123')
     const navigate = useNavigate()
     const { login, user, loading: authLoading } = useAuth()
 
@@ -18,19 +18,20 @@ export default function Login() {
         return <Navigate to="/dashboard" replace />
     }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault()
+    const onFinish = async (values) => {
         setLoading(true)
         setError('')
         try {
-            const res = await login(email, password)
+            const res = await login(values.email, values.password)
             if (res.success) {
                 navigate('/dashboard')
             } else {
                 setError(res.error?.message || 'Sai email hoặc mật khẩu')
+                message.error(res.error?.message || 'Sai email hoặc mật khẩu')
             }
         } catch (err) {
             setError(err?.error?.message || 'Không thể kết nối server. Hãy kiểm tra backend đang chạy.')
+            message.error(err?.error?.message || 'Không thể kết nối server. Hãy kiểm tra backend đang chạy.')
         } finally {
             setLoading(false)
         }
@@ -79,65 +80,47 @@ export default function Login() {
                     </div>
                     <p className="login-form-subtitle">Đăng nhập hệ thống quản trị</p>
 
-                    {error && (
-                        <div className="login-error">
-                            <span>⚠️</span> {error}
-                        </div>
-                    )}
+                    <Form
+                        name="login"
+                        layout="vertical"
+                        initialValues={{
+                            email: 'admin@vinhkhanh.app',
+                            password: 'Admin@123',
+                            remember: true,
+                        }}
+                        onFinish={onFinish}
+                        size="large"
+                        className="login-form-antd"
+                    >
+                        <Form.Item
+                            name="email"
+                            label="Email"
+                            rules={[{ required: true, message: 'Vui lòng nhập email!' }, { type: 'email', message: 'Email không hợp lệ!' }]}
+                        >
+                            <Input prefix={<MailOutlined className="site-form-item-icon" />} placeholder="admin@vinhkhanh.app" />
+                        </Form.Item>
 
-                    <form className="login-form" onSubmit={handleSubmit}>
-                        <div className="login-field">
-                            <label className="login-label">Email</label>
-                            <div className="login-input-wrap">
-                                <Mail size={16} />
-                                <input
-                                    type="email"
-                                    placeholder="admin@vinhkhanh.app"
-                                    className="login-input"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-                        </div>
+                        <Form.Item
+                            name="password"
+                            label={<div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}><span>Mật khẩu</span> <a href="#">Quên mật khẩu?</a></div>}
+                            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
+                        >
+                            <Input.Password
+                                prefix={<LockOutlined className="site-form-item-icon" />}
+                                placeholder="••••••••"
+                            />
+                        </Form.Item>
 
-                        <div className="login-field">
-                            <label className="login-label">
-                                Mật khẩu
-                                <a href="#" className="login-forgot">Quên mật khẩu?</a>
-                            </label>
-                            <div className="login-input-wrap">
-                                <Lock size={16} />
-                                <input
-                                    type={showPw ? 'text' : 'password'}
-                                    placeholder="••••••••"
-                                    className="login-input"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                                <button type="button" className="login-eye" onClick={() => setShowPw(!showPw)}>
-                                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                                </button>
-                            </div>
-                        </div>
+                        <Form.Item name="remember" valuePropName="checked">
+                            <Checkbox>Nhớ đăng nhập</Checkbox>
+                        </Form.Item>
 
-                        <label className="login-remember">
-                            <input type="checkbox" defaultChecked />
-                            <span>Nhớ đăng nhập</span>
-                        </label>
-
-                        <button type="submit" className={`login-btn ${loading ? 'loading' : ''}`} disabled={loading}>
-                            {loading ? (
-                                <div className="login-spinner" />
-                            ) : (
-                                <>
-                                    Đăng nhập
-                                    <ArrowRight size={18} />
-                                </>
-                            )}
-                        </button>
-                    </form>
+                        <Form.Item>
+                            <Button type="primary" htmlType="submit" className="login-btn-antd" loading={loading} block icon={<ArrowRightOutlined />}>
+                                Đăng nhập
+                            </Button>
+                        </Form.Item>
+                    </Form>
 
                     <p className="login-footer">
                         © 2026 VK Food Tour — Phố Ẩm Thực Vĩnh Khánh

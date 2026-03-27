@@ -1,136 +1,144 @@
-/**
- * Categories — Admin page for managing POI categories.
- *
- * Wired to live API:
- *   GET    /api/v1/categories           → list all categories
- *   POST   /api/v1/categories           → create category
- *   PUT    /api/v1/categories/:id       → update category
- *   DELETE /api/v1/categories/:id       → delete category
- *   PATCH  /api/v1/categories/:id/toggle → toggle active status
- *
- * DTO shape (CategoryDto):
- *   { id, icon, color, sortOrder, isActive, poiCount, translations: [{ languageId, languageCode, flagEmoji, name }] }
- */
-
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, X, Save, Loader, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Popconfirm, Drawer, Form, Input, Button, Switch, Card, Row, Col, Typography, Space, Badge, message, Tooltip, InputNumber, ColorPicker, Avatar } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons'
 import { categories as catsApi } from '../../api.js'
-import './Categories.css'
+
+const { Title, Text } = Typography
 
 const defaultForm = { icon: '📍', color: '#3b82f6', sortOrder: 0, isActive: true, translations: [] }
 
 export default function Categories() {
     const [cats, setCats] = useState([])
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
-    const [editing, setEditing] = useState(null)         // null = closed, object = editing
-    const [isCreating, setIsCreating] = useState(false)  // true = new category mode
+    const [drawerVisible, setDrawerVisible] = useState(false)
+    const [isCreating, setIsCreating] = useState(false)
     const [saveLoading, setSaveLoading] = useState(false)
-    const [saveError, setSaveError] = useState('')
 
-    // Edit form state
-    const [form, setForm] = useState(defaultForm)
+    const [form] = Form.useForm()
+    const [editingState, setEditingState] = useState(null) // used for translations tracking
+
+    useEffect(() => { fetchCategories() }, [])
 
     async function fetchCategories() {
         setLoading(true)
-        setError(null)
         try {
             const res = await catsApi.getAll()
             setCats(res.data ?? [])
         } catch (err) {
-            setError('Không thể tải danh mục. Hãy kiểm tra backend.')
+            message.error('Không thể tải danh mục. Hãy kiểm tra backend.')
             console.error('[Categories] fetch error:', err)
         } finally {
             setLoading(false)
         }
     }
 
-    useEffect(() => { fetchCategories() }, [])
-
     function openEdit(cat) {
         setIsCreating(false)
-        setEditing(cat)
-        setForm({
+        setEditingState(cat)
+        
+        let transVals = {}
+        if (cat.translations) {
+            cat.translations.forEach((t, i) => {
+                transVals[`trans_${i}`] = t.name
+            })
+        }
+
+        form.setFieldsValue({
             icon: cat.icon,
             color: cat.color,
             sortOrder: cat.sortOrder,
-            isActive: cat.isActive,
-            translations: cat.translations?.map(t => ({ ...t })) || [],
+            ...transVals
         })
-        setSaveError('')
+        setDrawerVisible(true)
     }
 
     function openCreate() {
         setIsCreating(true)
-        setEditing({})
-        setForm({
+        const newCat = {
             ...defaultForm,
             translations: [
                 { languageId: 1, languageCode: 'vi', flagEmoji: '🇻🇳', name: '' },
                 { languageId: 2, languageCode: 'en', flagEmoji: '🇬🇧', name: '' },
             ]
+        }
+        setEditingState(newCat)
+        
+        let transVals = {}
+        newCat.translations.forEach((t, i) => {
+            transVals[`trans_${i}`] = t.name
         })
-        setSaveError('')
+
+        form.setFieldsValue({
+            icon: newCat.icon,
+            color: newCat.color,
+            sortOrder: newCat.sortOrder,
+            ...transVals
+        })
+        setDrawerVisible(true)
     }
 
-    function closePanel() {
-        setEditing(null)
-        setIsCreating(false)
+    function closeDrawer() {
+        setDrawerVisible(false)
+        setEditingState(null)
+        form.resetFields()
     }
 
-    function updateTranslation(idx, value) {
-        const updated = [...form.translations]
-        updated[idx] = { ...updated[idx], name: value }
-        setForm({ ...form, translations: updated })
-    }
-
-    async function handleSave() {
+    async function handleSave(values) {
         setSaveLoading(true)
-        setSaveError('')
         try {
-            const payload = {
-                icon: form.icon,
-                color: form.color,
-                sortOrder: Number(form.sortOrder),
-                isActive: form.isActive,
-                translations: form.translations.map(t => ({
+            let translations = []
+            if (editingState && editingState.translations) {
+                translations = editingState.translations.map((t, i) => ({
                     languageId: t.languageId,
-                    name: t.name,
-                })),
+                    name: values[`trans_${i}`]
+                }))
+            }
+
+            const hexColor = typeof values.color === 'string' ? values.color : values.color.toHexString()
+
+            const payload = {
+                icon: values.icon,
+                color: hexColor,
+                sortOrder: Number(values.sortOrder),
+                isActive: isCreating ? true : editingState.isActive,
+                translations: translations,
             }
 
             if (isCreating) {
                 await catsApi.create(payload)
+                message.success('Đã thêm danh mục mới')
             } else {
-                await catsApi.update(editing.id, payload)
+                await catsApi.update(editingState.id, payload)
+                message.success('Đã cập nhật danh mục')
             }
-            closePanel()
+            closeDrawer()
             fetchCategories()
         } catch (err) {
-            setSaveError(err?.error?.message || 'Lỗi khi lưu danh mục.')
+            message.error(err?.error?.message || 'Lỗi khi lưu danh mục.')
         } finally {
             setSaveLoading(false)
         }
     }
 
     async function handleDelete(cat) {
-        if (!window.confirm(`Xóa danh mục "${cat.translations?.[0]?.name || cat.icon}"?\n\nTất cả POI thuộc danh mục này cần được chuyển trước.`)) return
         try {
             await catsApi.delete(cat.id)
-            if (editing?.id === cat.id) closePanel()
+            message.success('Đã xóa danh mục')
             fetchCategories()
         } catch (err) {
             console.error('[Categories] delete failed:', err)
-            alert(err?.error?.message || 'Không thể xóa danh mục.')
+            message.error(err?.error?.message || 'Không thể xóa danh mục.')
         }
     }
 
-    async function handleToggle(cat) {
+    async function handleToggle(cat, checked) {
         try {
             await catsApi.toggle(cat.id)
+            message.success(checked ? 'Đã bật danh mục' : 'Đã tắt danh mục')
             fetchCategories()
         } catch (err) {
             console.error('[Categories] toggle failed:', err)
+            message.error('Lỗi khi bật/tắt danh mục')
         }
     }
 
@@ -140,132 +148,91 @@ export default function Categories() {
         return t?.name || cat.translations?.[0]?.name || '—'
     }
 
-    if (loading) {
-        return (
-            <div className="cats-page animate-fadeIn" style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
-                <Loader size={28} className="spin" />
-            </div>
-        )
-    }
-
     return (
-        <div className="cats-page animate-fadeIn">
-            {error && <div className="poi-error-banner">⚠️ {error}</div>}
-
-            <div className="cats-header">
-                <div className="cats-count">{cats.length} danh mục</div>
-                <button className="btn btn-primary" onClick={openCreate}>
-                    <Plus size={16} /> Thêm danh mục
-                </button>
+        <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Space>
+                    <Title level={4} style={{ margin: 0 }}>Danh mục</Title>
+                    <Badge count={cats.length} style={{ backgroundColor: '#2563eb' }} />
+                </Space>
+                <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                    Thêm danh mục
+                </Button>
             </div>
 
-            <div className="cats-layout">
-                {/* Card Grid */}
-                <div className="cats-grid">
-                    {cats.map(cat => (
-                        <div
-                            key={cat.id}
-                            className={`cat-card ${editing?.id === cat.id ? 'selected' : ''} ${!cat.isActive ? 'inactive-card' : ''}`}
-                            onClick={() => openEdit(cat)}
+            <Row gutter={[16, 16]}>
+                {cats.map(cat => (
+                    <Col xs={24} sm={12} lg={8} xl={6} key={cat.id}>
+                        <Card
+                            hoverable
+                            bordered={false}
+                            style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%', opacity: cat.isActive ? 1 : 0.6, borderLeft: `4px solid ${cat.color}` }}
+                            actions={[
+                                <Tooltip title={cat.isActive ? 'Đang bật' : 'Đang tắt'} key="toggle"><Switch size="small" checked={cat.isActive} onChange={(checked) => handleToggle(cat, checked)} /></Tooltip>,
+                                <Tooltip title="Sửa" key="edit"><Button type="text" icon={<EditOutlined style={{ color: '#10b981' }} />} onClick={() => openEdit(cat)} /></Tooltip>,
+                                <Tooltip title="Xóa" key="delete">
+                                    <Popconfirm title="Bạn có chắc chắn muốn xóa?" description="Tất cả POI thuộc danh mục này cần được chuyển trước." onConfirm={() => handleDelete(cat)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+                                        <Button type="text" danger icon={<DeleteOutlined />} />
+                                    </Popconfirm>
+                                </Tooltip>
+                            ]}
                         >
-                            <div className="cat-card-accent" style={{ background: cat.color }} />
-                            <div className="cat-card-body">
-                                <div className="cat-icon">{cat.icon}</div>
-                                <div className="cat-names">
-                                    <span className="cat-name-vi">{getName(cat, 'vi')}</span>
-                                    <span className="cat-name-en">{getName(cat, 'en')}</span>
-                                </div>
-                                <div className="cat-meta">
-                                    <div className="cat-color-dot" style={{ background: cat.color }} />
-                                    <span className="cat-poi-count">{cat.poiCount ?? 0} POI</span>
-                                    <span className={`badge ${cat.isActive ? 'badge-success' : 'badge-danger'}`}>
-                                        {cat.isActive ? 'Active' : 'Off'}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="cat-card-actions">
-                                <button className="btn-ghost" title="Toggle" onClick={e => { e.stopPropagation(); handleToggle(cat) }}>
-                                    {cat.isActive ? <ToggleRight size={14} color="#22c55e" /> : <ToggleLeft size={14} />}
-                                </button>
-                                <button className="btn-ghost" title="Sửa" onClick={e => { e.stopPropagation(); openEdit(cat) }}>
-                                    <Edit2 size={14} />
-                                </button>
-                                <button className="btn-ghost btn-ghost-danger" title="Xóa" onClick={e => { e.stopPropagation(); handleDelete(cat) }}>
-                                    <Trash2 size={14} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                            <Card.Meta
+                                avatar={<Avatar size="large" style={{ backgroundColor: cat.color + '20', color: cat.color, border: `1px solid ${cat.color}` }}>{cat.icon}</Avatar>}
+                                title={<Text strong>{getName(cat, 'vi')}</Text>}
+                                description={
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                                        <Text type="secondary" style={{ fontSize: 13 }}>{getName(cat, 'en')}</Text>
+                                        <Space>
+                                            <Badge status={cat.isActive ? 'success' : 'error'} />
+                                            <Text type="secondary">{cat.poiCount ?? 0} POI</Text>
+                                        </Space>
+                                    </div>
+                                }
+                            />
+                        </Card>
+                    </Col>
+                ))}
+            </Row>
+
+            <Drawer
+                title={isCreating ? 'Thêm danh mục mới' : 'Sửa danh mục'}
+                placement="right"
+                onClose={closeDrawer}
+                open={drawerVisible}
+                width={400}
+                extra={
+                    <Button type="primary" onClick={() => form.submit()} loading={saveLoading} icon={<SaveOutlined />}>
+                        {isCreating ? 'Tạo mới' : 'Lưu lại'}
+                    </Button>
+                }
+            >
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                    <Avatar size={64} style={{ backgroundColor: '#f1f5f9', fontSize: 32 }}>{form.getFieldValue('icon') || '📍'}</Avatar>
                 </div>
 
-                {/* Edit Panel */}
-                {editing && (
-                    <div className="cat-edit-panel animate-slideIn">
-                        <div className="cat-edit-header">
-                            <h3>{isCreating ? 'Thêm danh mục mới' : 'Sửa danh mục'}</h3>
-                            <button className="btn-ghost" onClick={closePanel}><X size={18} /></button>
-                        </div>
+                <Form form={form} layout="vertical" onFinish={handleSave}>
+                    <Form.Item name="icon" label="Emoji Icon" rules={[{ required: true, message: 'Vui lòng nhập icon' }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="color" label="Màu sắc" rules={[{ required: true, message: 'Vui lòng chọn màu' }]}>
+                        <ColorPicker format="hex" showText />
+                    </Form.Item>
+                    <Form.Item name="sortOrder" label="Thứ tự hiển thị (càng nhỏ càng đứng trước)">
+                        <InputNumber min={0} style={{ width: '100%' }} />
+                    </Form.Item>
 
-                        <div className="cat-edit-preview">
-                            <span className="cat-edit-icon">{form.icon}</span>
-                        </div>
-
-                        {saveError && <div className="login-error" style={{ margin: '0 0 12px', fontSize: 13 }}>⚠️ {saveError}</div>}
-
-                        <div className="cat-edit-form">
-                            <div className="form-group">
-                                <label className="form-label">Emoji Icon</label>
-                                <input
-                                    className="form-input"
-                                    value={form.icon}
-                                    onChange={e => setForm({ ...form, icon: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">Màu sắc</label>
-                                <div className="cat-color-input">
-                                    <input type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} className="cat-color-picker" />
-                                    <input className="form-input" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} style={{ flex: 1 }} />
-                                </div>
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">Thứ tự</label>
-                                <input
-                                    className="form-input"
-                                    type="number"
-                                    value={form.sortOrder}
-                                    onChange={e => setForm({ ...form, sortOrder: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="cat-edit-divider" />
-                            <h4 className="cat-edit-section-title">Tên đa ngôn ngữ</h4>
-
-                            {form.translations.map((t, i) => (
-                                <div className="form-group" key={i}>
-                                    <label className="form-label">{t.flagEmoji || '🌐'} {t.languageCode?.toUpperCase() || `Lang ${t.languageId}`}</label>
-                                    <input
-                                        className="form-input"
-                                        value={t.name}
-                                        onChange={e => updateTranslation(i, e.target.value)}
-                                        placeholder={`Nhập tên...`}
-                                    />
-                                </div>
-                            ))}
-
-                            <div className="cat-edit-actions">
-                                <button className="btn btn-primary w-full" onClick={handleSave} disabled={saveLoading}>
-                                    {saveLoading ? <Loader size={16} className="spin" /> : <Save size={16} />}
-                                    {isCreating ? ' Tạo mới' : ' Lưu thay đổi'}
-                                </button>
-                                <button className="btn btn-secondary w-full" onClick={closePanel}>Hủy</button>
-                            </div>
-                        </div>
+                    <div style={{ marginTop: 24, marginBottom: 16, borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
+                        <Text strong>Tên đa ngôn ngữ</Text>
                     </div>
-                )}
-            </div>
+
+                    {editingState?.translations?.map((t, i) => (
+                        <Form.Item key={i} name={`trans_${i}`} label={<span>{t.flagEmoji || '🌐'} {t.languageCode?.toUpperCase()}</span>} rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
+                            <Input placeholder="Nhập tên..." />
+                        </Form.Item>
+                    ))}
+                </Form>
+            </Drawer>
         </div>
     )
 }

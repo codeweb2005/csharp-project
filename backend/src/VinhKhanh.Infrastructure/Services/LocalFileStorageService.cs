@@ -1,21 +1,30 @@
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using VinhKhanh.Domain.Interfaces;
 
 namespace VinhKhanh.Infrastructure.Services;
 
 /// <summary>
 /// Local file storage service — saves files to wwwroot/uploads.
-/// In production, replace with Azure Blob / S3 implementation.
+/// Returns absolute URLs using FileStorage:BaseUrl so the admin frontend
+/// (running on a different port) can load images without a proxy.
+/// In production, replace with S3FileStorageService.
 /// </summary>
 public class LocalFileStorageService : IFileStorageService
 {
     private readonly string _basePath;
     private readonly string _baseUrl;
 
-    public LocalFileStorageService(IWebHostEnvironment env)
+    public LocalFileStorageService(IWebHostEnvironment env, IConfiguration config)
     {
         _basePath = Path.Combine(env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot"), "uploads");
-        _baseUrl = "/uploads";
+
+        // Use configured absolute base URL (e.g. http://localhost:5015) so the
+        // frontend on a different port can load the image URLs directly.
+        var configuredBase = config["FileStorage:BaseUrl"]?.TrimEnd('/');
+        _baseUrl = string.IsNullOrWhiteSpace(configuredBase)
+            ? "/uploads"   // fallback: relative (same origin)
+            : $"{configuredBase}/uploads";
 
         if (!Directory.Exists(_basePath))
             Directory.CreateDirectory(_basePath);
@@ -60,11 +69,11 @@ public class LocalFileStorageService : IFileStorageService
 
     public string GetFileUrl(string filePath)
     {
-        return $"{_baseUrl}/{filePath.Replace('\\', '/')}";
+        return $"{_baseUrl}/{filePath.TrimStart('/').Replace('\\', '/')}";
     }
 
     /// <summary>
-    /// Local storage has no signed URLs — returns a plain relative URL.
+    /// Local storage has no signed URLs — returns a plain absolute URL.
     /// This is fine because local uploads are served as static files.
     /// </summary>
     public string GetSignedUrl(string key, int expiryMinutes = 60)

@@ -12,11 +12,11 @@ namespace VinhKhanh.Infrastructure.Services;
 /// Activated when FileStorage:Provider = "s3" in configuration.
 ///
 /// Config keys required:
-///   FileStorage:S3BucketName — the S3 bucket name
-///   FileStorage:S3Region     — AWS region, e.g. "ap-southeast-1"
-///   FileStorage:S3BaseUrl    — optional CDN/CloudFront URL prefix (falls back to S3 URL)
-///
-/// AWS credentials are read from the environment (IAM role or AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY).
+///   FileStorage:S3BucketName  — the S3 bucket name
+///   FileStorage:S3Region      — AWS region, e.g. "ap-southeast-1" (or "us-east-1")
+///   FileStorage:S3BaseUrl     — optional CDN/CloudFront URL prefix (falls back to S3 URL)
+///   FileStorage:AwsAccessKey  — AWS access key ID (or use AWS_ACCESS_KEY_ID env var)
+///   FileStorage:AwsSecretKey  — AWS secret key   (or use AWS_SECRET_ACCESS_KEY env var)
 /// </summary>
 public class S3FileStorageService : IFileStorageService
 {
@@ -32,14 +32,32 @@ public class S3FileStorageService : IFileStorageService
         _bucket = config["FileStorage:S3BucketName"]
             ?? throw new InvalidOperationException("FileStorage:S3BucketName is required when using S3 provider.");
 
-        var region = config["FileStorage:S3Region"] ?? "ap-southeast-1";
+        var region = config["FileStorage:S3Region"] ?? "us-east-1";
         var endpoint = RegionEndpoint.GetBySystemName(region);
 
-        _s3 = new AmazonS3Client(endpoint);
+        // Support explicit credentials (dev/CI) or fall back to IAM role (ECS production)
+        var accessKey = config["FileStorage:AwsAccessKey"] ?? Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
+        var secretKey = config["FileStorage:AwsSecretKey"] ?? Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
 
-        // CDN base URL (CloudFront) preferred; fallback to direct S3 HTTPS
+        // AmazonS3Config with ForcePathStyle=false (virtual-hosted, required for non-us-east-1)
+        // and follow-redirect disabled because we specify the correct region up front.
+        var s3Config = new AmazonS3Config
+        {
+            RegionEndpoint = endpoint,
+            // ForcePathStyle = false is the default; virtual-hosted style is required for all regions
+            // UseAccelerateEndpoint = false is the default
+            // Disable the 301 redirect loop by targeting the correct region directly
+        };
+
+        _s3 = (!string.IsNullOrWhiteSpace(accessKey) && !string.IsNullOrWhiteSpace(secretKey))
+            ? new AmazonS3Client(accessKey, secretKey, s3Config)
+            : new AmazonS3Client(s3Config); // default credential chain (IAM role)
+
+        // CDN base URL (CloudFront) preferred; fallback to direct S3 HTTPS (virtual-hosted style)
         _baseUrl = config["FileStorage:S3BaseUrl"]?.TrimEnd('/')
             ?? $"https://{_bucket}.s3.{region}.amazonaws.com";
+
+        _logger.LogInformation("S3FileStorageService initialized: bucket={Bucket} region={Region}", _bucket, region);
     }
 
     /// <summary>
@@ -52,12 +70,13 @@ public class S3FileStorageService : IFileStorageService
 
         var request = new PutObjectRequest
         {
-            BucketName = _bucket,
-            Key        = key,
-            InputStream = fileStream,
-            ContentType = GetContentType(extension),
-            // Public-read for audio/media served directly to mobile; adjust as needed
-            CannedACL  = S3CannedACL.PublicRead,
+            BucketName      = _bucket,
+            Key             = key,
+            InputStream     = fileStream,
+            ContentType     = GetContentType(extension),
+            // Do NOT set CannedACL — modern S3 buckets have ACLs disabled by default
+            // (Object Ownership = "Bucket owner enforced"). Public access is managed
+            // via a Bucket Policy (s3:GetObject Allow *) on the bucket itself.
             AutoCloseStream = false
         };
 
@@ -66,9 +85,7 @@ public class S3FileStorageService : IFileStorageService
         return key;
     }
 
-    /// <summary>
-    /// Delete a file from S3 by its key.
-    /// </summary>
+    /// <summary>Delete a file from S3 by its key.</summary>
     public async Task DeleteAsync(string key)
     {
         try
@@ -83,8 +100,8 @@ public class S3FileStorageService : IFileStorageService
     }
 
     /// <summary>
-    /// Download the file stream from S3. Used when the controller needs to proxy/stream the content.
-    /// For audio/media, prefer GetSignedUrlAsync + redirect in the controller instead.
+    /// Download the file stream from S3.
+    /// For audio/media, prefer GetSignedUrl + redirect in the controller instead.
     /// </summary>
     public async Task<Stream?> GetFileAsync(string key)
     {
@@ -101,7 +118,7 @@ public class S3FileStorageService : IFileStorageService
 
     /// <summary>
     /// Returns the public URL for a given S3 key (using CDN/CloudFront if configured).
-    /// For private objects, use GetSignedUrlAsync instead.
+    /// For private objects, use GetSignedUrl instead.
     /// </summary>
     public string GetFileUrl(string key)
     {
@@ -110,7 +127,7 @@ public class S3FileStorageService : IFileStorageService
 
     /// <summary>
     /// Generate a short-lived presigned URL for private S3 objects (e.g. audio streams).
-    /// Mobile client follows this redirect to download directly from S3 without proxying through the API.
+    /// Mobile client follows this redirect and downloads directly from S3 — no proxying.
     /// </summary>
     public string GetSignedUrl(string key, int expiryMinutes = 60)
     {

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
-import { MapPin, Users, Globe, Volume2, TrendingUp, TrendingDown, Eye, Loader } from 'lucide-react'
+import { MapPin, Users, Globe, Volume2, TrendingUp, TrendingDown, Eye } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { Card, Row, Col, Typography, Statistic, Spin, List, Avatar, Badge, Space } from 'antd'
 import { dashboard as dashboardApi } from '../../api'
 import './Dashboard.css'
+
+const { Title, Text } = Typography
 
 const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4']
 
@@ -54,8 +57,8 @@ export default function Dashboard() {
 
     if (loading) {
         return (
-            <div className="dashboard" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-                <Loader size={32} className="spin" />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+                <Spin size="large" />
             </div>
         )
     }
@@ -63,96 +66,95 @@ export default function Dashboard() {
     const maxVisits = topPOIs.length > 0 ? Math.max(...topPOIs.map(p => p.visits), 1) : 1
 
     return (
-        <div className="dashboard">
+        <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
             {/* Stat Cards */}
-            <div className="stats-grid">
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 {statConfig.map((s, i) => {
                     const Icon = s.icon
                     const value = stats?.[s.key] ?? 0
                     const change = s.changeKey ? stats?.[s.changeKey] : null
                     return (
-                        <div className="stat-card" key={i} style={{ animationDelay: `${i * 0.08}s` }}>
-                            <div className="stat-card-top">
-                                <div className="stat-icon" style={{ background: s.bg, color: s.color }}>
-                                    <Icon size={20} />
+                        <Col xs={24} sm={12} lg={6} key={i}>
+                            <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                    <div style={{ width: 40, height: 40, borderRadius: 8, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Icon size={20} />
+                                    </div>
+                                    {change !== null && (
+                                        <Space style={{ color: change >= 0 ? '#10b981' : '#ef4444', fontSize: 13, fontWeight: 500 }}>
+                                            {change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                            {change > 0 ? '+' : ''}{change}%
+                                        </Space>
+                                    )}
                                 </div>
-                                {change !== null && (
-                                    <span className={`stat-change ${change >= 0 ? 'up' : 'down'}`}>
-                                        {change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                        {change > 0 ? '+' : ''}{change}%
-                                    </span>
-                                )}
-                            </div>
-                            <div className="stat-value">{value.toLocaleString()}</div>
-                            <div className="stat-label">{s.label}</div>
-                        </div>
+                                <Statistic title={<span style={{ fontWeight: 500 }}>{s.label}</span>} value={value} valueStyle={{ fontWeight: 600, fontSize: 24 }} />
+                            </Card>
+                        </Col>
                     )
                 })}
-            </div>
+            </Row>
 
             {/* Charts Row */}
-            <div className="charts-row">
-                {/* Visits Chart */}
-                <div className="card chart-card chart-wide">
-                    <div className="chart-header">
-                        <h3 className="card-title">Lượt ghé thăm theo ngày</h3>
-                        <div className="chart-legend">
-                            <span className="legend-dot" style={{ background: '#3b82f6' }} /> Lượt ghé
-                            <span className="legend-dot" style={{ background: '#22c55e' }} /> Thuyết minh
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                <Col xs={24} lg={16}>
+                    <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                            <Title level={5} style={{ margin: 0 }}>Lượt ghé thăm theo ngày</Title>
+                            <Space size="middle">
+                                <Space><Badge color="#3b82f6" /><Text type="secondary" style={{ fontSize: 13 }}>Lượt ghé</Text></Space>
+                                <Space><Badge color="#22c55e" /><Text type="secondary" style={{ fontSize: 13 }}>Thuyết minh</Text></Space>
+                            </Space>
                         </div>
-                    </div>
-                    <ResponsiveContainer width="100%" height={260}>
-                        <AreaChart data={visitData}>
-                            <defs>
-                                <linearGradient id="gVisits" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />
-                                    <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
-                                </linearGradient>
-                                <linearGradient id="gNarr" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#22c55e" stopOpacity={0.15} />
-                                    <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                            <Tooltip
-                                contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
-                            />
-                            <Area type="monotone" dataKey="visits" stroke="#3b82f6" fill="url(#gVisits)" strokeWidth={2} />
-                            <Area type="monotone" dataKey="narrations" stroke="#22c55e" fill="url(#gNarr)" strokeWidth={2} />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
+                        <ResponsiveContainer width="100%" height={260}>
+                            <AreaChart data={visitData}>
+                                <defs>
+                                    <linearGradient id="gVisitsAnt" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />
+                                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                                    </linearGradient>
+                                    <linearGradient id="gNarrAnt" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.15} />
+                                        <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                                <Area type="monotone" dataKey="visits" stroke="#3b82f6" fill="url(#gVisitsAnt)" strokeWidth={2} />
+                                <Area type="monotone" dataKey="narrations" stroke="#22c55e" fill="url(#gNarrAnt)" strokeWidth={2} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </Card>
+                </Col>
 
-                {/* Top POIs */}
-                <div className="card chart-card">
-                    <h3 className="card-title">Top điểm ghé thăm</h3>
-                    <div className="top-pois">
-                        {topPOIs.length === 0 && <p style={{ color: '#94a3b8', fontSize: 14 }}>Chưa có dữ liệu</p>}
-                        {topPOIs.map((poi, i) => (
-                            <div className="top-poi-item" key={i}>
-                                <span className="top-poi-rank">#{i + 1}</span>
-                                <span className="top-poi-icon">{poi.icon || '📍'}</span>
-                                <span className="top-poi-name">{poi.name}</span>
-                                <div className="top-poi-bar-wrap">
-                                    <div
-                                        className="top-poi-bar"
-                                        style={{ width: `${(poi.visits / maxVisits) * 100}%` }}
-                                    />
+                <Col xs={24} lg={8}>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Top điểm ghé thăm</Title>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
+                        {topPOIs.length === 0 && <Text type="secondary">Chưa có dữ liệu</Text>}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
+                            {topPOIs.map((poi, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <Text type="secondary" style={{ width: 24, fontSize: 12 }}>#{i + 1}</Text>
+                                    <Avatar size="small" style={{ backgroundColor: '#f1f5f9' }}>{poi.icon || '📍'}</Avatar>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                            <Text strong style={{ fontSize: 13, width: 100 }} ellipsis>{poi.name}</Text>
+                                            <Text type="secondary" style={{ fontSize: 12 }}>{poi.visits}</Text>
+                                        </div>
+                                        <div style={{ background: '#f1f5f9', height: 6, borderRadius: 3, overflow: 'hidden' }}>
+                                            <div style={{ background: '#3b82f6', height: '100%', width: `${(poi.visits / maxVisits) * 100}%`, borderRadius: 3 }} />
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="top-poi-count">{poi.visits}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
+                            ))}
+                        </div>
+                    </Card>
+                </Col>
+            </Row>
 
             {/* Bottom Row */}
-            <div className="charts-row">
-                {/* Language Donut */}
-                <div className="card chart-card">
-                    <h3 className="card-title">Phân bố ngôn ngữ</h3>
-                    <div className="lang-chart-wrap">
+            <Row gutter={[16, 16]}>
+                <Col xs={24} lg={8}>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Phân bố ngôn ngữ</Title>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
                         <ResponsiveContainer width="100%" height={200}>
                             <PieChart>
                                 <Pie
@@ -171,46 +173,45 @@ export default function Dashboard() {
                                 <Tooltip formatter={(v, name) => [`${v} lượt`, name]} />
                             </PieChart>
                         </ResponsiveContainer>
-                        <div className="lang-legend">
+                        <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                             {langData.map((l, i) => (
-                                <div className="lang-legend-item" key={i}>
-                                    <span className="legend-dot" style={{ background: COLORS[i % COLORS.length] }} />
-                                    <span>{l.flagEmoji} {l.name}</span>
-                                    <span className="lang-pct">{l.percentage}%</span>
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <Space>
+                                        <Badge color={COLORS[i % COLORS.length]} />
+                                        <Text>{l.flagEmoji} {l.name}</Text>
+                                    </Space>
+                                    <Text strong>{l.percentage}%</Text>
                                 </div>
                             ))}
-                            {langData.length === 0 && (
-                                <p style={{ color: '#94a3b8', fontSize: 13 }}>Chưa có dữ liệu</p>
-                            )}
+                            {langData.length === 0 && <Text type="secondary">Chưa có dữ liệu</Text>}
                         </div>
-                    </div>
-                </div>
+                    </Card>
+                </Col>
 
-                {/* Recent Activity */}
-                <div className="card chart-card chart-wide">
-                    <h3 className="card-title">Hoạt động gần đây</h3>
-                    <div className="recent-list">
-                        {recentActivity.length === 0 && (
-                            <p style={{ color: '#94a3b8', fontSize: 14, padding: '20px 0' }}>Chưa có hoạt động</p>
-                        )}
-                        {recentActivity.map((v, i) => (
-                            <div className="recent-item" key={i}>
-                                <div className="recent-avatar">{v.flagEmoji || '🌐'}</div>
-                                <div className="recent-info">
-                                    <span className="recent-user">{v.userName}</span>
-                                    <span className="recent-action">đã ghé <strong>{v.poiName}</strong></span>
-                                </div>
-                                <span className={`badge ${v.triggerType === 'Geofence' ? 'badge-primary' : 'badge-purple'}`}>
-                                    {v.triggerType}
-                                </span>
-                                <span className="recent-time">
-                                    {new Date(v.visitedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
+                <Col xs={24} lg={16}>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Hoạt động gần đây</Title>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
+                        <List
+                            itemLayout="horizontal"
+                            dataSource={recentActivity}
+                            locale={{ emptyText: 'Chưa có hoạt động' }}
+                            renderItem={(item) => (
+                                <List.Item>
+                                    <List.Item.Meta
+                                        avatar={<Avatar style={{ backgroundColor: '#f1f5f9' }}>{item.flagEmoji || '🌐'}</Avatar>}
+                                        title={<>
+                                            <Text strong>{item.userName}</Text> <Text type="secondary">đã ghé</Text> <Text strong>{item.poiName}</Text>
+                                        </>}
+                                        description={new Date(item.visitedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                                    />
+                                    <Space>
+                                        <Badge status={item.triggerType === 'Geofence' ? 'processing' : 'warning'} text={<span style={{ fontSize: 12 }}>{item.triggerType}</span>} style={{ background: '#f8fafc', padding: '4px 8px', borderRadius: 4, border: '1px solid #e2e8f0' }} />
+                                    </Space>
+                                </List.Item>
+                            )}
+                        />
+                    </Card>
+                </Col>
+            </Row>
         </div>
     )
 }

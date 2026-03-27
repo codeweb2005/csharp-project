@@ -1,43 +1,26 @@
-/**
- * Sidebar — Main navigation for the admin web panel.
- *
- * Role-aware rendering:
- *   - Admin sees all navigation items (full panel access)
- *   - Vendor sees a filtered set: My Shop, My Menu, My Analytics
- *     (Users, Settings, Offline Packages, and the global Dashboard are hidden)
- *
- * The actual access control is enforced server-side (JWT role check on every API call).
- * The sidebar filtering is purely for UX — to avoid showing Vendors pages they cannot use.
- *
- * Uses the `useCurrentUser` hook to read the decoded JWT role claim without an extra API call.
- */
-
+import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Layout, Menu, Avatar, Typography, Button } from 'antd'
 import {
     LayoutDashboard, MapPin, Tag, Volume2, UtensilsCrossed,
-    Users, BarChart3, Package, Settings, LogOut, ChevronLeft, Menu,
-    Store  // Vendor "My Shop" icon
+    Users, BarChart3, Package, Settings, LogOut, ChevronLeft, Menu as MenuIcon,
+    Store
 } from 'lucide-react'
-import { useState } from 'react'
 import useCurrentUser from '../../hooks/useCurrentUser.js'
 import { clearTokens } from '../../api.js'
 import './Sidebar.css'
 
-// ── Navigation item definitions ──────────────────────────────────────────────
-// Each item has an optional `adminOnly` flag; Vendor users won't see those items.
+const { Sider } = Layout
+const { Text } = Typography
+
+// Navigation item definitions
 const menuItems = [
-    // Admin dashboard (global stats) — hidden for Vendors, they get VendorDashboard instead
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', adminOnly: true },
-
-    // Vendor dashboard — shown only for Vendors (mirrors /dashboard route in App.jsx)
     { icon: Store, label: 'My Shop', path: '/dashboard', vendorOnly: true },
-
     { icon: MapPin, label: 'Points of Interest', path: '/pois' },
     { icon: Tag, label: 'Categories', path: '/categories' },
     { icon: Volume2, label: 'Audio & Media', path: '/audio' },
     { icon: UtensilsCrossed, label: 'Menu', path: '/menu', vendorOnly: true },
-
-    // Admin-only sections
     { icon: Users, label: 'Users', path: '/users', adminOnly: true },
     { icon: BarChart3, label: 'Analytics', path: '/analytics' },
     { icon: Package, label: 'Offline Packages', path: '/offline', adminOnly: true },
@@ -49,88 +32,85 @@ export default function Sidebar() {
     const location = useLocation()
     const navigate = useNavigate()
 
-    // Read role from JWT (no API call, pure localStorage decode)
     const { isVendor, isAdmin, name, role } = useCurrentUser()
 
-    // Filter menu items based on the current user's role
     const visibleItems = menuItems.filter(item => {
-        if (item.adminOnly && !isAdmin) return false   // hide admin-only items from Vendors
-        if (item.vendorOnly && !isVendor) return false // hide vendor-only items from Admins
+        if (item.adminOnly && !isAdmin) return false
+        if (item.vendorOnly && !isVendor) return false
         return true
     })
 
-    function handleLogout() {
+    const handleLogout = () => {
         clearTokens()
         navigate('/login')
     }
 
-    // Derive the user's avatar initial from their name
     const avatarInitial = name ? name.charAt(0).toUpperCase() : (isVendor ? 'V' : 'A')
 
-    return (
-        <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    const items = visibleItems.map(item => {
+        const Icon = item.icon
+        return {
+            key: item.path,
+            icon: <Icon size={18} />,
+            label: item.label,
+        }
+    })
 
-            {/* ── Logo ─────────────────────────────────────────────── */}
-            <div className="sidebar-logo">
-                <button
-                    className="sidebar-toggle"
-                    onClick={() => setCollapsed(!collapsed)}
-                    title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                >
-                    {collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
-                </button>
+    // Determine active key (highlighting)
+    let selectedKey = '/dashboard'
+    for (const item of items) {
+        if (location.pathname === item.key || (item.key !== '/dashboard' && location.pathname.startsWith(item.key))) {
+            selectedKey = item.key
+            break
+        }
+    }
+
+    const onMenuClick = ({ key }) => {
+        navigate(key)
+    }
+
+    return (
+        <Sider
+            collapsible
+            collapsed={collapsed}
+            onCollapse={(value) => setCollapsed(value)}
+            theme="light"
+            width={260}
+            className="sidebar-antd"
+            trigger={null} // custom trigger below
+        >
+            <div className="sidebar-logo-antd" style={{ padding: '20px 16px', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between' }}>
+                {!collapsed && <Typography.Title level={4} style={{ margin: 0, color: '#2563eb' }}>VK Food Tour</Typography.Title>}
+                <Button type="text" onClick={() => setCollapsed(!collapsed)} icon={collapsed ? <MenuIcon size={18} /> : <ChevronLeft size={18} />} />
             </div>
 
-            {/* ── Navigation ───────────────────────────────────────── */}
-            <nav className="sidebar-nav" aria-label="Main navigation">
-                {visibleItems.map(item => {
-                    const Icon = item.icon
-                    const isActive = location.pathname === item.path ||
-                        (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
-                    return (
-                        <NavLink
-                            key={`${item.path}-${item.label}`}
-                            to={item.path}
-                            className={`sidebar-link ${isActive ? 'active' : ''}`}
-                            title={collapsed ? item.label : ''}
-                        >
-                            <Icon size={20} />
-                            {!collapsed && <span>{item.label}</span>}
-                            {isActive && <div className="sidebar-indicator" />}
-                        </NavLink>
-                    )
-                })}
-            </nav>
+            <Menu
+                mode="inline"
+                selectedKeys={[selectedKey]}
+                items={items}
+                onClick={onMenuClick}
+                style={{ borderRight: 0 }}
+            />
 
-            {/* ── Footer: user info + logout ────────────────────────── */}
-            <div className="sidebar-footer">
-                <div className="sidebar-user">
-                    <div
-                        className="sidebar-avatar"
-                        style={{ background: isVendor ? '#f59e0b' : undefined }}
-                        title={`${name} (${role})`}
-                    >
-                        {avatarInitial}
-                    </div>
+            <div className="sidebar-footer-antd" style={{ position: 'absolute', bottom: 0, width: '100%', padding: '16px', borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: collapsed ? 'center' : 'flex-start' }}>
+                    <Avatar style={{ backgroundColor: isVendor ? '#f59e0b' : '#3b82f6' }}>{avatarInitial}</Avatar>
                     {!collapsed && (
-                        <div className="sidebar-user-info">
-                            <span className="sidebar-user-name">{name || 'User'}</span>
-                            <span className="sidebar-user-role">
-                                {isVendor ? 'Shop owner' : 'Administrator'}
-                            </span>
+                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                            <Text strong ellipsis style={{ display: 'block', margin: 0 }}>{name || 'User'}</Text>
+                            <Text type="secondary" style={{ fontSize: 12 }}>{isVendor ? 'Shop owner' : 'Administrator'}</Text>
                         </div>
                     )}
                 </div>
                 {!collapsed && (
-                    <button
-                        className="sidebar-logout"
-                        title="Logout"
-                        onClick={handleLogout}
-                    >
-                        <LogOut size={18} />
-                    </button>
+                    <Button type="text" icon={<LogOut size={16} />} onClick={handleLogout} style={{ width: '100%', justifyContent: 'flex-start' }} danger>
+                        Đăng xuất
+                    </Button>
+                )}
+                {collapsed && (
+                    <Button type="text" icon={<LogOut size={16} />} onClick={handleLogout} style={{ width: '100%' }} danger />
                 )}
             </div>
-        </aside>
+        </Sider>
     )
 }

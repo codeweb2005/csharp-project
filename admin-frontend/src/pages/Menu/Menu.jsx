@@ -1,25 +1,9 @@
-/**
- * Menu — Admin page for managing POI menu items (food dishes).
- *
- * Wired to live API:
- *   GET    /api/v1/menu/poi/:poiId           → list menu items for a POI
- *   POST   /api/v1/menu/poi/:poiId           → create menu item
- *   PUT    /api/v1/menu/:id                  → update menu item
- *   DELETE /api/v1/menu/:id                  → delete menu item
- *   PATCH  /api/v1/menu/:id/toggle-available → toggle availability
- *   PATCH  /api/v1/menu/:id/toggle-signature → toggle signature dish
- *
- * Also loads POIs for the dropdown:
- *   GET    /api/v1/pois                      → POI list (for selector)
- *
- * DTO shape (MenuItemDto):
- *   { id, poiId, price, imageUrl, isSignature, isAvailable, sortOrder, name, description, translations }
- */
-
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Edit2, Trash2, X, Save, Star, Upload, Loader } from 'lucide-react'
+import { PlusOutlined, DeleteOutlined, SaveOutlined, UploadOutlined, StarFilled } from '@ant-design/icons'
+import { Card, Drawer, Form, Input, InputNumber, Button, Switch, Row, Col, Typography, Space, Badge, Popconfirm, Select, Tabs, message, Empty, Spin } from 'antd'
 import { menu as menuApi, pois as poisApi } from '../../api.js'
-import './Menu.css'
+
+const { Title, Text, Paragraph } = Typography
 
 function formatPrice(p) {
     return Number(p).toLocaleString('vi-VN') + ' ₫'
@@ -30,17 +14,15 @@ export default function MenuPage() {
     const [selectedPOI, setSelectedPOI] = useState(null)
     const [menuItems, setMenuItems] = useState([])
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
 
     // Edit panel
-    const [editing, setEditing] = useState(null)
+    const [drawerVisible, setDrawerVisible] = useState(false)
     const [isCreating, setIsCreating] = useState(false)
-    const [form, setForm] = useState({})
+    const [editingState, setEditingState] = useState(null)
     const [saveLoading, setSaveLoading] = useState(false)
-    const [saveError, setSaveError] = useState('')
-    const [langTab, setLangTab] = useState(0)  // index into translations
 
-    // Load POI options on mount
+    const [form] = Form.useForm()
+
     useEffect(() => {
         async function loadPOIs() {
             try {
@@ -55,16 +37,14 @@ export default function MenuPage() {
         loadPOIs()
     }, [])
 
-    // Load menu items when POI changes
     const fetchMenu = useCallback(async () => {
         if (!selectedPOI) return
         setLoading(true)
-        setError(null)
         try {
             const res = await menuApi.getByPOI(selectedPOI)
             setMenuItems(res.data ?? [])
         } catch (err) {
-            setError('Không thể tải menu.')
+            message.error('Không thể tải menu.')
             console.error('[Menu] fetch error:', err)
         } finally {
             setLoading(false)
@@ -75,279 +55,277 @@ export default function MenuPage() {
 
     function openEdit(item) {
         setIsCreating(false)
-        setEditing(item)
-        setForm({
+        setEditingState(item)
+
+        let transVals = {}
+        if (item.translations) {
+            item.translations.forEach((t) => {
+                transVals[`name_${t.languageId}`] = t.name
+                transVals[`desc_${t.languageId}`] = t.description
+            })
+        } else {
+            // fallback if translations missing
+            transVals['name_1'] = item.name || ''
+            transVals['desc_1'] = item.description || ''
+        }
+
+        form.setFieldsValue({
             price: item.price,
             isSignature: item.isSignature,
             isAvailable: item.isAvailable,
             sortOrder: item.sortOrder,
-            translations: item.translations?.map(t => ({ ...t })) || [
-                { languageId: 1, name: item.name || '', description: item.description || '' }
-            ],
+            ...transVals
         })
-        setLangTab(0)
-        setSaveError('')
+        setDrawerVisible(true)
     }
 
     function openCreate() {
         setIsCreating(true)
-        setEditing({})
-        setForm({
-            price: 0,
-            isSignature: false,
-            isAvailable: true,
-            sortOrder: menuItems.length + 1,
+        const newItem = {
             translations: [
                 { languageId: 1, name: '', description: '' },
                 { languageId: 2, name: '', description: '' },
             ],
+            isSignature: false,
+            isAvailable: true,
+            sortOrder: menuItems.length + 1
+        }
+        setEditingState(newItem)
+
+        form.setFieldsValue({
+            price: 0,
+            isSignature: false,
+            isAvailable: true,
+            sortOrder: newItem.sortOrder,
+            name_1: '',
+            desc_1: '',
+            name_2: '',
+            desc_2: '',
         })
-        setLangTab(0)
-        setSaveError('')
+        setDrawerVisible(true)
     }
 
-    function closePanel() {
-        setEditing(null)
-        setIsCreating(false)
+    function closeDrawer() {
+        setDrawerVisible(false)
+        setEditingState(null)
+        form.resetFields()
     }
 
-    function updateTranslation(field, value) {
-        const updated = [...form.translations]
-        updated[langTab] = { ...updated[langTab], [field]: value }
-        setForm({ ...form, translations: updated })
-    }
-
-    async function handleSave() {
+    async function handleSave(values) {
         setSaveLoading(true)
-        setSaveError('')
         try {
+            // Reconstruct translations from form fields
+            const translations = editingState.translations.map(t => ({
+                languageId: t.languageId,
+                name: values[`name_${t.languageId}`],
+                description: values[`desc_${t.languageId}`] || null,
+            }))
+
             const payload = {
-                price: Number(form.price),
-                isSignature: form.isSignature,
-                isAvailable: form.isAvailable,
-                sortOrder: Number(form.sortOrder),
-                translations: form.translations.map(t => ({
-                    languageId: t.languageId,
-                    name: t.name,
-                    description: t.description || null,
-                })),
+                price: Number(values.price),
+                isSignature: values.isSignature,
+                isAvailable: values.isAvailable,
+                sortOrder: Number(values.sortOrder || editingState.sortOrder),
+                translations: translations,
             }
 
             if (isCreating) {
                 await menuApi.create(selectedPOI, payload)
+                message.success('Đã thêm món mới')
             } else {
-                await menuApi.update(editing.id, payload)
+                await menuApi.update(editingState.id, payload)
+                message.success('Đã cập nhật món ăn')
             }
-            closePanel()
+            closeDrawer()
             fetchMenu()
         } catch (err) {
-            setSaveError(err?.error?.message || 'Lỗi khi lưu món ăn.')
+            message.error(err?.error?.message || 'Lỗi khi lưu món ăn.')
         } finally {
             setSaveLoading(false)
         }
     }
 
     async function handleDelete(item) {
-        const name = item.name || item.translations?.[0]?.name || 'món này'
-        if (!window.confirm(`Xóa "${name}"?\n\nHành động này không thể hoàn tác.`)) return
         try {
             await menuApi.delete(item.id)
-            if (editing?.id === item.id) closePanel()
+            if (editingState?.id === item.id) closeDrawer()
+            message.success('Đã xóa món ăn')
             fetchMenu()
         } catch (err) {
             console.error('[Menu] delete failed:', err)
-        }
-    }
-
-    async function handleToggleAvailable(item) {
-        try {
-            await menuApi.toggleAvailable(item.id)
-            fetchMenu()
-        } catch (err) {
-            console.error('[Menu] toggle available failed:', err)
-        }
-    }
-
-    async function handleToggleSignature(item) {
-        try {
-            await menuApi.toggleSignature(item.id)
-            fetchMenu()
-        } catch (err) {
-            console.error('[Menu] toggle signature failed:', err)
+            message.error('Lỗi khi xóa món ăn')
         }
     }
 
     const sigCount = menuItems.filter(m => m.isSignature).length
 
+    // Generating Tabs for translations
+    const tabItems = [
+        {
+            key: '1',
+            label: '🇻🇳 VI',
+            children: (
+                <>
+                    <Form.Item name="name_1" label="Tên món" rules={[{ required: true, message: 'Vui lòng nhập tên món' }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="desc_1" label="Mô tả">
+                        <Input.TextArea rows={3} />
+                    </Form.Item>
+                </>
+            )
+        },
+        {
+            key: '2',
+            label: '🇬🇧 EN',
+            children: (
+                <>
+                    <Form.Item name="name_2" label="Tên món">
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="desc_2" label="Mô tả">
+                        <Input.TextArea rows={3} />
+                    </Form.Item>
+                </>
+            )
+        }
+    ]
+
     return (
-        <div className="menu-page animate-fadeIn">
-            {/* Toolbar */}
-            <div className="menu-toolbar">
-                <select
-                    className="poi-filter-select"
-                    value={selectedPOI || ''}
-                    onChange={e => { setSelectedPOI(Number(e.target.value)); closePanel() }}
-                >
-                    {poiOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <div className="menu-count">
-                    {menuItems.length} món • {sigCount} đặc trưng
-                </div>
-                <div style={{ flex: 1 }} />
-                <button className="btn btn-primary" onClick={openCreate} disabled={!selectedPOI}>
-                    <Plus size={16} /> Thêm món mới
-                </button>
+        <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+                <Space size="large" align="center" wrap>
+                    <Title level={4} style={{ margin: 0 }}>Menu</Title>
+                    <Select
+                        style={{ width: 250 }}
+                        placeholder="Chọn POI"
+                        value={selectedPOI}
+                        onChange={val => { setSelectedPOI(val); closeDrawer() }}
+                        options={poiOptions.map(p => ({ label: p.name, value: p.id }))}
+                        showSearch
+                        optionFilterProp="label"
+                    />
+                    <Text type="secondary">{menuItems.length} món • {sigCount} đặc trưng</Text>
+                </Space>
+                <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} disabled={!selectedPOI}>
+                    Thêm món mới
+                </Button>
             </div>
 
-            {error && <div className="poi-error-banner">⚠️ {error}</div>}
-
-            <div className="menu-layout">
-                {/* Card Grid */}
-                <div className="menu-grid">
-                    {loading ? (
-                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>
-                            <Loader size={24} className="spin" />
-                        </div>
-                    ) : menuItems.length === 0 ? (
-                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                            Chưa có món nào.
-                            <button className="btn-link" onClick={openCreate}> Thêm món đầu tiên?</button>
-                        </div>
-                    ) : menuItems.map(item => {
-                        const name = item.translations?.[0]?.name || item.name || '—'
-                        const nameEn = item.translations?.[1]?.name || ''
-                        const desc = item.translations?.[0]?.description || item.description || ''
-                        return (
-                            <div
-                                key={item.id}
-                                className={`menu-card ${!item.isAvailable ? 'sold-out' : ''} ${editing?.id === item.id ? 'selected' : ''}`}
+            <Row gutter={[16, 16]}>
+                {loading ? (
+                    <Col span={24} style={{ textAlign: 'center', padding: '40px 0' }}>
+                        <Spin size="large" />
+                    </Col>
+                ) : menuItems.length === 0 ? (
+                    <Col span={24}>
+                        <Empty description="Chưa có món nào." image={Empty.PRESENTED_IMAGE_SIMPLE}>
+                            <Button type="link" onClick={openCreate}>Thêm món đầu tiên?</Button>
+                        </Empty>
+                    </Col>
+                ) : menuItems.map(item => {
+                    const name = item.translations?.[0]?.name || item.name || '—'
+                    const nameEn = item.translations?.[1]?.name || ''
+                    const desc = item.translations?.[0]?.description || item.description || ''
+                    return (
+                        <Col xs={24} sm={12} lg={8} xl={6} key={item.id}>
+                            <Card
+                                hoverable
                                 onClick={() => openEdit(item)}
-                            >
-                                <div className="menu-card-img">
-                                    {item.imageUrl
-                                        ? <img src={item.imageUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                        : <span className="menu-card-emoji">🍽️</span>
-                                    }
-                                    {item.isSignature && <span className="menu-sig-badge">⭐ Đặc trưng</span>}
-                                    {!item.isAvailable && <div className="menu-sold-overlay">Hết hàng</div>}
-                                </div>
-                                <div className="menu-card-body">
-                                    <h4 className="menu-card-name">{name}</h4>
-                                    {nameEn && <p className="menu-card-name-en">{nameEn}</p>}
-                                    <p className="menu-card-desc">{desc}</p>
-                                    <div className="menu-card-bottom">
-                                        <span className="menu-card-price">{formatPrice(item.price)}</span>
-                                        <span className={`badge ${item.isAvailable ? 'badge-success' : 'badge-danger'}`}>
-                                            {item.isAvailable ? 'Còn bán' : 'Hết hàng'}
-                                        </span>
+                                bordered={false}
+                                bodyStyle={{ padding: 16 }}
+                                style={{
+                                    borderRadius: 12,
+                                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+                                    height: '100%',
+                                    opacity: item.isAvailable ? 1 : 0.6,
+                                    border: editingState?.id === item.id ? '2px solid #3b82f6' : '1px solid transparent'
+                                }}
+                                cover={
+                                    <div style={{ position: 'relative', height: 160, backgroundColor: '#f1f5f9', borderTopLeftRadius: 12, borderTopRightRadius: 12, overflow: 'hidden' }}>
+                                        {item.imageUrl ? (
+                                            <img src={item.imageUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 40 }}>🍽️</div>
+                                        )}
+                                        {item.isSignature && (
+                                            <div style={{ position: 'absolute', top: 8, left: 8, backgroundColor: '#f59e0b', color: '#fff', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                <StarFilled /> Đặc trưng
+                                            </div>
+                                        )}
+                                        {!item.isAvailable && (
+                                            <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f172a', fontWeight: 600, fontSize: 18 }}>
+                                                Hết hàng
+                                            </div>
+                                        )}
                                     </div>
+                                }
+                            >
+                                <Title level={5} style={{ margin: '0 0 4px 0', fontSize: 15 }} ellipsis={{ tooltip: name }}>{name}</Title>
+                                {nameEn && <Text type="secondary" style={{ display: 'block', fontSize: 13, marginBottom: 8 }} ellipsis={{ tooltip: nameEn }}>{nameEn}</Text>}
+                                <Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ fontSize: 13, minHeight: 40, margin: 0 }}>{desc}</Paragraph>
+                                
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+                                    <Text strong style={{ color: '#2563eb', fontSize: 15 }}>{formatPrice(item.price)}</Text>
+                                    <Badge status={item.isAvailable ? 'success' : 'error'} text={item.isAvailable ? 'Còn bán' : 'Hết hàng'} />
                                 </div>
-                            </div>
-                        )
-                    })}
+                            </Card>
+                        </Col>
+                    )
+                })}
+            </Row>
+
+            <Drawer
+                title={isCreating ? 'Thêm món mới' : 'Sửa món ăn'}
+                placement="right"
+                onClose={closeDrawer}
+                open={drawerVisible}
+                width={400}
+                extra={
+                    <Space>
+                        {!isCreating && editingState && (
+                            <Popconfirm title="Xóa món ăn này?" onConfirm={() => handleDelete(editingState)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+                                <Button danger icon={<DeleteOutlined />} />
+                            </Popconfirm>
+                        )}
+                        <Button type="primary" onClick={() => form.submit()} loading={saveLoading} icon={<SaveOutlined />}>
+                            {isCreating ? 'Tạo mới' : 'Lưu'}
+                        </Button>
+                    </Space>
+                }
+            >
+                <div style={{ textAlign: 'center', marginBottom: 24, padding: '24px', backgroundColor: '#f8fafc', borderRadius: 8, border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
+                    <UploadOutlined style={{ fontSize: 24, color: '#94a3b8', marginBottom: 8 }} />
+                    <div style={{ color: '#64748b' }}>Upload ảnh món</div>
                 </div>
 
-                {/* Edit Panel */}
-                {editing && (
-                    <div className="menu-edit-panel card animate-slideIn">
-                        <div className="menu-edit-header">
-                            <h3>{isCreating ? 'Thêm món mới' : 'Sửa món ăn'}</h3>
-                            <button className="btn-ghost" onClick={closePanel}><X size={18} /></button>
-                        </div>
+                <Form form={form} layout="vertical" onFinish={handleSave}>
+                    <Tabs items={tabItems} defaultActiveKey="1" style={{ marginBottom: 16 }} />
 
-                        <div className="menu-edit-img-upload">
-                            <Upload size={20} />
-                            <span>Upload ảnh món</span>
-                        </div>
+                    <Form.Item name="price" label="Giá (VNĐ)" rules={[{ required: true, message: 'Vui lòng nhập giá' }]}>
+                        <InputNumber style={{ width: '100%' }} min={0} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={value => value.replace(/\$\s?|(,*)/g, '')} />
+                    </Form.Item>
 
-                        {saveError && <div className="login-error" style={{ margin: '0 0 12px', fontSize: 13 }}>⚠️ {saveError}</div>}
-
-                        {/* Language tabs */}
-                        <div className="menu-lang-tabs">
-                            {form.translations?.map((t, i) => (
-                                <button
-                                    key={i}
-                                    className={`menu-lang-tab ${langTab === i ? 'active' : ''}`}
-                                    onClick={() => setLangTab(i)}
-                                >
-                                    {t.languageId === 1 ? '🇻🇳 VI' : t.languageId === 2 ? '🇬🇧 EN' : `Lang ${t.languageId}`}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="menu-edit-form">
-                            <div className="form-group">
-                                <label className="form-label">Tên món</label>
-                                <input
-                                    className="form-input"
-                                    value={form.translations?.[langTab]?.name || ''}
-                                    onChange={e => updateTranslation('name', e.target.value)}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Mô tả</label>
-                                <textarea
-                                    className="form-input"
-                                    rows={3}
-                                    value={form.translations?.[langTab]?.description || ''}
-                                    onChange={e => updateTranslation('description', e.target.value)}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Giá (VNĐ)</label>
-                                <input
-                                    className="form-input"
-                                    type="number"
-                                    value={form.price}
-                                    onChange={e => setForm({ ...form, price: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="menu-toggles">
-                                <label className="menu-toggle-item">
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="isSignature" valuePropName="checked">
+                                <Space>
+                                    <Switch />
                                     <span>⭐ Món đặc trưng</span>
-                                    <label className="switch">
-                                        <input
-                                            type="checkbox"
-                                            checked={form.isSignature}
-                                            onChange={e => setForm({ ...form, isSignature: e.target.checked })}
-                                        />
-                                        <span className="switch-slider" />
-                                    </label>
-                                </label>
-                                <label className="menu-toggle-item">
+                                </Space>
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="isAvailable" valuePropName="checked">
+                                <Space>
+                                    <Switch />
                                     <span>🟢 Còn bán</span>
-                                    <label className="switch">
-                                        <input
-                                            type="checkbox"
-                                            checked={form.isAvailable}
-                                            onChange={e => setForm({ ...form, isAvailable: e.target.checked })}
-                                        />
-                                        <span className="switch-slider" />
-                                    </label>
-                                </label>
-                            </div>
-
-                            <div className="menu-edit-actions">
-                                <button className="btn btn-primary w-full" onClick={handleSave} disabled={saveLoading}>
-                                    {saveLoading ? <Loader size={16} className="spin" /> : <Save size={16} />}
-                                    {isCreating ? ' Tạo mới' : ' Lưu'}
-                                </button>
-                                <button className="btn btn-secondary w-full" onClick={closePanel}>Hủy</button>
-                                {!isCreating && (
-                                    <button
-                                        className="btn btn-secondary w-full"
-                                        style={{ color: '#ef4444', borderColor: '#ef4444' }}
-                                        onClick={() => handleDelete(editing)}
-                                    >
-                                        <Trash2 size={14} /> Xóa món này
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+                                </Space>
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </Form>
+            </Drawer>
         </div>
     )
 }

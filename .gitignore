@@ -52,9 +52,13 @@ coverage*/
 **/publish/
 
 ## App secrets (QUAN TRỌNG — không commit secrets)
+## appsettings.json chứa AWS keys, JWT secret, DB password → KHÔNG commit!
+**/appsettings.json
 **/appsettings.Development.json
 **/appsettings.Local.json
 **/appsettings.Production.json
+## Giữ lại template để dev khác biết cần điền gì
+!**/appsettings.example.json
 **/secrets.json
 **/*.pfx
 **/*.p12

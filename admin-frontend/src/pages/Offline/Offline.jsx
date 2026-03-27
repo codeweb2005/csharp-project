@@ -1,32 +1,19 @@
-/**
- * Offline — Admin page for managing offline download packages.
- *
- * Wired to live API:
- *   GET    /api/v1/offlinepackages           → list all packages
- *   POST   /api/v1/offlinepackages           → create new package
- *   POST   /api/v1/offlinepackages/:id/build → trigger build
- *   GET    /api/v1/offlinepackages/:id/status → poll build status
- *   DELETE /api/v1/offlinepackages/:id       → delete package
- *   GET    /api/v1/offlinepackages/:id/download → download ZIP
- *
- * DTO shape (OfflinePackageDto):
- *   { id, languageId, languageName, flagEmoji, name, version, status, progress, currentStep, fileSize, checksum, downloadCount, poiCount, audioCount, imageCount, updatedAt }
- */
-
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Plus, Download, RefreshCw, Trash2, AlertTriangle, CheckCircle, Clock, FileText, Loader, X, Save } from 'lucide-react'
+import { PlusOutlined, DownloadOutlined, SyncOutlined, DeleteOutlined, CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined, WarningOutlined } from '@ant-design/icons'
+import { Card, List, Modal, Form, Input, Select, Button, Tag, Progress, Space, Typography, Tooltip, Statistic, Row, Col, message, Popconfirm } from 'antd'
 import { offlinePackages as pkgApi, API_BASE } from '../../api.js'
-import './Offline.css'
+
+const { Title, Text } = Typography
 
 const statusConfig = {
-    active: { label: 'Active', badge: 'badge-success', icon: CheckCircle },
-    Active: { label: 'Active', badge: 'badge-success', icon: CheckCircle },
-    building: { label: 'Đang tạo...', badge: 'badge-warning', icon: Clock },
-    Building: { label: 'Đang tạo...', badge: 'badge-warning', icon: Clock },
-    draft: { label: 'Bản nháp', badge: 'badge-secondary', icon: FileText },
-    Draft: { label: 'Bản nháp', badge: 'badge-secondary', icon: FileText },
-    error: { label: 'Lỗi', badge: 'badge-danger', icon: AlertTriangle },
-    Error: { label: 'Lỗi', badge: 'badge-danger', icon: AlertTriangle },
+    active: { label: 'Active', color: 'success', icon: <CheckCircleOutlined /> },
+    Active: { label: 'Active', color: 'success', icon: <CheckCircleOutlined /> },
+    building: { label: 'Đang tạo...', color: 'warning', icon: <ClockCircleOutlined /> },
+    Building: { label: 'Đang tạo...', color: 'warning', icon: <ClockCircleOutlined /> },
+    draft: { label: 'Bản nháp', color: 'default', icon: <FileTextOutlined /> },
+    Draft: { label: 'Bản nháp', color: 'default', icon: <FileTextOutlined /> },
+    error: { label: 'Lỗi', color: 'error', icon: <WarningOutlined /> },
+    Error: { label: 'Lỗi', color: 'error', icon: <WarningOutlined /> },
 }
 
 function formatSize(bytes) {
@@ -39,13 +26,11 @@ function formatSize(bytes) {
 export default function Offline() {
     const [packages, setPackages] = useState([])
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
 
     // Create form
-    const [showCreate, setShowCreate] = useState(false)
-    const [createForm, setCreateForm] = useState({ languageId: 1, name: '', version: '1.0' })
+    const [isModalVisible, setIsModalVisible] = useState(false)
+    const [form] = Form.useForm()
     const [createLoading, setCreateLoading] = useState(false)
-    const [createError, setCreateError] = useState('')
 
     // Polling for building packages
     const pollRef = useRef(null)
@@ -56,7 +41,7 @@ export default function Offline() {
             setPackages(res.data ?? [])
             setLoading(false)
         } catch (err) {
-            setError('Không thể tải danh sách gói.')
+            message.error('Không thể tải danh sách gói.')
             setLoading(false)
             console.error('[Offline] fetch error:', err)
         }
@@ -80,40 +65,42 @@ export default function Offline() {
         }
     }, [packages, fetchPackages])
 
-    async function handleBuild(id) {
+    const handleBuild = async (id) => {
         try {
             await pkgApi.build(id)
             fetchPackages()
+            message.success('Đã bắt đầu tạo gói')
         } catch (err) {
             console.error('[Offline] build failed:', err)
-            alert(err?.error?.message || 'Không thể bắt đầu build.')
+            message.error(err?.error?.message || 'Không thể bắt đầu build.')
         }
     }
 
-    async function handleDelete(id) {
-        if (!window.confirm('Xóa gói offline này?\n\nHành động này không thể hoàn tác.')) return
+    const handleDelete = async (id) => {
         try {
             await pkgApi.delete(id)
             fetchPackages()
+            message.success('Đã xóa gói')
         } catch (err) {
             console.error('[Offline] delete failed:', err)
+            message.error('Lỗi khi xóa gói')
         }
     }
 
-    async function handleCreate(e) {
-        e.preventDefault()
+    const handleCreate = async (values) => {
         setCreateLoading(true)
-        setCreateError('')
         try {
             await pkgApi.create({
-                languageId: Number(createForm.languageId),
-                name: createForm.name,
-                version: createForm.version,
+                languageId: Number(values.languageId),
+                name: values.name,
+                version: values.version,
             })
-            setShowCreate(false)
+            setIsModalVisible(false)
+            form.resetFields()
+            message.success('Đã tạo gói mới')
             fetchPackages()
         } catch (err) {
-            setCreateError(err?.error?.message || 'Không thể tạo gói.')
+            message.error(err?.error?.message || 'Không thể tạo gói.')
         } finally {
             setCreateLoading(false)
         }
@@ -121,160 +108,138 @@ export default function Offline() {
 
     const totalDownloads = packages.reduce((sum, p) => sum + (p.downloadCount || 0), 0)
 
-    if (loading) {
-        return (
-            <div className="offline-page animate-fadeIn" style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
-                <Loader size={28} className="spin" />
-            </div>
-        )
-    }
-
     return (
-        <div className="offline-page animate-fadeIn">
-            {error && <div className="poi-error-banner">⚠️ {error}</div>}
+        <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
+            <Row align="middle" justify="space-between" style={{ marginBottom: 24 }}>
+                <Col>
+                    <Statistic title="Tổng lượt tải" value={totalDownloads} />
+                </Col>
+                <Col>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
+                        Tạo gói mới
+                    </Button>
+                </Col>
+            </Row>
 
-            <div className="offline-header">
-                <div>
-                    <span className="offline-total">Tổng lượt tải: <strong>{totalDownloads.toLocaleString()}</strong></span>
-                </div>
-                <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
-                    <Plus size={16} /> Tạo gói mới
-                </button>
-            </div>
-
-            {/* Package Cards */}
-            <div className="pkg-list">
-                {packages.length === 0 ? (
-                    <div className="card" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                        Chưa có gói offline nào. Hãy tạo gói đầu tiên!
-                    </div>
-                ) : packages.map(pkg => {
+            <List
+                grid={{ gutter: 16, xs: 1, sm: 1, md: 1, lg: 2, xl: 2, xxl: 3 }}
+                dataSource={packages}
+                loading={loading}
+                locale={{ emptyText: 'Chưa có gói offline nào. Hãy tạo gói đầu tiên!' }}
+                renderItem={pkg => {
                     const sc = statusConfig[pkg.status] || statusConfig.draft
-                    const Icon = sc.icon
                     const isBuilding = pkg.status === 'building' || pkg.status === 'Building'
                     const isActive = pkg.status === 'active' || pkg.status === 'Active'
                     const isDraft = pkg.status === 'draft' || pkg.status === 'Draft'
 
                     return (
-                        <div className={`pkg-card card ${pkg.status?.toLowerCase()}`} key={pkg.id}>
-                            <div className="pkg-card-left">
-                                <div className="pkg-flag">{pkg.flagEmoji || '🌐'}</div>
-                                <div className="pkg-info">
-                                    <div className="pkg-name">{pkg.name}</div>
-                                    <div className="pkg-meta">
-                                        <span className="pkg-version">{pkg.version}</span>
-                                        <span className="pkg-stat">📍 {pkg.poiCount} POI</span>
-                                        <span className="pkg-stat">🔊 {pkg.audioCount} Audio</span>
-                                        <span className="pkg-stat">🖼️ {pkg.imageCount} Hình</span>
-                                        <span className="pkg-stat">📦 {formatSize(pkg.fileSize)}</span>
+                        <List.Item>
+                            <Card 
+                                bordered={false} 
+                                style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', height: '100%' }}
+                                actions={[
+                                    isActive && (
+                                        <Tooltip title="Tải về" key="download">
+                                            <Button type="link" href={`${API_BASE}/offlinepackages/${pkg.id}/download`} download icon={<DownloadOutlined />} />
+                                        </Tooltip>
+                                    ),
+                                    isActive && (
+                                        <Tooltip title="Rebuild" key="rebuild">
+                                            <Button type="link" onClick={() => handleBuild(pkg.id)} icon={<SyncOutlined />} />
+                                        </Tooltip>
+                                    ),
+                                    isDraft && (
+                                        <Button type="link" key="build" onClick={() => handleBuild(pkg.id)}>Tạo gói</Button>
+                                    ),
+                                    isBuilding && (
+                                        <span key="building" style={{ color: '#faad14', fontSize: 13 }}><SyncOutlined spin /> Đang xử lý...</span>
+                                    ),
+                                    <Popconfirm
+                                        key="delete"
+                                        title="Xóa gói offline này?"
+                                        description="Hành động này không thể hoàn tác."
+                                        onConfirm={() => handleDelete(pkg.id)}
+                                        okText="Xóa"
+                                        cancelText="Hủy"
+                                        okButtonProps={{ danger: true }}
+                                    >
+                                        <Tooltip title="Xóa">
+                                            <Button type="link" danger icon={<DeleteOutlined />} />
+                                        </Tooltip>
+                                    </Popconfirm>
+                                ].filter(Boolean)}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                                    <Space align="start">
+                                        <div style={{ fontSize: 32, lineHeight: 1 }}>{pkg.flagEmoji || '🌐'}</div>
+                                        <div>
+                                            <Title level={5} style={{ margin: 0 }}>{pkg.name}</Title>
+                                            <Text type="secondary" style={{ fontSize: 12 }}>Phiên bản {pkg.version}</Text>
+                                        </div>
+                                    </Space>
+                                    <Tag color={sc.color} icon={sc.icon}>{sc.label}</Tag>
+                                </div>
+
+                                <Space size="middle" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                                    <Text type="secondary">📍 {pkg.poiCount} POI</Text>
+                                    <Text type="secondary">🔊 {pkg.audioCount} Audio</Text>
+                                    <Text type="secondary">🖼️ {pkg.imageCount} Hình</Text>
+                                    <Text type="secondary">📦 {formatSize(pkg.fileSize)}</Text>
+                                    <Text type="secondary">⬇️ {pkg.downloadCount || 0} lượt tải</Text>
+                                </Space>
+
+                                {isBuilding && (
+                                    <div style={{ marginTop: 8 }}>
+                                        <Progress percent={pkg.progress || 0} status="active" size="small" />
+                                        <Text type="secondary" style={{ fontSize: 12 }}>{pkg.currentStep ? `Đang xử lý: ${pkg.currentStep}` : 'Đang xử lý...'}</Text>
                                     </div>
-                                    {isBuilding && (
-                                        <div className="pkg-progress-wrap">
-                                            <div className="pkg-progress-bar">
-                                                <div className="pkg-progress-fill building" style={{ width: `${pkg.progress || 0}%` }} />
-                                            </div>
-                                            <span className="pkg-progress-text">
-                                                {pkg.progress}% {pkg.currentStep ? `— ${pkg.currentStep}` : ''}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {pkg.updatedAt && (
-                                        <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                                            Cập nhật: {new Date(pkg.updatedAt).toLocaleDateString('vi-VN')}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                                )}
 
-                            <div className="pkg-card-right">
-                                <span className={`badge ${sc.badge}`}>
-                                    <Icon size={12} /> {sc.label}
-                                </span>
-                                <div className="pkg-downloads">
-                                    <span className="pkg-dl-count">{pkg.downloadCount || 0}</span>
-                                    <span className="pkg-dl-label">lượt tải</span>
-                                </div>
-                                <div className="pkg-actions">
-                                    {isActive && (
-                                        <>
-                                            <a className="btn btn-sm btn-secondary" title="Tải về" href={`${API_BASE}/offlinepackages/${pkg.id}/download`} download>
-                                                <Download size={14} /> Tải
-                                            </a>
-                                            <button className="btn btn-sm btn-secondary" title="Rebuild" onClick={() => handleBuild(pkg.id)}>
-                                                <RefreshCw size={14} />
-                                            </button>
-                                        </>
-                                    )}
-                                    {isDraft && (
-                                        <button className="btn btn-sm btn-primary" onClick={() => handleBuild(pkg.id)}>
-                                            Tạo gói
-                                        </button>
-                                    )}
-                                    {isBuilding && (
-                                        <span style={{ fontSize: 12, color: '#f59e0b' }}>
-                                            <Loader size={14} className="spin" /> Đang xử lý...
-                                        </span>
-                                    )}
-                                    <button className="btn-ghost btn-ghost-danger" title="Xóa" onClick={() => handleDelete(pkg.id)}>
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                                {pkg.updatedAt && (
+                                    <div style={{ marginTop: 16 }}>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>Cập nhật: {new Date(pkg.updatedAt).toLocaleDateString('vi-VN')}</Text>
+                                    </div>
+                                )}
+                            </Card>
+                        </List.Item>
                     )
-                })}
-            </div>
+                }}
+            />
 
-            {/* Create Modal */}
-            {showCreate && (
-                <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>Tạo gói Offline mới</h3>
-                            <button className="btn-ghost" onClick={() => setShowCreate(false)}><X size={18} /></button>
-                        </div>
+            <Modal
+                title="Tạo gói Offline mới"
+                open={isModalVisible}
+                onCancel={() => setIsModalVisible(false)}
+                footer={null}
+                destroyOnClose
+            >
+                <Form layout="vertical" form={form} onFinish={handleCreate} initialValues={{ languageId: '1', version: '1.0' }}>
+                    <Form.Item name="name" label="Tên gói" rules={[{ required: true, message: 'Vui lòng nhập tên gói!' }]}>
+                        <Input placeholder="VD: Vĩnh Khánh Pack - Tiếng Việt" />
+                    </Form.Item>
 
-                        {createError && <div className="login-error" style={{ margin: '0 0 12px', fontSize: 13 }}>⚠️ {createError}</div>}
+                    <Form.Item name="languageId" label="Ngôn ngữ">
+                        <Select>
+                            <Select.Option value="1">🇻🇳 Tiếng Việt</Select.Option>
+                            <Select.Option value="2">🇬🇧 English</Select.Option>
+                            <Select.Option value="3">🇨🇳 中文</Select.Option>
+                            <Select.Option value="4">🇯🇵 日本語</Select.Option>
+                            <Select.Option value="5">🇰🇷 한국어</Select.Option>
+                        </Select>
+                    </Form.Item>
 
-                        <form onSubmit={handleCreate}>
-                            <div className="form-group">
-                                <label className="form-label">Tên gói</label>
-                                <input
-                                    className="form-input"
-                                    required
-                                    value={createForm.name}
-                                    onChange={e => setCreateForm({ ...createForm, name: e.target.value })}
-                                    placeholder="VD: Vĩnh Khánh Pack - Tiếng Việt"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Ngôn ngữ</label>
-                                <select className="form-input" value={createForm.languageId} onChange={e => setCreateForm({ ...createForm, languageId: e.target.value })}>
-                                    <option value={1}>🇻🇳 Tiếng Việt</option>
-                                    <option value={2}>🇬🇧 English</option>
-                                    <option value={3}>🇨🇳 中文</option>
-                                    <option value={4}>🇯🇵 日本語</option>
-                                    <option value={5}>🇰🇷 한국어</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Phiên bản</label>
-                                <input
-                                    className="form-input"
-                                    value={createForm.version}
-                                    onChange={e => setCreateForm({ ...createForm, version: e.target.value })}
-                                />
-                            </div>
-                            <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={createLoading}>
-                                    {createLoading ? <Loader size={16} className="spin" /> : <Save size={16} />} Tạo mới
-                                </button>
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Hủy</button>
-                            </div>
-                        </form>
+                    <Form.Item name="version" label="Phiên bản" rules={[{ required: true, message: 'Vui lòng nhập phiên bản!' }]}>
+                        <Input />
+                    </Form.Item>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+                        <Button onClick={() => setIsModalVisible(false)}>Hủy</Button>
+                        <Button type="primary" htmlType="submit" loading={createLoading}>
+                            Tạo mới
+                        </Button>
                     </div>
-                </div>
-            )}
+                </Form>
+            </Modal>
         </div>
     )
 }

@@ -6,7 +6,6 @@
 
 .layout-main {
     flex: 1;
-    margin-left: var(--sidebar-width);
     display: flex;
     flex-direction: column;
     transition: var(--transition-smooth);
