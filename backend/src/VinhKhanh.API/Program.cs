@@ -47,7 +47,7 @@ builder.Services.AddAuthorization();
 // CORS — reads allowed origins from environment variable for production CloudFront support.
 // Local dev:   http://localhost:5173, http://localhost:3000
 // Production:  set CORS_ALLOWED_ORIGINS=https://d1xxxxx.cloudfront.net in ECS task definition
-var corsOrigins = new List<string> { "http://localhost:5173", "http://localhost:3000" };
+var corsOrigins = new List<string> { "http://localhost:5173", "http://localhost:5174", "http://localhost:3000" };
 var envOrigins = builder.Configuration["CORS_ALLOWED_ORIGINS"];
 if (!string.IsNullOrWhiteSpace(envOrigins))
     corsOrigins.AddRange(envOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));

@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Layout, Typography, Avatar, Dropdown, Space, Button } from 'antd'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import useCurrentUser from '../../hooks/useCurrentUser.js'
 import './TopBar.css'
 
 const { Header } = Layout
@@ -19,11 +20,21 @@ const pageTitles = {
     '/settings': { title: 'Cài đặt', subtitle: 'Cấu hình hệ thống' },
 }
 
+const vendorPageTitles = {
+    '/dashboard': { title: 'My Shop', subtitle: 'Your shop overview' },
+    '/pois': { title: 'Shop Info', subtitle: 'Edit your shop details' },
+    '/categories': { title: 'Categories', subtitle: 'Browse shop categories' },
+    '/audio': { title: 'Audio & Media', subtitle: 'Manage narrations and images' },
+    '/menu': { title: 'Menu', subtitle: "Manage your shop's menu" },
+    '/analytics': { title: 'Analytics', subtitle: "Your shop's visit analytics" },
+}
+
 export default function TopBar() {
     const location = useLocation()
     const navigate = useNavigate()
     const { user, logout } = useAuth()
-    const page = pageTitles[location.pathname] || { title: 'VK Food Tour', subtitle: '' }
+    const { isVendor } = useCurrentUser()
+    const page = (isVendor ? vendorPageTitles[location.pathname] : null) || pageTitles[location.pathname] || { title: 'VK Food Tour', subtitle: '' }
 
     const handleLogout = () => {
         logout()
@@ -51,8 +62,8 @@ export default function TopBar() {
 
             <Dropdown menu={userMenuProps} placement="bottomRight" arrow>
                 <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', borderRadius: 8, transition: 'background 0.2s' }} className="topbar-user-dropdown">
-                    <Avatar style={{ backgroundColor: '#2563eb' }}>{user?.fullName?.[0] || 'A'}</Avatar>
-                    <Text strong>{user?.fullName || 'Admin'}</Text>
+                    <Avatar style={{ backgroundColor: isVendor ? '#f59e0b' : '#2563eb' }}>{user?.fullName?.[0] || (isVendor ? 'V' : 'A')}</Avatar>
+                    <Text strong>{user?.fullName || (isVendor ? 'Vendor' : 'Admin')}</Text>
                 </div>
             </Dropdown>
         </Header>

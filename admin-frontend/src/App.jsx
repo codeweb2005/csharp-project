@@ -4,10 +4,10 @@
  * Routing strategy:
  *   All protected routes require authentication (redirected to /login otherwise).
  *   The /dashboard route renders either:
- *     - <VendorDashboard> for Vendor users (role-scoped shop stats)
+ *     - <VendorDashboard> for Vendor users (role-scoped shop stats, filtered by vendorPoiIds)
  *     - <Dashboard>       for Admin users  (system-wide stats)
  *   This decision is made client-side via the `useCurrentUser` hook; the server
- *   handles the actual data scoping based on the JWT vendorPoiId claim.
+ *   handles the actual data scoping based on the JWT `vendorPoiIds` claim.
  */
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
@@ -21,7 +21,6 @@ import Users from './pages/Users/Users'
 import Categories from './pages/Categories/Categories'
 import Settings from './pages/Settings/Settings'
 import Audio from './pages/Audio/Audio'
-import MenuPage from './pages/Menu/Menu'
 import Analytics from './pages/Analytics/Analytics'
 import Offline from './pages/Offline/Offline'
 import './index.css'
@@ -38,9 +37,9 @@ function ProtectedRoute({ children }) {
 }
 
 /**
- * DashboardRoute — Smart route that renders either the Admin or Vendor dashboard
- * based on the JWT role claim. Both use the same backend endpoints; the server
- * scopes the data automatically.
+ * DashboardRoute — Renders the appropriate dashboard based on the user's role.
+ * - Vendor → <VendorDashboard> (stats scoped to own POIs via JWT)
+ * - Admin  → <Dashboard> (system-wide stats)
  */
 function DashboardRoute() {
     const { isVendor } = useCurrentUser()
@@ -62,17 +61,16 @@ export default function App() {
                 }>
                     <Route index element={<Navigate to="/dashboard" replace />} />
 
-                    {/* Dashboard — Admin sees global stats; Vendor sees own shop stats */}
+                    {/* Dashboard — Admin sees global stats, Vendor sees own POI stats */}
                     <Route path="dashboard"  element={<DashboardRoute />} />
 
-                    {/* Shared routes (visible to both Admin and Vendor, data scoped server-side) */}
+                    {/* Shared routes */}
                     <Route path="pois"       element={<POIList />} />
                     <Route path="categories" element={<Categories />} />
                     <Route path="audio"      element={<Audio />} />
-                    <Route path="menu"       element={<MenuPage />} />
                     <Route path="analytics"  element={<Analytics />} />
 
-                    {/* Admin-only routes (sidebar hides these from Vendors, but backend also enforces) */}
+                    {/* Admin-only routes */}
                     <Route path="users"      element={<Users />} />
                     <Route path="offline"    element={<Offline />} />
                     <Route path="settings"   element={<Settings />} />

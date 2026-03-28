@@ -1,0 +1,50 @@
+.poi-minimap-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background: var(--card-bg);
+    box-shadow: var(--shadow-glass);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 420px;
+}
+
+.poi-minimap-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--slate-700);
+    border-bottom: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.6);
+    flex-shrink: 0;
+}
+
+.poi-minimap-count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--slate-400);
+    background: var(--slate-100);
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+}
+
+.poi-minimap-container {
+    flex: 1;
+    min-height: 360px;
+    z-index: 0;
+}
+
+/* Leaflet popups */
+.leaflet-popup-content-wrapper {
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.leaflet-popup-tip-container {
+    display: none;
+}

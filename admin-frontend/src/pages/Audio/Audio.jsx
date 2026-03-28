@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { UploadOutlined, PlayCircleOutlined, PauseCircleOutlined, DeleteOutlined, DownloadOutlined, AudioOutlined, RobotOutlined, PictureOutlined, StarFilled, StarOutlined, PlusOutlined } from '@ant-design/icons'
 import { Card, Select, Button, Table, Space, Typography, Tag, Radio, Form, Input, Slider, Row, Col, message, Tooltip, Spin, Popconfirm, Badge, Divider } from 'antd'
 import { audio as audioApi, media as mediaApi, pois as poisApi, API_BASE } from '../../api.js'
+import useCurrentUser from '../../hooks/useCurrentUser.js'
 
 const { Title, Text } = Typography
 
@@ -40,6 +41,8 @@ function formatSize(bytes) {
 }
 
 export default function Audio() {
+    const { isVendor, vendorPOIIds } = useCurrentUser()
+
     const [poiOptions, setPoiOptions] = useState([])
     const [selectedPOI, setSelectedPOI] = useState(null)
 
@@ -64,16 +67,28 @@ export default function Audio() {
     useEffect(() => {
         async function loadPOIs() {
             try {
-                const res = await poisApi.getList({ page: 1, size: 100 })
-                const items = res.data?.items ?? []
-                setPoiOptions(items)
-                if (items.length > 0) setSelectedPOI(items[0].id)
+                if (isVendor && vendorPOIIds.length > 0) {
+                    // Vendor: fetch each owned POI's name to populate the dropdown
+                    const results = await Promise.allSettled(
+                        vendorPOIIds.map(id => poisApi.getDetail(id).then(r => ({ id, name: r.data?.name || `POI #${id}` })))
+                    )
+                    const options = results
+                        .filter(r => r.status === 'fulfilled')
+                        .map(r => r.value)
+                    setPoiOptions(options)
+                    if (options.length > 0) setSelectedPOI(options[0].id)
+                } else if (!isVendor) {
+                    const res = await poisApi.getList({ page: 1, size: 100 })
+                    const items = res.data?.items ?? []
+                    setPoiOptions(items)
+                    if (items.length > 0) setSelectedPOI(items[0].id)
+                }
             } catch (err) {
                 console.error('[Audio] load POIs failed:', err)
             }
         }
         loadPOIs()
-    }, [])
+    }, [isVendor, vendorPOIIds.join(',')])
 
     const fetchData = useCallback(async () => {
         if (!selectedPOI) return

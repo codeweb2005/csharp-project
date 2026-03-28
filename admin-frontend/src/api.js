@@ -186,11 +186,26 @@ export const menu = {
 
 // ============ Analytics ============
 export const analytics = {
-  getTrends: (period = '30d') => request(`/analytics/trends?period=${period}`),
-  getVisitsByDay: (from, to) => request(`/analytics/visits-by-day?from=${from}&to=${to}`),
-  getVisitsByHour: (date) => request(`/analytics/visits-by-hour?date=${date}`),
-  getLanguageDistribution: (from, to) =>
-    request(`/analytics/language-distribution?from=${from}&to=${to}`),
+  getTrends: (period = '30d', poiId = null) => {
+    const q = new URLSearchParams({ period })
+    if (poiId) q.set('poiId', poiId)
+    return request(`/analytics/trends?${q}`)
+  },
+  getVisitsByDay: (from, to, poiId = null) => {
+    const q = new URLSearchParams({ from, to })
+    if (poiId) q.set('poiId', poiId)
+    return request(`/analytics/visits-by-day?${q}`)
+  },
+  getVisitsByHour: (date, poiId = null) => {
+    const q = new URLSearchParams({ date })
+    if (poiId) q.set('poiId', poiId)
+    return request(`/analytics/visits-by-hour?${q}`)
+  },
+  getLanguageDistribution: (from, to, poiId = null) => {
+    const q = new URLSearchParams({ from, to })
+    if (poiId) q.set('poiId', poiId)
+    return request(`/analytics/language-distribution?${q}`)
+  },
 }
 
 // ============ Offline Packages ============

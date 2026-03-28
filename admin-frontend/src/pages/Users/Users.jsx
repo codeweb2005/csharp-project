@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, KeyOutlined, ShopOutlined } from '@ant-design/icons'
-import { Card, Table, Modal, Form, Input, Button, Switch, Select, Avatar, Tag, Space, Typography, Tooltip, Radio, message, Spin } from 'antd'
-import { users as usersApi } from '../../api.js'
+import { Card, Table, Modal, Form, Input, Button, Switch, Select, Avatar, Tag, Space, Typography, Tooltip, Radio, message, Spin, Badge } from 'antd'
+import { users as usersApi, pois as poisApi } from '../../api.js'
 
 const { Title, Text } = Typography
 
@@ -39,6 +39,9 @@ export default function Users() {
 
     // Counts per role
     const [counts, setCounts] = useState({ all: 0, vendor: 0, customer: 0 })
+
+    // POI options for vendor assignment
+    const [poiOptions, setPoiOptions] = useState([])
 
     const roleFilter = tab === 'vendor' ? 'Vendor' : tab === 'customer' ? 'Customer' : undefined
 
@@ -130,6 +133,7 @@ export default function Users() {
         setEditingUser(null)
         form.resetFields()
         setIsModalVisible(true)
+        loadPoiOptions()
     }
 
     const openEdit = (user) => {
@@ -139,17 +143,30 @@ export default function Users() {
             fullName: user.fullName,
             role: user.role,
             phone: user.phone || '',
+            // Pre-fill multi-select with current POI assignments
+            poiIds: user.vendorPOIIds?.length > 0 ? user.vendorPOIIds : [],
         })
         setIsModalVisible(true)
+        if (user.role === 'Vendor') loadPoiOptions()
+    }
+
+    const loadPoiOptions = async () => {
+        try {
+            const res = await poisApi.getList({ page: 1, size: 200 })
+            setPoiOptions(res.data?.items ?? [])
+        } catch { /* ignore */ }
     }
 
     const handleModalSubmit = async (values) => {
         setFormLoading(true)
         try {
+            const poiIds = values.poiIds ?? []
             if (editingUser) {
                 await usersApi.update(editingUser.id, {
                     fullName: values.fullName,
                     phone: values.phone || null,
+                    // Send updated POI list only when editing a Vendor
+                    poiIds: editingUser.role === 'Vendor' ? poiIds : undefined,
                 })
                 message.success('Đã cập nhật người dùng')
             } else {
@@ -159,6 +176,7 @@ export default function Users() {
                     password: values.password,
                     role: values.role,
                     phone: values.phone || null,
+                    poiIds: values.role === 'Vendor' ? poiIds : [],
                 })
                 message.success('Đã tạo người dùng mới')
             }
@@ -186,6 +204,9 @@ export default function Users() {
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <Text strong style={{ fontSize: 14 }}>{record.fullName || '—'}</Text>
                         {record.shopName && <Text type="secondary" style={{ fontSize: 12 }}><ShopOutlined /> {record.shopName}</Text>}
+                        {record.vendorPOIIds?.length > 1 && (
+                            <Text type="secondary" style={{ fontSize: 11, color: '#8b5cf6' }}>+{record.vendorPOIIds.length - 1} POI khác</Text>
+                        )}
                     </div>
                 </div>
             )
@@ -318,13 +339,44 @@ export default function Users() {
 
                     {!editingUser && (
                         <Form.Item name="role" label="Vai trò">
-                            <Select>
+                            <Select onChange={(val) => { if (val === 'Vendor') loadPoiOptions() }}>
                                 <Select.Option value="Customer">Khách hàng</Select.Option>
                                 <Select.Option value="Vendor">Chủ quán</Select.Option>
                                 <Select.Option value="Admin">Quản trị viên</Select.Option>
                             </Select>
                         </Form.Item>
                     )}
+
+                    <Form.Item noStyle shouldUpdate={(prev, cur) => prev.role !== cur.role}>
+                        {({ getFieldValue }) => {
+                            const role = getFieldValue('role')
+                            const isVendorForm = !editingUser ? role === 'Vendor' : editingUser?.role === 'Vendor'
+                            if (!isVendorForm) return null
+                            return (
+                                <Form.Item
+                                    name="poiIds"
+                                    label={
+                                        <span>
+                                            Gán vào quán (POI)
+                                            <Text type="secondary" style={{ marginLeft: 6, fontSize: 12 }}>có thể chọn nhiều</Text>
+                                        </span>
+                                    }
+                                >
+                                    <Select
+                                        mode="multiple"
+                                        placeholder="Chọn một hoặc nhiều POI..."
+                                        allowClear
+                                        showSearch
+                                        optionFilterProp="label"
+                                        options={poiOptions.map(p => ({ label: p.name, value: p.id }))}
+                                        maxTagCount="responsive"
+                                        style={{ width: '100%' }}
+                                        onFocus={() => poiOptions.length === 0 && loadPoiOptions()}
+                                    />
+                                </Form.Item>
+                            )
+                        }}
+                    </Form.Item>
 
                     <Form.Item name="phone" label="Số điện thoại">
                         <Input />

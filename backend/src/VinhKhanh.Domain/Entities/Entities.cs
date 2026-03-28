@@ -34,7 +34,7 @@ public class User : BaseEntity
 
     // Navigation
     public Language? PreferredLanguage { get; set; }
-    public POI? VendorPOI { get; set; }  // Only for Vendor role
+    public ICollection<POI> VendorPOIs { get; set; } = [];  // All POIs owned by this vendor
 }
 
 public class Category : BaseEntity

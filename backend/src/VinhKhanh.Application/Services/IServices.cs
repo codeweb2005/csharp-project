@@ -33,7 +33,7 @@ public interface IPOIService
     /// <param name="callerId">ID of the authenticated user (from JWT sub claim).</param>
     /// <param name="callerRole">Role string of the caller (e.g. "Vendor", "Admin").</param>
     Task<ApiResponse<POIDetailDto>> UpdateAsync(int id, UpdatePOIRequest request, int? callerId = null, string? callerRole = null);
-    Task<ApiResponse<bool>> DeleteAsync(int id);
+    Task<ApiResponse<bool>> DeleteAsync(int id, int? callerId = null, string? callerRole = null);
     Task<ApiResponse<bool>> ToggleActiveAsync(int id);
     Task<ApiResponse<bool>> ToggleFeaturedAsync(int id);
     /// <summary>
@@ -112,38 +112,29 @@ public interface IUserService
 // ============ Dashboard Service ============
 /// <summary>
 /// Aggregated stats for the admin dashboard and the Vendor mini-dashboard.
-/// When <c>vendorPOIId</c> is supplied, ALL queries are scoped to that single POI
-/// so a Vendor only ever sees their own shop's data.
+/// When <c>vendorPOIIds</c> is supplied, ALL queries are scoped to those POIs
+/// so a Vendor only ever sees their own shops' data.
 /// </summary>
 public interface IDashboardService
 {
-    /// <param name="vendorPOIId">If set, scope all stats to this POI (Vendor portal mode).</param>
-    Task<ApiResponse<DashboardStatsDto>> GetStatsAsync(int? vendorPOIId = null);
-    /// <param name="vendorPOIId">If set, return only the vendor's own POI.</param>
-    Task<ApiResponse<List<TopPOIDto>>>   GetTopPOIsAsync(int count = 5, int? vendorPOIId = null);
-    /// <param name="vendorPOIId">If set, filter visits to this POI only.</param>
-    Task<ApiResponse<List<VisitChartDto>>> GetVisitsChartAsync(DateTime from, DateTime to, int? vendorPOIId = null);
-    /// <param name="vendorPOIId">If set, filter language stats to this POI's visits.</param>
-    Task<ApiResponse<List<LanguageStatDto>>> GetLanguageStatsAsync(int? vendorPOIId = null);
-    /// <param name="vendorPOIId">If set, return only activity for this POI.</param>
-    Task<ApiResponse<List<RecentActivityDto>>> GetRecentActivityAsync(int count = 10, int? vendorPOIId = null);
+    Task<ApiResponse<DashboardStatsDto>> GetStatsAsync(List<int>? vendorPOIIds = null);
+    Task<ApiResponse<List<TopPOIDto>>>   GetTopPOIsAsync(int count = 5, List<int>? vendorPOIIds = null);
+    Task<ApiResponse<List<VisitChartDto>>> GetVisitsChartAsync(DateTime from, DateTime to, List<int>? vendorPOIIds = null);
+    Task<ApiResponse<List<LanguageStatDto>>> GetLanguageStatsAsync(List<int>? vendorPOIIds = null);
+    Task<ApiResponse<List<RecentActivityDto>>> GetRecentActivityAsync(int count = 10, List<int>? vendorPOIIds = null);
 }
 
 // ============ Analytics Service ============
 /// <summary>
-/// Detailed analytics data. All methods accept an optional <c>vendorPOIId</c>.
-/// When provided, queries are restricted to visits for that single POI only.
+/// Detailed analytics data. All methods accept an optional <c>vendorPOIIds</c>.
+/// When provided, queries are restricted to visits for those POIs only.
 /// </summary>
 public interface IAnalyticsService
 {
-    /// <param name="vendorPOIId">Scope to this POI when called by a Vendor.</param>
-    Task<ApiResponse<Dictionary<string, TrendDto>>> GetTrendsAsync(string period, int? vendorPOIId = null);
-    /// <param name="vendorPOIId">Scope to this POI when called by a Vendor.</param>
-    Task<ApiResponse<List<VisitChartDto>>>   GetVisitsByDayAsync(DateTime from, DateTime to, int? vendorPOIId = null);
-    /// <param name="vendorPOIId">Scope to this POI when called by a Vendor.</param>
-    Task<ApiResponse<List<HourlyVisitDto>>>  GetVisitsByHourAsync(DateTime date, int? vendorPOIId = null);
-    /// <param name="vendorPOIId">Scope to this POI when called by a Vendor.</param>
-    Task<ApiResponse<List<LanguageStatDto>>> GetLanguageDistributionAsync(DateTime from, DateTime to, int? vendorPOIId = null);
+    Task<ApiResponse<Dictionary<string, TrendDto>>> GetTrendsAsync(string period, List<int>? vendorPOIIds = null);
+    Task<ApiResponse<List<VisitChartDto>>>   GetVisitsByDayAsync(DateTime from, DateTime to, List<int>? vendorPOIIds = null);
+    Task<ApiResponse<List<HourlyVisitDto>>>  GetVisitsByHourAsync(DateTime date, List<int>? vendorPOIIds = null);
+    Task<ApiResponse<List<LanguageStatDto>>> GetLanguageDistributionAsync(DateTime from, DateTime to, List<int>? vendorPOIIds = null);
 }
 
 // ============ Offline Package Service ============

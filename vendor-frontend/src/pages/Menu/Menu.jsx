@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { PlusOutlined, DeleteOutlined, SaveOutlined, UploadOutlined, StarFilled } from '@ant-design/icons'
 import { Card, Drawer, Form, Input, InputNumber, Button, Switch, Row, Col, Typography, Space, Badge, Popconfirm, Select, Tabs, message, Empty, Spin } from 'antd'
 import { menu as menuApi, pois as poisApi } from '../../api.js'
+import useCurrentUser from '../../hooks/useCurrentUser.js'
+import { usePoiSwitcher } from '../../context/PoiSwitcherContext.jsx'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -10,6 +12,9 @@ function formatPrice(p) {
 }
 
 export default function MenuPage() {
+    const { isVendor } = useCurrentUser()
+    const { activePOIId } = usePoiSwitcher()
+
     const [poiOptions, setPoiOptions] = useState([])
     const [selectedPOI, setSelectedPOI] = useState(null)
     const [menuItems, setMenuItems] = useState([])
@@ -23,19 +28,30 @@ export default function MenuPage() {
 
     const [form] = Form.useForm()
 
+    // Sync selectedPOI with PoiSwitcherContext for vendor; load full list for admin
     useEffect(() => {
         async function loadPOIs() {
             try {
-                const res = await poisApi.getList({ page: 1, size: 100 })
-                const items = res.data?.items ?? []
-                setPoiOptions(items)
-                if (items.length > 0) setSelectedPOI(items[0].id)
+                if (isVendor && activePOIId) {
+                    setSelectedPOI(activePOIId)
+                    try {
+                        const res = await poisApi.getDetail(activePOIId)
+                        setPoiOptions([{ id: activePOIId, name: res.data?.name || 'My Shop' }])
+                    } catch {
+                        setPoiOptions([{ id: activePOIId, name: 'My Shop' }])
+                    }
+                } else {
+                    const res = await poisApi.getList({ page: 1, size: 100 })
+                    const items = res.data?.items ?? []
+                    setPoiOptions(items)
+                    if (items.length > 0) setSelectedPOI(items[0].id)
+                }
             } catch (err) {
                 console.error('[Menu] load POIs failed:', err)
             }
         }
         loadPOIs()
-    }, [])
+    }, [isVendor, activePOIId])
 
     const fetchMenu = useCallback(async () => {
         if (!selectedPOI) return
@@ -196,15 +212,19 @@ export default function MenuPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 <Space size="large" align="center" wrap>
                     <Title level={4} style={{ margin: 0 }}>Menu</Title>
-                    <Select
-                        style={{ width: 250 }}
-                        placeholder="Chọn POI"
-                        value={selectedPOI}
-                        onChange={val => { setSelectedPOI(val); closeDrawer() }}
-                        options={poiOptions.map(p => ({ label: p.name, value: p.id }))}
-                        showSearch
-                        optionFilterProp="label"
-                    />
+                    {isVendor ? (
+                        <Text strong style={{ fontSize: 15 }}>{poiOptions[0]?.name || 'My Shop'}</Text>
+                    ) : (
+                        <Select
+                            style={{ width: 250 }}
+                            placeholder="Chọn POI"
+                            value={selectedPOI}
+                            onChange={val => { setSelectedPOI(val); closeDrawer() }}
+                            options={poiOptions.map(p => ({ label: p.name, value: p.id }))}
+                            showSearch
+                            optionFilterProp="label"
+                        />
+                    )}
                     <Text type="secondary">{menuItems.length} món • {sigCount} đặc trưng</Text>
                 </Space>
                 <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} disabled={!selectedPOI}>

@@ -1,30 +1,28 @@
 import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Layout, Menu, Avatar, Typography, Button } from 'antd'
+import { Layout, Menu, Avatar, Typography, Button, Tag } from 'antd'
 import {
-    LayoutDashboard, MapPin, Tag, Volume2, UtensilsCrossed,
+    LayoutDashboard, MapPin, Tag as TagIcon, Volume2,
     Users, BarChart3, Package, Settings, LogOut, ChevronLeft, Menu as MenuIcon,
     Store
 } from 'lucide-react'
 import useCurrentUser from '../../hooks/useCurrentUser.js'
-import { clearTokens } from '../../api.js'
+import { useAuth } from '../../context/AuthContext.jsx'
 import './Sidebar.css'
 
 const { Sider } = Layout
 const { Text } = Typography
 
-// Navigation item definitions
-const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', adminOnly: true },
-    { icon: Store, label: 'My Shop', path: '/dashboard', vendorOnly: true },
-    { icon: MapPin, label: 'Points of Interest', path: '/pois' },
-    { icon: Tag, label: 'Categories', path: '/categories' },
-    { icon: Volume2, label: 'Audio & Media', path: '/audio' },
-    { icon: UtensilsCrossed, label: 'Menu', path: '/menu', vendorOnly: true },
-    { icon: Users, label: 'Users', path: '/users', adminOnly: true },
-    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-    { icon: Package, label: 'Offline Packages', path: '/offline', adminOnly: true },
-    { icon: Settings, label: 'Settings', path: '/settings', adminOnly: true },
+// adminOnly: hidden from Vendor role
+const allMenuItems = [
+    { icon: LayoutDashboard, label: 'Dashboard',        path: '/dashboard'  },
+    { icon: MapPin,          label: 'Points of Interest', path: '/pois'     },
+    { icon: TagIcon,         label: 'Categories',        path: '/categories' },
+    { icon: Volume2,         label: 'Audio & Media',     path: '/audio'      },
+    { icon: BarChart3,       label: 'Analytics',         path: '/analytics'  },
+    { icon: Users,           label: 'Users',             path: '/users',     adminOnly: true },
+    { icon: Package,         label: 'Offline Packages',  path: '/offline',   adminOnly: true },
+    { icon: Settings,        label: 'Settings',          path: '/settings',  adminOnly: true },
 ]
 
 export default function Sidebar() {
@@ -32,20 +30,19 @@ export default function Sidebar() {
     const location = useLocation()
     const navigate = useNavigate()
 
-    const { isVendor, isAdmin, name, role } = useCurrentUser()
+    const { name, isVendor } = useCurrentUser()
+    const { logout } = useAuth()
 
-    const visibleItems = menuItems.filter(item => {
-        if (item.adminOnly && !isAdmin) return false
-        if (item.vendorOnly && !isVendor) return false
-        return true
-    })
+    // Filter items by role
+    const visibleItems = allMenuItems.filter(item => !(item.adminOnly && isVendor))
 
     const handleLogout = () => {
-        clearTokens()
+        logout()
         navigate('/login')
     }
 
-    const avatarInitial = name ? name.charAt(0).toUpperCase() : (isVendor ? 'V' : 'A')
+    const avatarInitial = name ? name.charAt(0).toUpperCase() : 'A'
+    const avatarColor = isVendor ? '#d97706' : '#3b82f6'
 
     const items = visibleItems.map(item => {
         const Icon = item.icon
@@ -80,7 +77,17 @@ export default function Sidebar() {
             trigger={null} // custom trigger below
         >
             <div className="sidebar-logo-antd" style={{ padding: '20px 16px', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between' }}>
-                {!collapsed && <Typography.Title level={4} style={{ margin: 0, color: '#2563eb' }}>VK Food Tour</Typography.Title>}
+                {!collapsed && (
+                    <div>
+                        <Typography.Title level={4} style={{ margin: 0, color: '#2563eb' }}>VK Food Tour</Typography.Title>
+                        {isVendor && (
+                            <Text style={{ fontSize: 11, color: '#d97706', fontWeight: 600 }}>🏪 Vendor Portal</Text>
+                        )}
+                        {!isVendor && (
+                            <Text type="secondary" style={{ fontSize: 11 }}>Admin Panel</Text>
+                        )}
+                    </div>
+                )}
                 <Button type="text" onClick={() => setCollapsed(!collapsed)} icon={collapsed ? <MenuIcon size={18} /> : <ChevronLeft size={18} />} />
             </div>
 
@@ -94,11 +101,11 @@ export default function Sidebar() {
 
             <div className="sidebar-footer-antd" style={{ position: 'absolute', bottom: 0, width: '100%', padding: '16px', borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: collapsed ? 'center' : 'flex-start' }}>
-                    <Avatar style={{ backgroundColor: isVendor ? '#f59e0b' : '#3b82f6' }}>{avatarInitial}</Avatar>
+                    <Avatar style={{ backgroundColor: avatarColor }}>{avatarInitial}</Avatar>
                     {!collapsed && (
                         <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <Text strong ellipsis style={{ display: 'block', margin: 0 }}>{name || 'User'}</Text>
-                            <Text type="secondary" style={{ fontSize: 12 }}>{isVendor ? 'Shop owner' : 'Administrator'}</Text>
+                            <Text strong ellipsis style={{ display: 'block', margin: 0 }}>{name || 'Admin User'}</Text>
+                            <Text type="secondary" style={{ fontSize: 12 }}>{isVendor ? 'Vendor' : 'Administrator'}</Text>
                         </div>
                     )}
                 </div>

@@ -102,7 +102,14 @@ public class UserDto
     public string? AvatarUrl { get; set; }
     public bool IsActive { get; set; }
     public DateTime? LastLoginAt { get; set; }
-    public string? ShopName { get; set; }           // For Vendor
+    /// <summary>Primary shop name shown in table (first POI's name for Vendor role).</summary>
+    public string? ShopName { get; set; }
+    /// <summary>
+    /// All POI IDs linked to this Vendor user.
+    /// Used by the admin UI to pre-fill the multi-select POI picker on edit.
+    /// Empty for Admin / Customer roles.
+    /// </summary>
+    public List<int> VendorPOIIds { get; set; } = [];
 }
 
 public class CreateUserRequest
@@ -112,7 +119,11 @@ public class CreateUserRequest
     public string Password { get; set; } = string.Empty;
     public string Role { get; set; } = "Customer";
     public string? Phone { get; set; }
-    public int? POIId { get; set; }                 // Link vendor to POI
+    /// <summary>
+    /// POI IDs to link to this Vendor on creation.
+    /// Each POI's VendorUserId will be set to the new user's Id.
+    /// </summary>
+    public List<int> POIIds { get; set; } = [];
 }
 
 public class UpdateUserRequest
@@ -120,6 +131,14 @@ public class UpdateUserRequest
     public string FullName { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public int? PreferredLanguageId { get; set; }
+    /// <summary>
+    /// Desired set of POI IDs for a Vendor user.
+    /// The service will diff against the current assignment:
+    ///   - POIs in this list but not currently linked → set VendorUserId = this user
+    ///   - POIs currently linked but not in this list → clear VendorUserId
+    /// Ignored for Admin / Customer roles.
+    /// </summary>
+    public List<int>? POIIds { get; set; }
 }
 
 // ============ POI ============

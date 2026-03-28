@@ -74,7 +74,10 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.CategoryId);
             e.HasIndex(x => x.IsActive);
             e.HasOne(x => x.Category).WithMany(c => c.POIs).HasForeignKey(x => x.CategoryId);
-            e.HasOne(x => x.VendorUser).WithOne(u => u.VendorPOI).HasForeignKey<POI>(x => x.VendorUserId);
+            e.HasOne(x => x.VendorUser).WithMany(u => u.VendorPOIs).HasForeignKey(x => x.VendorUserId);
+            // VendorUserId must be a NON-UNIQUE index — one vendor can own many POIs (1:N).
+            // Without this explicit call EF may generate or preserve a UNIQUE index from old 1:1 schema.
+            e.HasIndex(x => x.VendorUserId).IsUnique(false);
         });
 
         mb.Entity<POITranslation>(e =>
@@ -127,7 +130,9 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.POIId, x.VisitedAt });
             e.Property(x => x.DeviceId).HasMaxLength(100);
             e.HasOne(x => x.POI).WithMany(p => p.Visits).HasForeignKey(x => x.POIId);
-            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
+            // UserId is nullable — SET NULL when the User account is deleted so analytics data is preserved.
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Language).WithMany().HasForeignKey(x => x.LanguageId);
         });
 

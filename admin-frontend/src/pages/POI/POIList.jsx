@@ -9,7 +9,7 @@ import useCurrentUser from '../../hooks/useCurrentUser.js'
 const { Text } = Typography
 
 export default function POIList() {
-    const { isVendor } = useCurrentUser()
+    const { isVendor, vendorPOIIds } = useCurrentUser()
 
     const [data, setData] = useState([])
     const [categories, setCategories] = useState([])
@@ -59,6 +59,18 @@ export default function POIList() {
     }, [])
 
     useEffect(() => { setPage(1) }, [search, categoryFilter])
+
+    // Vendor: load their POI names for the selector
+    const [vendorPOIOptions, setVendorPOIOptions] = useState([])
+    useEffect(() => {
+        if (!isVendor || vendorPOIIds.length === 0) return
+        Promise.allSettled(
+            vendorPOIIds.map(id => poisApi.getDetail(id).then(r => ({ id, name: r.data?.name || `POI #${id}` })))
+        ).then(results => {
+            const opts = results.filter(r => r.status === 'fulfilled').map(r => r.value)
+            setVendorPOIOptions(opts)
+        })
+    }, [isVendor, vendorPOIIds.join(',')])
 
     const handleToggleActive = async (id) => {
         try {
@@ -161,18 +173,18 @@ export default function POIList() {
             key: 'visits',
             render: (visits) => visits?.toLocaleString() ?? 0
         },
-        {
+        ...(!isVendor ? [{
             title: 'Status',
             key: 'status',
             render: (_, record) => (
-                <Switch 
-                    checked={record.isActive} 
-                    onChange={() => handleToggleActive(record.id)} 
-                    checkedChildren="Active" 
+                <Switch
+                    checked={record.isActive}
+                    onChange={() => handleToggleActive(record.id)}
+                    checkedChildren="Active"
                     unCheckedChildren="Inactive"
                 />
             )
-        },
+        }] : []),
         {
             title: 'Actions',
             key: 'actions',
@@ -211,92 +223,143 @@ export default function POIList() {
 
     return (
         <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-                <Space align="center" size="middle" wrap>
-                    <Input
-                        placeholder="Search by name…"
-                        prefix={<SearchOutlined style={{ color: '#cbd5e1' }} />}
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        style={{ width: 250, borderRadius: 20 }}
-                        allowClear
-                    />
-                    <Select
-                        value={categoryFilter}
-                        onChange={setCategoryFilter}
-                        style={{ width: 200 }}
-                        options={[
-                            { value: 'all', label: 'All categories' },
-                            ...categories.map(c => ({
-                                value: c.id,
-                                label: `${c.icon} ${c.translations?.[0]?.name ?? `Category ${c.id}`}`
-                            }))
-                        ]}
-                    />
-                </Space>
-                {!isVendor && (
+            {isVendor ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                    <div>
+                        <Text strong style={{ fontSize: 16 }}>My Shop — POIs</Text>
+                        {vendorPOIIds.length > 0 && (
+                            <Text type="secondary" style={{ marginLeft: 8, fontSize: 13 }}>
+                                {vendorPOIIds.length} POI{vendorPOIIds.length > 1 ? 's' : ''}
+                            </Text>
+                        )}
+                    </div>
+                    <Space wrap>
+                        {vendorPOIOptions.length > 0 ? (
+                            <Select
+                                placeholder="Chọn POI để chỉnh sửa..."
+                                style={{ minWidth: 220 }}
+                                showSearch
+                                optionFilterProp="label"
+                                options={vendorPOIOptions.map(p => ({ label: p.name, value: p.id }))}
+                                onChange={id => openEdit(id)}
+                                value={null}  // always reset after selection
+                            />
+                        ) : (
+                            <Text type="secondary">Chưa được gán POI nào</Text>
+                        )}
+                    </Space>
+                </div>
+            ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+                    <Space align="center" size="middle" wrap>
+                        <Input
+                            placeholder="Search by name…"
+                            prefix={<SearchOutlined style={{ color: '#cbd5e1' }} />}
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            style={{ width: 250, borderRadius: 20 }}
+                            allowClear
+                        />
+                        <Select
+                            value={categoryFilter}
+                            onChange={setCategoryFilter}
+                            style={{ width: 200 }}
+                            options={[
+                                { value: 'all', label: 'All categories' },
+                                ...categories.map(c => ({
+                                    value: c.id,
+                                    label: `${c.icon} ${c.translations?.[0]?.name ?? `Category ${c.id}`}`
+                                }))
+                            ]}
+                        />
+                    </Space>
                     <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                         Add POI
                     </Button>
-                )}
-            </div>
+                </div>
+            )}
 
-            <Row gutter={[24, 24]}>
-                <Col xs={24} xl={16}>
-                    <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                        <Table 
-                            columns={columns} 
-                            dataSource={data} 
-                            rowKey="id" 
-                            loading={loading}
-                            pagination={{
-                                current: page,
-                                pageSize: PAGE_SIZE,
-                                total: total,
-                                onChange: (p) => setPage(p),
-                                showSizeChanger: false,
-                                showTotal: (t, range) => `Showing ${range[0]}–${range[1]} of ${t}`
-                            }}
-                            rowClassName={record => {
-                                let classes = []
-                                if (!record.isActive) classes.push('ant-table-row-disabled')
-                                if (selectedPoiId === record.id) classes.push('ant-table-row-selected')
-                                return classes.join(' ')
-                            }}
-                            onRow={(record) => ({
-                                onClick: () => setSelectedPoiId(record.id === selectedPoiId ? null : record.id),
-                                style: { cursor: 'pointer' }
-                            })}
-                            locale={{
-                                emptyText: isVendor ? 'No POIs found.' : (
-                                    <Space direction="vertical" align="center">
-                                        No POIs found.
-                                        <Button type="link" onClick={openCreate}>Add the first one?</Button>
-                                    </Space>
-                                )
-                            }}
-                        />
-                    </Card>
-                </Col>
+            {/* Vendor: compact full-width table; Admin: table + mini-map side-by-side */}
+            {isVendor ? (
+                <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <Table
+                        columns={columns}
+                        dataSource={data}
+                        rowKey="id"
+                        loading={loading}
+                        pagination={{
+                            current: page,
+                            pageSize: PAGE_SIZE,
+                            total: total,
+                            onChange: (p) => setPage(p),
+                            showSizeChanger: false,
+                            showTotal: (t, range) => `Hiển thị ${range[0]}–${range[1]} trong ${t} POI`
+                        }}
+                        onRow={(record) => ({
+                            onClick: () => openEdit(record.id),
+                            style: { cursor: 'pointer' }
+                        })}
+                        locale={{ emptyText: <div style={{ padding: '40px 0', color: '#94a3b8' }}>Chưa có POI nào được gán cho bạn</div> }}
+                    />
+                </Card>
+            ) : (
+                <Row gutter={[24, 24]}>
+                    <Col xs={24} xl={16}>
+                        <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                            <Table
+                                columns={columns}
+                                dataSource={data}
+                                rowKey="id"
+                                loading={loading}
+                                pagination={{
+                                    current: page,
+                                    pageSize: PAGE_SIZE,
+                                    total: total,
+                                    onChange: (p) => setPage(p),
+                                    showSizeChanger: false,
+                                    showTotal: (t, range) => `Showing ${range[0]}–${range[1]} of ${t}`
+                                }}
+                                rowClassName={record => {
+                                    let classes = []
+                                    if (!record.isActive) classes.push('ant-table-row-disabled')
+                                    if (selectedPoiId === record.id) classes.push('ant-table-row-selected')
+                                    return classes.join(' ')
+                                }}
+                                onRow={(record) => ({
+                                    onClick: () => setSelectedPoiId(record.id === selectedPoiId ? null : record.id),
+                                    style: { cursor: 'pointer' }
+                                })}
+                                locale={{
+                                    emptyText: (
+                                        <Space direction="vertical" align="center">
+                                            No POIs found.
+                                            <Button type="link" onClick={openCreate}>Add the first one?</Button>
+                                        </Space>
+                                    )
+                                }}
+                            />
+                        </Card>
+                    </Col>
 
-                <Col xs={24} xl={8}>
-                    <div style={{ 
-                        height: 'calc(100vh - 180px)', 
-                        position: 'sticky', 
-                        top: 24,
-                        borderRadius: 12,
-                        overflow: 'hidden',
-                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-                        background: '#fff'
-                    }}>
-                        <POIMiniMap
-                            pois={data}
-                            selectedPoiId={selectedPoiId}
-                            onSelectPoi={poi => setSelectedPoiId(poi.id === selectedPoiId ? null : poi.id)}
-                        />
-                    </div>
-                </Col>
-            </Row>
+                    <Col xs={24} xl={8}>
+                        <div style={{
+                            height: 'calc(100vh - 180px)',
+                            position: 'sticky',
+                            top: 24,
+                            borderRadius: 12,
+                            overflow: 'hidden',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+                            background: '#fff'
+                        }}>
+                            <POIMiniMap
+                                pois={data}
+                                selectedPoiId={selectedPoiId}
+                                onSelectPoi={poi => setSelectedPoiId(poi.id === selectedPoiId ? null : poi.id)}
+                            />
+                        </div>
+                    </Col>
+                </Row>
+            )}
 
             {showForm && (
                 <POIForm

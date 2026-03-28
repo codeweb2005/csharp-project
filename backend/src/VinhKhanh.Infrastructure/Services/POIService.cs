@@ -162,14 +162,21 @@ public class POIService : IPOIService
         return ApiResponse<POIDetailDto>.Ok(MapToDetail(detail!));
     }
 
-    public async Task<ApiResponse<bool>> DeleteAsync(int id)
+    public async Task<ApiResponse<bool>> DeleteAsync(int id, int? callerId = null, string? callerRole = null)
     {
         var poi = await _poiRepo.GetByIdAsync(id);
         if (poi == null)
             return ApiResponse<bool>.Fail("NOT_FOUND", "Không tìm thấy POI");
 
+        // Vendor can only delete their own POI
+        if (callerRole == "Vendor" && poi.VendorUserId != callerId)
+        {
+            _logger.LogWarning("Vendor {UserId} attempted to delete POI {POIId} owned by {OwnerId}", callerId, id, poi.VendorUserId);
+            return ApiResponse<bool>.Fail("FORBIDDEN", "Bạn chỉ có thể xóa quán của mình.");
+        }
+
         await _poiRepo.DeleteAsync(poi);
-        _logger.LogInformation("POI deleted: {Id}", id);
+        _logger.LogInformation("POI {Id} deleted by user {UserId} (role: {Role})", id, callerId, callerRole);
         return ApiResponse<bool>.Ok(true);
     }
 

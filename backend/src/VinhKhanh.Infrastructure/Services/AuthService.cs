@@ -34,8 +34,9 @@ public class AuthService : IAuthService
     /// </summary>
     public async Task<ApiResponse<LoginResponse>> LoginAsync(LoginRequest request)
     {
-        // 1. Find user
+        // 1. Find user (Include VendorPOIs so the JWT gets the vendorPoiIds claim)
         var user = await _db.Users
+            .Include(u => u.VendorPOIs)
             .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower());
 
         if (user == null)
@@ -89,8 +90,9 @@ public class AuthService : IAuthService
     /// </summary>
     public async Task<ApiResponse<LoginResponse>> RefreshTokenAsync(string refreshToken)
     {
-        // 1. Find user by refresh token
+        // 1. Find user by refresh token (Include VendorPOIs so the JWT gets the vendorPoiIds claim)
         var user = await _db.Users
+            .Include(u => u.VendorPOIs)
             .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
 
         if (user == null)
@@ -174,8 +176,8 @@ public class AuthService : IAuthService
     public async Task<ApiResponse<UserDto>> GetCurrentUserAsync(int userId)
     {
         var user = await _db.Users
-            .Include(u => u.VendorPOI)
-                .ThenInclude(p => p!.Translations)
+            .Include(u => u.VendorPOIs)
+                .ThenInclude(p => p.Translations)
             .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)
@@ -183,10 +185,10 @@ public class AuthService : IAuthService
 
         var dto = MapToDto(user);
 
-        // If vendor, include shop name from first available translation
-        if (user.VendorPOI != null)
+        // If vendor, include first shop name from available translations
+        if (user.VendorPOIs.Count > 0)
         {
-            dto.ShopName = user.VendorPOI.Translations
+            dto.ShopName = user.VendorPOIs.First().Translations
                 .OrderBy(t => t.LanguageId)
                 .Select(t => t.Name)
                 .FirstOrDefault();

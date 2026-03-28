@@ -23,14 +23,22 @@ public abstract class BaseApiController : ControllerBase
         User.FindFirst("role")?.Value ?? "";
 
     /// <summary>
-    /// Returns the Vendor's linked POI ID from the JWT 'vendorPoiId' claim.
+    /// Returns the Vendor's linked POI IDs from the JWT 'vendorPoiIds' claim (JSON array).
     /// Returns <c>null</c> for Admin and Customer users (claim not present in their tokens).
     /// Use this to pass vendor scoping into Dashboard/Analytics/POI services.
     /// </summary>
-    protected int? GetVendorPOIId()
+    protected List<int>? GetVendorPOIIds()
     {
-        var raw = User.FindFirst("vendorPoiId")?.Value;
-        return raw != null && int.TryParse(raw, out var id) ? id : null;
+        var raw = User.FindFirst("vendorPoiIds")?.Value;
+        if (raw == null) return null;
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<int>>(raw);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>Maps an <see cref="ApiResponse{T}"/> to an appropriate HTTP result.</summary>
@@ -105,18 +113,23 @@ public class POIsController(IPOIService poiService) : BaseApiController
         => ApiResult(await poiService.GetDetailAsync(id));
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Vendor")]
     public async Task<IActionResult> Create([FromBody] CreatePOIRequest request)
-        => ApiResult(await poiService.CreateAsync(request));
+    {
+        // Vendor: auto-link POI to themselves
+        if (GetUserRole() == "Vendor")
+            request.VendorUserId = GetUserId();
+        return ApiResult(await poiService.CreateAsync(request));
+    }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdatePOIRequest request)
-        => ApiResult(await poiService.UpdateAsync(id, request));
+        => ApiResult(await poiService.UpdateAsync(id, request, GetUserId(), GetUserRole()));
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Vendor")]
     public async Task<IActionResult> Delete(int id)
-        => ApiResult(await poiService.DeleteAsync(id));
+        => ApiResult(await poiService.DeleteAsync(id, GetUserId(), GetUserRole()));
 
     [HttpPatch("{id}/toggle")]
     [Authorize(Roles = "Admin")]
@@ -391,30 +404,30 @@ public class UsersController(IUserService svc) : BaseApiController
 // ================================
 /// <summary>
 /// Dashboard stats endpoint - accessible by both Admin and Vendor.
-/// Vendor calls are automatically scoped to their own POI via the JWT vendorPoiId claim.
+/// Vendor calls are automatically scoped to their own POIs via the JWT vendorPoiIds claim.
 /// </summary>
 [Authorize(Roles = "Admin,Vendor")]
 public class DashboardController(IDashboardService svc) : BaseApiController
 {
     [HttpGet("stats")]
     public async Task<IActionResult> GetStats()
-        => ApiResult(await svc.GetStatsAsync(GetVendorPOIId()));
+        => ApiResult(await svc.GetStatsAsync(GetVendorPOIIds()));
 
     [HttpGet("top-pois")]
     public async Task<IActionResult> GetTopPOIs([FromQuery] int count = 5)
-        => ApiResult(await svc.GetTopPOIsAsync(count, GetVendorPOIId()));
+        => ApiResult(await svc.GetTopPOIsAsync(count, GetVendorPOIIds()));
 
     [HttpGet("visits-chart")]
     public async Task<IActionResult> GetVisitsChart([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetVisitsChartAsync(from, to, GetVendorPOIId()));
+        => ApiResult(await svc.GetVisitsChartAsync(from, to, GetVendorPOIIds()));
 
     [HttpGet("language-stats")]
     public async Task<IActionResult> GetLanguageStats()
-        => ApiResult(await svc.GetLanguageStatsAsync(GetVendorPOIId()));
+        => ApiResult(await svc.GetLanguageStatsAsync(GetVendorPOIIds()));
 
     [HttpGet("recent-activity")]
     public async Task<IActionResult> GetRecentActivity([FromQuery] int count = 10)
-        => ApiResult(await svc.GetRecentActivityAsync(count, GetVendorPOIId()));
+        => ApiResult(await svc.GetRecentActivityAsync(count, GetVendorPOIIds()));
 }
 
 // ================================
@@ -423,26 +436,26 @@ public class DashboardController(IDashboardService svc) : BaseApiController
 // ================================
 /// <summary>
 /// Detailed analytics - accessible by Admin and Vendor.
-/// Vendor calls are automatically scoped to their own POI via the JWT vendorPoiId claim.
+/// Vendor calls are automatically scoped to their own POIs via the JWT vendorPoiIds claim.
 /// </summary>
 [Authorize(Roles = "Admin,Vendor")]
 public class AnalyticsController(IAnalyticsService svc) : BaseApiController
 {
     [HttpGet("trends")]
     public async Task<IActionResult> GetTrends([FromQuery] string period = "30d")
-        => ApiResult(await svc.GetTrendsAsync(period, GetVendorPOIId()));
+        => ApiResult(await svc.GetTrendsAsync(period, GetVendorPOIIds()));
 
     [HttpGet("visits-by-day")]
     public async Task<IActionResult> GetVisitsByDay([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetVisitsByDayAsync(from, to, GetVendorPOIId()));
+        => ApiResult(await svc.GetVisitsByDayAsync(from, to, GetVendorPOIIds()));
 
     [HttpGet("visits-by-hour")]
     public async Task<IActionResult> GetVisitsByHour([FromQuery] DateTime date)
-        => ApiResult(await svc.GetVisitsByHourAsync(date, GetVendorPOIId()));
+        => ApiResult(await svc.GetVisitsByHourAsync(date, GetVendorPOIIds()));
 
     [HttpGet("language-distribution")]
     public async Task<IActionResult> GetLanguages([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetLanguageDistributionAsync(from, to, GetVendorPOIId()));
+        => ApiResult(await svc.GetLanguageDistributionAsync(from, to, GetVendorPOIIds()));
 }
 
 // ================================

@@ -23,7 +23,7 @@ public class UserService : IUserService
         int page, int size, string? search, string? role)
     {
         var query = _db.Users
-            .Include(u => u.VendorPOI).ThenInclude(p => p!.Translations)
+            .Include(u => u.VendorPOIs).ThenInclude(p => p.Translations)
             .AsNoTracking()
             .AsQueryable();
 
@@ -53,7 +53,7 @@ public class UserService : IUserService
     public async Task<ApiResponse<UserDto>> GetByIdAsync(int id)
     {
         var user = await _db.Users
-            .Include(u => u.VendorPOI).ThenInclude(p => p!.Translations)
+            .Include(u => u.VendorPOIs).ThenInclude(p => p.Translations)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null)
@@ -85,34 +85,74 @@ public class UserService : IUserService
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        // Link vendor to POI if applicable
-        if (role == UserRole.Vendor && request.POIId.HasValue)
+        // Link vendor to all specified POIs
+        if (role == UserRole.Vendor && request.POIIds.Count > 0)
         {
-            var poi = await _db.POIs.FindAsync(request.POIId.Value);
-            if (poi != null)
-            {
+            var pois = await _db.POIs
+                .Where(p => request.POIIds.Contains(p.Id))
+                .ToListAsync();
+            foreach (var poi in pois)
                 poi.VendorUserId = user.Id;
-                await _db.SaveChangesAsync();
-            }
+            await _db.SaveChangesAsync();
         }
 
-        _logger.LogInformation("User created: {Id} ({Email})", user.Id, user.Email);
-        return ApiResponse<UserDto>.Ok(MapToDto(user));
+        // Reload with VendorPOIs for the DTO
+        var created = await _db.Users
+            .Include(u => u.VendorPOIs).ThenInclude(p => p.Translations)
+            .FirstAsync(u => u.Id == user.Id);
+
+        _logger.LogInformation("User created: {Id} ({Email}) with {Count} POI(s)", user.Id, user.Email, created.VendorPOIs.Count);
+        return ApiResponse<UserDto>.Ok(MapToDto(created));
     }
 
     public async Task<ApiResponse<UserDto>> UpdateAsync(int id, UpdateUserRequest request)
     {
-        var user = await _db.Users.FindAsync(id);
+        var user = await _db.Users
+            .Include(u => u.VendorPOIs)
+            .FirstOrDefaultAsync(u => u.Id == id);
         if (user == null)
             return ApiResponse<UserDto>.Fail("NOT_FOUND", "Không tìm thấy người dùng");
 
         user.FullName = request.FullName;
         user.Phone = request.Phone;
-        user.PreferredLanguageId = request.PreferredLanguageId;
+        if (request.PreferredLanguageId.HasValue)
+            user.PreferredLanguageId = request.PreferredLanguageId;
+
+        // Diff-based POI assignment — only for Vendor role and when POIIds is provided
+        if (user.Role == Domain.Enums.UserRole.Vendor && request.POIIds != null)
+        {
+            var desired = request.POIIds.ToHashSet();
+            var currentIds = user.VendorPOIs.Select(p => p.Id).ToHashSet();
+
+            // Detach POIs that were removed from the list
+            var toDetach = currentIds.Except(desired).ToList();
+            if (toDetach.Count > 0)
+            {
+                var poisToDetach = await _db.POIs.Where(p => toDetach.Contains(p.Id)).ToListAsync();
+                foreach (var p in poisToDetach) p.VendorUserId = null;
+            }
+
+            // Attach POIs newly added to the list
+            var toAttach = desired.Except(currentIds).ToList();
+            if (toAttach.Count > 0)
+            {
+                var poisToAttach = await _db.POIs.Where(p => toAttach.Contains(p.Id)).ToListAsync();
+                foreach (var p in poisToAttach) p.VendorUserId = id;
+            }
+
+            _logger.LogInformation("Vendor {Id} POI assignment updated: detached={Det} attached={Att}",
+                id, toDetach.Count, toAttach.Count);
+        }
+
         await _db.SaveChangesAsync();
 
+        // Reload fresh to include updated VendorPOIs
+        var updated = await _db.Users
+            .Include(u => u.VendorPOIs).ThenInclude(p => p.Translations)
+            .FirstAsync(u => u.Id == id);
+
         _logger.LogInformation("User updated: {Id}", id);
-        return ApiResponse<UserDto>.Ok(MapToDto(user));
+        return ApiResponse<UserDto>.Ok(MapToDto(updated));
     }
 
     public async Task<ApiResponse<bool>> DeleteAsync(int id)
@@ -124,6 +164,9 @@ public class UserService : IUserService
         if (user.Role == UserRole.Admin)
             return ApiResponse<bool>.Fail("FORBIDDEN", "Không thể xóa tài khoản Admin");
 
+        // MySQL FK cascades handle nullification automatically:
+        //   POIs.VendorUserId      → ON DELETE SET NULL (migration 007)
+        //   VisitHistory.UserId    → ON DELETE SET NULL (migration 008)
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();
         _logger.LogInformation("User deleted: {Id}", id);
@@ -167,9 +210,10 @@ public class UserService : IUserService
         AvatarUrl = u.AvatarUrl,
         IsActive = u.IsActive,
         LastLoginAt = u.LastLoginAt,
-        ShopName = u.VendorPOI?.Translations
+        ShopName = u.VendorPOIs.FirstOrDefault()?.Translations
             .OrderBy(t => t.LanguageId)
             .Select(t => t.Name)
-            .FirstOrDefault()
+            .FirstOrDefault(),
+        VendorPOIIds = u.VendorPOIs.Select(p => p.Id).ToList(),
     };
 }

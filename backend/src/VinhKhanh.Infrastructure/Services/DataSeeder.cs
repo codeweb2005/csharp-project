@@ -28,6 +28,7 @@ public static class DataSeeder
             await SeedAdminUserAsync(db, logger);
             await SeedCategoriesAsync(db, logger);
             await SeedSamplePOIsAsync(db, logger);
+            await SeedVendorUserAsync(db, logger);
             await SeedSystemSettingsAsync(db, logger);
         }
         catch (Exception ex)
@@ -182,6 +183,34 @@ public static class DataSeeder
         db.POIs.AddRange(pois);
         await db.SaveChangesAsync();
         logger.LogInformation("Seeded {Count} sample POIs", pois.Count);
+    }
+
+    private static async Task SeedVendorUserAsync(AppDbContext db, ILogger logger)
+    {
+        if (await db.Users.AnyAsync(u => u.Role == UserRole.Vendor)) return;
+
+        var firstPoi = await db.POIs.FirstOrDefaultAsync();
+        if (firstPoi == null) return;
+
+        var vendor = new User
+        {
+            Email = "vendor@vinhkhanh.app",
+            PasswordHash = PasswordHasher.Hash("Vendor@123"),
+            FullName = "Ốc Đào Owner",
+            Role = UserRole.Vendor,
+            Phone = "0901 234 567",
+            IsActive = true,
+            PreferredLanguageId = 2, // English
+        };
+
+        db.Users.Add(vendor);
+        await db.SaveChangesAsync();
+
+        // Link vendor to first POI
+        firstPoi.VendorUserId = vendor.Id;
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("Seeded vendor user: vendor@vinhkhanh.app / Vendor@123 → POI #{PoiId}", firstPoi.Id);
     }
 
     private static async Task SeedSystemSettingsAsync(AppDbContext db, ILogger logger)

@@ -24,10 +24,10 @@ public class JwtService
     }
 
     /// <summary>Generate JWT access token with user claims.
-    /// For Vendor users the token also carries a <c>vendorPoiId</c> custom claim
+    /// For Vendor users the token also carries a <c>vendorPoiIds</c> custom claim (JSON array)
     /// so the backend can scope Dashboard/Analytics queries without an extra DB round-trip.
     /// </summary>
-    /// <param name="user">Authenticated user. Must have <c>VendorPOI</c> navigation loaded for Vendor role.</param>
+    /// <param name="user">Authenticated user. Must have <c>VendorPOIs</c> navigation loaded for Vendor role.</param>
     public string GenerateAccessToken(User user)
     {
         var claims = new List<Claim>
@@ -43,12 +43,13 @@ public class JwtService
         };
 
         // ── Vendor-specific claim ──────────────────────────────────────────
-        // Embed the linked POI id so controllers can pass it to scoped services
+        // Embed all linked POI ids as a JSON array so controllers can scope services
         // without an extra DB query. Only present when the user is a Vendor AND
-        // VendorPOI was eagerly loaded (Login/Refresh/Register flows).
-        if (user.Role == Domain.Enums.UserRole.Vendor && user.VendorPOI is not null)
+        // VendorPOIs was eagerly loaded (Login/Refresh flows).
+        if (user.Role == Domain.Enums.UserRole.Vendor && user.VendorPOIs?.Count > 0)
         {
-            claims.Add(new Claim("vendorPoiId", user.VendorPOI.Id.ToString()));
+            var ids = user.VendorPOIs.Select(p => p.Id).ToList();
+            claims.Add(new Claim("vendorPoiIds", System.Text.Json.JsonSerializer.Serialize(ids)));
         }
 
         var expiryMinutes = int.Parse(_config["Jwt:ExpiryMinutes"] ?? "60");

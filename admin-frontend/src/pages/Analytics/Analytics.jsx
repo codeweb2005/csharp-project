@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ArrowUpOutlined, ArrowDownOutlined, GlobalOutlined, ClockCircleOutlined, ThunderboltOutlined, BarChartOutlined } from '@ant-design/icons'
-import { Card, Row, Col, Typography, Radio, Spin, List, Avatar, Tag, Statistic, Space, Badge } from 'antd'
+import { Card, Row, Col, Typography, Radio, Spin, List, Avatar, Tag, Statistic, Space, Badge, Select } from 'antd'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
-import { analytics as analyticsApi, dashboard as dashboardApi } from '../../api.js'
+import { analytics as analyticsApi, dashboard as dashboardApi, pois as poisApi } from '../../api.js'
+import useCurrentUser from '../../hooks/useCurrentUser.js'
 
 const { Title, Text } = Typography
 
@@ -19,8 +20,21 @@ function daysFromPeriod(period) {
 }
 
 export default function Analytics() {
+    const { isVendor, vendorPOIIds } = useCurrentUser()
     const [period, setPeriod] = useState('30d')
     const [loading, setLoading] = useState(true)
+
+    // Vendor: POI selector
+    const [selectedPoiId, setSelectedPoiId] = useState(null)  // null = all owned POIs
+    const [vendorPOIOptions, setVendorPOIOptions] = useState([])
+    useEffect(() => {
+        if (!isVendor || vendorPOIIds.length === 0) return
+        Promise.allSettled(
+            vendorPOIIds.map(id => poisApi.getDetail(id).then(r => ({ id, name: r.data?.name || `POI #${id}` })))
+        ).then(results => {
+            setVendorPOIOptions(results.filter(r => r.status === 'fulfilled').map(r => r.value))
+        })
+    }, [isVendor, vendorPOIIds.join(',')])
 
     // Data
     const [trends, setTrends] = useState(null)
@@ -36,11 +50,15 @@ export default function Analytics() {
             const from = new Date(Date.now() - daysFromPeriod(period) * 86400000).toISOString()
             const today = new Date().toISOString().split('T')[0]
 
+            // poiId param is passed to API so backend can filter by specific POI.
+            // For vendors with no selection (null) the backend scopes by all vendorPoiIds from JWT.
+            const poiSuffix = selectedPoiId ? `&poiId=${selectedPoiId}` : ''
+
             const [trendsRes, visitsRes, hourlyRes, langRes, recentRes] = await Promise.all([
-                analyticsApi.getTrends(period),
-                analyticsApi.getVisitsByDay(from, to),
-                analyticsApi.getVisitsByHour(today),
-                analyticsApi.getLanguageDistribution(from, to),
+                analyticsApi.getTrends(period, selectedPoiId),
+                analyticsApi.getVisitsByDay(from, to, selectedPoiId),
+                analyticsApi.getVisitsByHour(today, selectedPoiId),
+                analyticsApi.getLanguageDistribution(from, to, selectedPoiId),
                 dashboardApi.getRecentActivity(8),
             ])
 
@@ -56,7 +74,7 @@ export default function Analytics() {
         } finally {
             setLoading(false)
         }
-    }, [period])
+    }, [period, selectedPoiId])
 
     useEffect(() => { fetchData() }, [fetchData])
 
@@ -77,13 +95,39 @@ export default function Analytics() {
 
     return (
         <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-                <Title level={4} style={{ margin: 0 }}>Analytics</Title>
-                <Radio.Group value={period} onChange={e => setPeriod(e.target.value)} optionType="button" buttonStyle="solid">
-                    {periods.map(p => (
-                        <Radio.Button key={p.key} value={p.key}>{p.label}</Radio.Button>
-                    ))}
-                </Radio.Group>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                    <Typography.Title level={4} style={{ margin: 0 }}>
+                        {isVendor ? '🏪 My Shop Analytics' : 'Analytics'}
+                    </Typography.Title>
+                    {isVendor && selectedPoiId && (
+                        <Text type="secondary" style={{ fontSize: 13 }}>
+                            {vendorPOIOptions.find(p => p.id === selectedPoiId)?.name}
+                        </Text>
+                    )}
+                    {isVendor && !selectedPoiId && vendorPOIIds.length > 0 && (
+                        <Text type="secondary" style={{ fontSize: 13 }}>Tổng hợp {vendorPOIIds.length} POI</Text>
+                    )}
+                </div>
+                <Space wrap>
+                    {isVendor && vendorPOIOptions.length > 1 && (
+                        <Select
+                            style={{ minWidth: 200 }}
+                            value={selectedPoiId}
+                            onChange={setSelectedPoiId}
+                            options={[
+                                { label: '📊 Tất cả POI', value: null },
+                                ...vendorPOIOptions.map(p => ({ label: p.name, value: p.id }))
+                            ]}
+                            placeholder="Chọn POI..."
+                        />
+                    )}
+                    <Radio.Group value={period} onChange={e => setPeriod(e.target.value)} optionType="button" buttonStyle="solid">
+                        {periods.map(p => (
+                            <Radio.Button key={p.key} value={p.key}>{p.label}</Radio.Button>
+                        ))}
+                    </Radio.Group>
+                </Space>
             </div>
 
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>

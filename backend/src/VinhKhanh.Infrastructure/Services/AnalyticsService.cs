@@ -9,10 +9,10 @@ namespace VinhKhanh.Infrastructure.Services;
 /// Provides detailed analytics data for the analytics page.
 ///
 /// Vendor scoping:
-///   All public methods accept an optional <c>vendorPOIId</c>.
+///   All public methods accept an optional <c>vendorPOIIds</c>.
 ///   When provided, all VisitHistory queries are additionally filtered to
-///   <c>WHERE POIId = vendorPOIId</c> so a Vendor only ever sees their
-///   own shop's analytics data. Admins call with <c>null</c> for global data.
+///   <c>WHERE POIId IN (vendorPOIIds)</c> so a Vendor only ever sees their
+///   own shops' analytics data. Admins call with <c>null</c> for global data.
 /// </summary>
 public class AnalyticsService : IAnalyticsService
 {
@@ -22,40 +22,34 @@ public class AnalyticsService : IAnalyticsService
 
     /// <inheritdoc />
     public async Task<ApiResponse<Dictionary<string, TrendDto>>> GetTrendsAsync(
-        string period, int? vendorPOIId = null)
+        string period, List<int>? vendorPOIIds = null)
     {
-        // Parse period: "7d", "30d", "90d"
         var days = period switch
         {
             "7d"  => 7,
             "90d" => 90,
-            _     => 30  // default 30d
+            _     => 30
         };
 
         var now      = DateTime.UtcNow;
         var from     = now.AddDays(-days);
         var prevFrom = from.AddDays(-days);
 
-        // ── Base history query, optionally scoped to vendor's POI ──────
         IQueryable<Domain.Entities.VisitHistory> h = _db.VisitHistory;
-        if (vendorPOIId.HasValue)
-            h = h.Where(v => v.POIId == vendorPOIId.Value);
+        if (vendorPOIIds != null)
+            h = h.Where(v => vendorPOIIds.Contains(v.POIId));
 
-        // Current vs previous period counts
         var currentVisits    = await h.CountAsync(v => v.VisitedAt >= from);
         var previousVisits   = await h.CountAsync(v => v.VisitedAt >= prevFrom && v.VisitedAt < from);
 
         var currentNarrations  = await h.CountAsync(v => v.VisitedAt >= from && v.NarrationPlayed);
         var previousNarrations = await h.CountAsync(v => v.VisitedAt >= prevFrom && v.VisitedAt < from && v.NarrationPlayed);
 
-        // New users — scoping doesn't apply here for vendors (show global for context),
-        // but for strict scoping we show 0 for vendors (they don't manage users)
-        var currentUsers  = vendorPOIId.HasValue ? 0
+        var currentUsers  = vendorPOIIds != null ? 0
             : await _db.Users.CountAsync(u => u.CreatedAt >= from);
-        var previousUsers = vendorPOIId.HasValue ? 0
+        var previousUsers = vendorPOIIds != null ? 0
             : await _db.Users.CountAsync(u => u.CreatedAt >= prevFrom && u.CreatedAt < from);
 
-        // Avg listen duration
         var currentAvgDuration  = await h
             .Where(v => v.VisitedAt >= from && v.NarrationPlayed)
             .AverageAsync(v => (double?)v.ListenDuration) ?? 0;
@@ -92,17 +86,17 @@ public class AnalyticsService : IAnalyticsService
 
     /// <inheritdoc />
     public async Task<ApiResponse<List<VisitChartDto>>> GetVisitsByDayAsync(
-        DateTime from, DateTime to, int? vendorPOIId = null)
+        DateTime from, DateTime to, List<int>? vendorPOIIds = null)
     {
         IQueryable<Domain.Entities.VisitHistory> q = _db.VisitHistory
             .Where(v => v.VisitedAt >= from && v.VisitedAt <= to);
 
-        if (vendorPOIId.HasValue)
-            q = q.Where(v => v.POIId == vendorPOIId.Value);
+        if (vendorPOIIds != null)
+            q = q.Where(v => vendorPOIIds.Contains(v.POIId));
 
         var rawData = await q
             .GroupBy(v => v.VisitedAt.Date)
-            .Select(g => new 
+            .Select(g => new
             {
                 Date       = g.Key,
                 Visits     = g.Count(),
@@ -123,7 +117,7 @@ public class AnalyticsService : IAnalyticsService
 
     /// <inheritdoc />
     public async Task<ApiResponse<List<HourlyVisitDto>>> GetVisitsByHourAsync(
-        DateTime date, int? vendorPOIId = null)
+        DateTime date, List<int>? vendorPOIIds = null)
     {
         var startOfDay = date.Date;
         var endOfDay   = startOfDay.AddDays(1);
@@ -131,8 +125,8 @@ public class AnalyticsService : IAnalyticsService
         IQueryable<Domain.Entities.VisitHistory> q = _db.VisitHistory
             .Where(v => v.VisitedAt >= startOfDay && v.VisitedAt < endOfDay);
 
-        if (vendorPOIId.HasValue)
-            q = q.Where(v => v.POIId == vendorPOIId.Value);
+        if (vendorPOIIds != null)
+            q = q.Where(v => vendorPOIIds.Contains(v.POIId));
 
         var hourly = await q
             .GroupBy(v => v.VisitedAt.Hour)
@@ -143,7 +137,6 @@ public class AnalyticsService : IAnalyticsService
             })
             .ToListAsync();
 
-        // Fill in missing hours with 0 so the chart always has 24 data points
         var result = Enumerable.Range(0, 24)
             .Select(h => hourly.FirstOrDefault(x => x.Hour == h)
                         ?? new HourlyVisitDto { Hour = h, Visits = 0 })
@@ -154,13 +147,13 @@ public class AnalyticsService : IAnalyticsService
 
     /// <inheritdoc />
     public async Task<ApiResponse<List<LanguageStatDto>>> GetLanguageDistributionAsync(
-        DateTime from, DateTime to, int? vendorPOIId = null)
+        DateTime from, DateTime to, List<int>? vendorPOIIds = null)
     {
         IQueryable<Domain.Entities.VisitHistory> q = _db.VisitHistory
             .Where(v => v.VisitedAt >= from && v.VisitedAt <= to);
 
-        if (vendorPOIId.HasValue)
-            q = q.Where(v => v.POIId == vendorPOIId.Value);
+        if (vendorPOIIds != null)
+            q = q.Where(v => vendorPOIIds.Contains(v.POIId));
 
         var total = await q.CountAsync();
 
@@ -183,9 +176,6 @@ public class AnalyticsService : IAnalyticsService
         return ApiResponse<List<LanguageStatDto>>.Ok(stats);
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────
-
-    /// <summary>Calculate percentage change between two values. Returns 100 if previous is 0 and current > 0.</summary>
     private static double CalcChange(double current, double previous)
     {
         if (previous == 0) return current > 0 ? 100 : 0;
