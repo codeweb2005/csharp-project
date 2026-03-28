@@ -1,7 +1,12 @@
+/* ============================================================================
+   Dashboard — Azure Culinary Hub
+   Stat cards with tonal layering, editorial typography
+   ============================================================================ */
+
 .dashboard {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: var(--spacing-8);
 }
 
 /* Stat Cards */
@@ -12,16 +17,18 @@
 }
 
 .stat-card {
-    background: var(--card-bg);
+    background: var(--surface-container-lowest);
     border-radius: var(--radius-lg);
-    padding: 22px;
-    box-shadow: var(--card-shadow);
+    padding: 24px;
+    box-shadow: var(--shadow-md);
     animation: fadeIn 0.5s ease-out both;
     transition: var(--transition);
     position: relative;
     overflow: hidden;
+    border: none;
 }
 
+/* Top accent — tonal gradient strip */
 .stat-card::before {
     content: '';
     position: absolute;
@@ -33,7 +40,7 @@
 }
 
 .stat-card:nth-child(1)::before {
-    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    background: linear-gradient(90deg, var(--primary), var(--secondary-container));
 }
 
 .stat-card:nth-child(2)::before {
@@ -45,25 +52,25 @@
 }
 
 .stat-card:nth-child(4)::before {
-    background: linear-gradient(90deg, #f97316, #fb923c);
+    background: linear-gradient(90deg, var(--tertiary-fixed-dim), var(--tertiary-fixed));
 }
 
 .stat-card:hover {
     transform: translateY(-3px);
-    box-shadow: var(--card-shadow-hover);
+    box-shadow: var(--shadow-lg);
 }
 
 .stat-card-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
 }
 
 .stat-icon {
     width: 42px;
     height: 42px;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -73,6 +80,7 @@
     display: flex;
     align-items: center;
     gap: 3px;
+    font-family: var(--font-label);
     font-size: 0.75rem;
     font-weight: 600;
     padding: 3px 8px;
@@ -90,16 +98,19 @@
 }
 
 .stat-value {
+    font-family: var(--font-headline);
     font-size: 1.85rem;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--on-surface);
     line-height: 1;
 }
 
 .stat-label {
+    font-family: var(--font-label);
     font-size: 0.78rem;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
     margin-top: 6px;
+    letter-spacing: 0.01em;
 }
 
 /* Charts */
@@ -128,8 +139,9 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    font-family: var(--font-label);
     font-size: 0.75rem;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
 }
 
 .legend-dot {
@@ -144,7 +156,7 @@
 .top-pois {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--spacing-4);
     margin-top: 4px;
 }
 
@@ -152,44 +164,57 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: var(--spacing-2) 0;
 }
 
 .top-poi-rank {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-muted);
+    font-family: var(--font-headline);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--outline);
     width: 24px;
 }
 
 .top-poi-icon {
     font-size: 1.1rem;
+    /* Enclosed in secondary-container housing */
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(143, 167, 254, 0.2);
+    border-radius: var(--radius-full);
 }
 
 .top-poi-name {
+    font-family: var(--font-body);
     font-size: 0.82rem;
     font-weight: 500;
     min-width: 100px;
+    color: var(--on-surface);
 }
 
 .top-poi-bar-wrap {
     flex: 1;
     height: 8px;
-    background: var(--border-light);
+    background: var(--surface-container-high);
     border-radius: var(--radius-full);
     overflow: hidden;
 }
 
 .top-poi-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary), #60a5fa);
+    background: linear-gradient(90deg, var(--primary), var(--secondary-container));
     border-radius: var(--radius-full);
     transition: width 1s ease-out;
 }
 
 .top-poi-count {
+    font-family: var(--font-headline);
     font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-weight: 700;
+    color: var(--on-surface);
     min-width: 32px;
     text-align: right;
 }
@@ -211,17 +236,19 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    font-family: var(--font-body);
     font-size: 0.78rem;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
 }
 
 .lang-pct {
     margin-left: auto;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-family: var(--font-headline);
+    font-weight: 700;
+    color: var(--on-surface);
 }
 
-/* Recent Activity */
+/* Recent Activity — no dividers, use spacing */
 .recent-list {
     display: flex;
     flex-direction: column;
@@ -232,40 +259,47 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 8px;
+    padding: var(--spacing-3) var(--spacing-2);
     border-radius: var(--radius);
     transition: var(--transition);
 }
 
 .recent-item:hover {
-    background: var(--content-bg);
+    background: var(--surface-container-low);
 }
 
 .recent-avatar {
     font-size: 1.3rem;
     width: 36px;
-    text-align: center;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(143, 167, 254, 0.15);
+    border-radius: var(--radius-full);
 }
 
 .recent-info {
     flex: 1;
+    font-family: var(--font-body);
     font-size: 0.82rem;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
 }
 
 .recent-user {
     font-weight: 500;
-    color: var(--text-primary);
+    color: var(--on-surface);
 }
 
 .recent-info strong {
     font-weight: 600;
-    color: var(--primary-dark);
+    color: var(--primary);
 }
 
 .recent-time {
+    font-family: var(--font-label);
     font-size: 0.72rem;
-    color: var(--text-muted);
+    color: var(--outline);
     white-space: nowrap;
 }
 

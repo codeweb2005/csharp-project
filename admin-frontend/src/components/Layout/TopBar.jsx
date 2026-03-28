@@ -54,15 +54,15 @@ export default function TopBar() {
     }
 
     return (
-        <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', zIndex: 1 }}>
+        <Header style={{ background: '#ffffff', padding: '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0, 36, 106, 0.04)', zIndex: 1, borderBottom: 'none' }}>
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, paddingTop: 10 }}>
-                <Title level={4} style={{ margin: 0 }}>{page.title}</Title>
+                <Title level={4} style={{ margin: 0, fontFamily: "'Manrope', sans-serif", letterSpacing: '-0.02em' }}>{page.title}</Title>
                 <Text type="secondary" style={{ fontSize: 13 }}>{page.subtitle}</Text>
             </div>
 
             <Dropdown menu={userMenuProps} placement="bottomRight" arrow>
                 <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', borderRadius: 8, transition: 'background 0.2s' }} className="topbar-user-dropdown">
-                    <Avatar style={{ backgroundColor: isVendor ? '#f59e0b' : '#2563eb' }}>{user?.fullName?.[0] || (isVendor ? 'V' : 'A')}</Avatar>
+                    <Avatar style={{ backgroundColor: isVendor ? '#5c3800' : '#00246a' }}>{user?.fullName?.[0] || (isVendor ? 'V' : 'A')}</Avatar>
                     <Text strong>{user?.fullName || (isVendor ? 'Vendor' : 'Admin')}</Text>
                 </div>
             </Dropdown>

@@ -200,7 +200,7 @@ export default function POIList() {
                         </Tooltip>
                     )}
                     <Tooltip title="Edit">
-                        <Button type="text" icon={<EditOutlined style={{ color: '#3b82f6' }} />} onClick={() => openEdit(record.id)} />
+                        <Button type="text" icon={<EditOutlined style={{ color: '#00246a' }} />} onClick={() => openEdit(record.id)} />
                     </Tooltip>
                     {!isVendor && (
                         <Popconfirm

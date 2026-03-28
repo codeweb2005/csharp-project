@@ -7,7 +7,7 @@ import useCurrentUser from '../../hooks/useCurrentUser.js'
 
 const { Title, Text } = Typography
 
-const LANG_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4']
+const LANG_COLORS = ['#00246a', '#22c55e', '#f59e0b', '#4059aa', '#ef4444', '#06b6d4']
 
 const periods = [
     { key: '7d', label: '7 ngày' },
@@ -79,10 +79,10 @@ export default function Analytics() {
     useEffect(() => { fetchData() }, [fetchData])
 
     const trendCards = trends ? [
-        { label: 'Tổng lượt ghé', value: trends.totalVisits?.value ?? 0, change: trends.totalVisits?.changePercent ?? 0, color: '#3b82f6', bg: '#eff6ff' },
+        { label: 'Tổng lượt ghé', value: trends.totalVisits?.value ?? 0, change: trends.totalVisits?.changePercent ?? 0, color: '#00246a', bg: '#eff6ff' },
         { label: 'Thuyết minh đã phát', value: trends.narrations?.value ?? 0, change: trends.narrations?.changePercent ?? 0, color: '#22c55e', bg: '#f0fdf4' },
-        { label: 'Người dùng mới', value: trends.newUsers?.value ?? 0, change: trends.newUsers?.changePercent ?? 0, color: '#8b5cf6', bg: '#f5f3ff' },
-        { label: 'Thời gian nghe TB', value: `${trends.avgListenTime?.value ?? 0}s`, change: trends.avgListenTime?.changePercent ?? 0, color: '#f97316', bg: '#fff7ed' },
+        { label: 'Người dùng mới', value: trends.newUsers?.value ?? 0, change: trends.newUsers?.changePercent ?? 0, color: '#4059aa', bg: '#f5f3ff' },
+        { label: 'Thời gian nghe TB', value: `${trends.avgListenTime?.value ?? 0}s`, change: trends.avgListenTime?.changePercent ?? 0, color: '#5c3800', bg: '#fff7ed' },
     ] : []
 
     if (loading && !trends) {
@@ -163,7 +163,7 @@ export default function Analytics() {
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={24} lg={16}>
                     <Card
-                        title={<><BarChartOutlined style={{ color: '#3b82f6', marginRight: 8 }} /> Lượt ghé thăm biên độ ngày</>}
+                        title={<><BarChartOutlined style={{ color: '#00246a', marginRight: 8 }} /> Lượt ghé thăm biên độ ngày</>}
                         bordered={false}
                         bodyStyle={{ padding: '20px 24px' }}
                         style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', height: '100%' }}
@@ -173,14 +173,14 @@ export default function Analytics() {
                                 <AreaChart data={visitsByDay}>
                                     <defs>
                                         <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                            <stop offset="5%" stopColor="#00246a" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#00246a" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
                                     <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
                                     <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
                                     <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                                    <Area type="monotone" dataKey="visits" stroke="#3b82f6" fillOpacity={1} fill="url(#colorVisits)" strokeWidth={2} />
+                                    <Area type="monotone" dataKey="visits" stroke="#00246a" fillOpacity={1} fill="url(#colorVisits)" strokeWidth={2} />
                                     {visitsByDay[0]?.narrations !== undefined && (
                                         <Area type="monotone" dataKey="narrations" stroke="#22c55e" fill="transparent" strokeWidth={2} />
                                     )}
@@ -205,14 +205,14 @@ export default function Analytics() {
                                     <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                                     <Bar dataKey="visits" radius={[4, 4, 0, 0]}>
                                         {hourlyData.map((entry, i) => (
-                                            <Cell key={i} fill={entry.visits > 30 ? '#ef4444' : entry.visits > 15 ? '#f59e0b' : '#3b82f6'} />
+                                            <Cell key={i} fill={entry.visits > 30 ? '#ef4444' : entry.visits > 15 ? '#f59e0b' : '#00246a'} />
                                         ))}
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                         <Space style={{ marginTop: 12, justifyContent: 'center', width: '100%', fontSize: 12 }}>
-                            <Badge color="#3b82f6" text="Thấp" />
+                            <Badge color="#00246a" text="Thấp" />
                             <Badge color="#f59e0b" text="TB" />
                             <Badge color="#ef4444" text="Cao" />
                         </Space>
@@ -270,7 +270,7 @@ export default function Analytics() {
 
                 <Col xs={24} md={14} lg={16}>
                     <Card
-                        title={<><ThunderboltOutlined style={{ color: '#8b5cf6', marginRight: 8 }} /> Hoạt động gần đây</>}
+                        title={<><ThunderboltOutlined style={{ color: '#4059aa', marginRight: 8 }} /> Hoạt động gần đây</>}
                         bordered={false}
                         bodyStyle={{ padding: 0 }}
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}

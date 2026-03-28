@@ -7,13 +7,13 @@ import './Dashboard.css'
 
 const { Title, Text } = Typography
 
-const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4']
+const COLORS = ['#00246a', '#22c55e', '#5c3800', '#4059aa', '#ba1a1a', '#06b6d4']
 
 const statConfig = [
-    { key: 'activePOIs', label: 'Active POIs', icon: MapPin, color: '#3b82f6', bg: '#eff6ff' },
-    { key: 'totalVisits', label: 'Tổng lượt ghé', icon: Eye, color: '#22c55e', bg: '#f0fdf4', changeKey: 'totalVisitsChange' },
-    { key: 'languages', label: 'Ngôn ngữ', icon: Globe, color: '#8b5cf6', bg: '#f5f3ff' },
-    { key: 'audioFiles', label: 'Audio Files', icon: Volume2, color: '#f97316', bg: '#fff7ed' },
+    { key: 'activePOIs', label: 'Active POIs', icon: MapPin, color: '#00246a', bg: '#dbe1ff' },
+    { key: 'totalVisits', label: 'Tổng lượt ghé', icon: Eye, color: '#22c55e', bg: '#d1fae5', changeKey: 'totalVisitsChange' },
+    { key: 'languages', label: 'Ngôn ngữ', icon: Globe, color: '#4059aa', bg: '#dce1ff' },
+    { key: 'audioFiles', label: 'Audio Files', icon: Volume2, color: '#5c3800', bg: '#ffddb8' },
 ]
 
 export default function Dashboard() {
@@ -75,19 +75,19 @@ export default function Dashboard() {
                     const change = s.changeKey ? stats?.[s.changeKey] : null
                     return (
                         <Col xs={24} sm={12} lg={6} key={i}>
-                            <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                            <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', border: 'none' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                                    <div style={{ width: 40, height: 40, borderRadius: 8, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ width: 42, height: 42, borderRadius: 12, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Icon size={20} />
                                     </div>
                                     {change !== null && (
-                                        <Space style={{ color: change >= 0 ? '#10b981' : '#ef4444', fontSize: 13, fontWeight: 500 }}>
+                                        <Space style={{ color: change >= 0 ? '#10b981' : '#ba1a1a', fontSize: 13, fontWeight: 600 }}>
                                             {change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                                             {change > 0 ? '+' : ''}{change}%
                                         </Space>
                                     )}
                                 </div>
-                                <Statistic title={<span style={{ fontWeight: 500 }}>{s.label}</span>} value={value} valueStyle={{ fontWeight: 600, fontSize: 24 }} />
+                                <Statistic title={<span style={{ fontWeight: 500, fontFamily: "'Inter', sans-serif", fontSize: 13 }}>{s.label}</span>} value={value} valueStyle={{ fontWeight: 700, fontSize: 26, fontFamily: "'Manrope', sans-serif", letterSpacing: '-0.02em' }} />
                             </Card>
                         </Col>
                     )
@@ -97,11 +97,11 @@ export default function Dashboard() {
             {/* Charts Row */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={24} lg={16}>
-                    <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
+                    <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                             <Title level={5} style={{ margin: 0 }}>Lượt ghé thăm theo ngày</Title>
                             <Space size="middle">
-                                <Space><Badge color="#3b82f6" /><Text type="secondary" style={{ fontSize: 13 }}>Lượt ghé</Text></Space>
+                                <Space><Badge color="#00246a" /><Text type="secondary" style={{ fontSize: 13 }}>Lượt ghé</Text></Space>
                                 <Space><Badge color="#22c55e" /><Text type="secondary" style={{ fontSize: 13 }}>Thuyết minh</Text></Space>
                             </Space>
                         </div>
@@ -109,8 +109,8 @@ export default function Dashboard() {
                             <AreaChart data={visitData}>
                                 <defs>
                                     <linearGradient id="gVisitsAnt" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />
-                                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                                        <stop offset="0%" stopColor="#00246a" stopOpacity={0.2} />
+                                        <stop offset="100%" stopColor="#00246a" stopOpacity={0} />
                                     </linearGradient>
                                     <linearGradient id="gNarrAnt" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="0%" stopColor="#22c55e" stopOpacity={0.15} />
@@ -119,8 +119,8 @@ export default function Dashboard() {
                                 </defs>
                                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                                <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                                <Area type="monotone" dataKey="visits" stroke="#3b82f6" fill="url(#gVisitsAnt)" strokeWidth={2} />
+                                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 12px 40px rgba(0,36,106,0.06)', fontSize: 12 }} />
+                                <Area type="monotone" dataKey="visits" stroke="#00246a" fill="url(#gVisitsAnt)" strokeWidth={2} />
                                 <Area type="monotone" dataKey="narrations" stroke="#22c55e" fill="url(#gNarrAnt)" strokeWidth={2} />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -128,20 +128,20 @@ export default function Dashboard() {
                 </Col>
 
                 <Col xs={24} lg={8}>
-                    <Card title={<Title level={5} style={{ margin: 0 }}>Top điểm ghé thăm</Title>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Top điểm ghé thăm</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         {topPOIs.length === 0 && <Text type="secondary">Chưa có dữ liệu</Text>}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
                             {topPOIs.map((poi, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                     <Text type="secondary" style={{ width: 24, fontSize: 12 }}>#{i + 1}</Text>
-                                    <Avatar size="small" style={{ backgroundColor: '#f1f5f9' }}>{poi.icon || '📍'}</Avatar>
+                                    <Avatar size="small" style={{ backgroundColor: 'rgba(143,167,254,0.2)' }}>{poi.icon || '📍'}</Avatar>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                             <Text strong style={{ fontSize: 13, width: 100 }} ellipsis>{poi.name}</Text>
                                             <Text type="secondary" style={{ fontSize: 12 }}>{poi.visits}</Text>
                                         </div>
-                                        <div style={{ background: '#f1f5f9', height: 6, borderRadius: 3, overflow: 'hidden' }}>
-                                            <div style={{ background: '#3b82f6', height: '100%', width: `${(poi.visits / maxVisits) * 100}%`, borderRadius: 3 }} />
+                                        <div style={{ background: '#e9e7ef', height: 6, borderRadius: 3, overflow: 'hidden' }}>
+                                            <div style={{ background: 'linear-gradient(90deg, #00246a, #8fa7fe)', height: '100%', width: `${(poi.visits / maxVisits) * 100}%`, borderRadius: 3 }} />
                                         </div>
                                     </div>
                                 </div>
@@ -154,7 +154,7 @@ export default function Dashboard() {
             {/* Bottom Row */}
             <Row gutter={[16, 16]}>
                 <Col xs={24} lg={8}>
-                    <Card title={<Title level={5} style={{ margin: 0 }}>Phân bố ngôn ngữ</Title>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Phân bố ngôn ngữ</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         <ResponsiveContainer width="100%" height={200}>
                             <PieChart>
                                 <Pie
@@ -189,7 +189,7 @@ export default function Dashboard() {
                 </Col>
 
                 <Col xs={24} lg={16}>
-                    <Card title={<Title level={5} style={{ margin: 0 }}>Hoạt động gần đây</Title>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Hoạt động gần đây</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         <List
                             itemLayout="horizontal"
                             dataSource={recentActivity}
@@ -197,14 +197,14 @@ export default function Dashboard() {
                             renderItem={(item) => (
                                 <List.Item>
                                     <List.Item.Meta
-                                        avatar={<Avatar style={{ backgroundColor: '#f1f5f9' }}>{item.flagEmoji || '🌐'}</Avatar>}
+                                        avatar={<Avatar style={{ backgroundColor: 'rgba(143,167,254,0.15)' }}>{item.flagEmoji || '🌐'}</Avatar>}
                                         title={<>
                                             <Text strong>{item.userName}</Text> <Text type="secondary">đã ghé</Text> <Text strong>{item.poiName}</Text>
                                         </>}
                                         description={new Date(item.visitedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                                     />
                                     <Space>
-                                        <Badge status={item.triggerType === 'Geofence' ? 'processing' : 'warning'} text={<span style={{ fontSize: 12 }}>{item.triggerType}</span>} style={{ background: '#f8fafc', padding: '4px 8px', borderRadius: 4, border: '1px solid #e2e8f0' }} />
+                                        <Badge status={item.triggerType === 'Geofence' ? 'processing' : 'warning'} text={<span style={{ fontSize: 12 }}>{item.triggerType}</span>} style={{ background: '#eeedf4', padding: '4px 10px', borderRadius: 12, border: 'none' }} />
                                     </Space>
                                 </List.Item>
                             )}

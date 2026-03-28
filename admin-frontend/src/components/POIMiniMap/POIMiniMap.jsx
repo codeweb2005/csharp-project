@@ -42,7 +42,7 @@ function loadLeaflet() {
 }
 
 // Colour-coded marker icons
-function makeIcon(color = '#3b82f6', active = false) {
+function makeIcon(color = '#00246a', active = false) {
     const size = active ? 32 : 24
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="${size}" height="${size * 4 / 3}">
         <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z"
@@ -112,7 +112,7 @@ export default function POIMiniMap({ pois = [], selectedPoiId, onSelectPoi }) {
 
         pois.filter(p => p.latitude && p.longitude).forEach(poi => {
             const isSelected = poi.id === selectedPoiId
-            const color = isSelected ? '#2563eb' : (poi.categoryColor || '#6b7280')
+            const color = isSelected ? '#00246a' : (poi.categoryColor || '#6b7280')
 
             const marker = L.marker([poi.latitude, poi.longitude], {
                 icon: makeIcon(color, isSelected),
@@ -141,8 +141,8 @@ export default function POIMiniMap({ pois = [], selectedPoiId, onSelectPoi }) {
             if (isSelected && poi.geofenceRadiusMeters) {
                 circleRef.current = L.circle([poi.latitude, poi.longitude], {
                     radius: poi.geofenceRadiusMeters,
-                    color: '#2563eb',
-                    fillColor: '#3b82f6',
+                    color: '#00246a',
+                    fillColor: '#00246a',
                     fillOpacity: 0.08,
                     weight: 1.5,
                     dashArray: '4 4'

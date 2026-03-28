@@ -1,81 +1,115 @@
 /* ============================================================================
    VK Food Tour — Admin Panel Design System
+   "Azure Culinary Hub" — The Culinary Architect
+   ============================================================================
+   Creative North Star: "The Digital Maître d'"
+   Dual-typeface: Manrope (headlines) + Inter (body)
+   Palette: Deep authoritative blues + Off-White surfaces
+   Philosophy: Tonal Layering, No-Line Rule, Glass & Gradient
    ============================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* ======================== CSS Variables (Nano Banana Pro Standard) ======================== */
+/* ======================== CSS Variables (Azure Culinary Hub) ======================== */
 :root {
-  /* Core Colors */
-  --slate-50: #f8fafc;
-  --slate-100: #f1f5f9;
-  --slate-200: #e2e8f0;
-  --slate-300: #cbd5e1;
-  --slate-400: #94a3b8;
-  --slate-500: #64748b;
-  --slate-600: #475569;
-  --slate-700: #334155;
-  --slate-800: #1e293b;
-  --slate-900: #0f172a;
-  
-  /* Brand/Primary Palette */
-  --primary-50: #eff6ff;
-  --primary-100: #dbeafe;
-  --primary-500: #3b82f6;
-  --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
+  /* ─── Core Palette ─── */
+  --primary:            #00246a;
+  --primary-container:  #00389a;
+  --primary-hover:      #003ea8;
+  --primary-fixed:      #dbe1ff;
+  --primary-fixed-dim:  #b4c5ff;
 
-  /* Semantic UI Colors */
-  --primary: var(--primary-600);
-  --primary-hover: var(--primary-700);
-  --primary-light: var(--primary-100);
-  --primary-bg: var(--primary-50);
-  --accent: #8b5cf6; /* Modern deep purple accent */
+  --secondary:          #4059aa;
+  --secondary-container:#8fa7fe;
+  --secondary-fixed:    #dce1ff;
 
-  --success: #10b981;
-  --success-bg: #d1fae5;
-  --warning: #f59e0b;
-  --warning-bg: #fef3c7;
-  --danger: #ef4444;
-  --danger-bg: #fee2e2;
+  --tertiary:           #3e2400;
+  --tertiary-container: #5c3800;
+  --tertiary-fixed:     #ffddb8;
+  --tertiary-fixed-dim: #ffb95f;
 
-  /* Layout & Containers */
-  --content-bg: #f3f4f6; /* Subtle off-white for depth */
-  --card-bg: rgba(255, 255, 255, 0.85); /* Glass base */
-  --sidebar-bg: #ffffff; /* Clean light sidebar instead of heavy dark */
-  --sidebar-hover: var(--slate-50);
-  --sidebar-active: var(--primary-50);
-  --sidebar-text: var(--slate-500);
-  --sidebar-text-active: var(--primary-700);
-  --sidebar-width: 280px;
+  /* ─── Semantic Colors ─── */
+  --success:     #10b981;
+  --success-bg:  #d1fae5;
+  --warning:     #f59e0b;
+  --warning-bg:  #fef3c7;
+  --danger:      #ef4444;
+  --danger-bg:   #fee2e2;
+  --error:       #ba1a1a;
+
+  /* ─── On-Colors ─── */
+  --on-primary:         #ffffff;
+  --on-primary-container:#8da9ff;
+  --on-surface:         #1a1b21;
+  --on-surface-variant:  #444651;
+  --on-background:      #1a1b21;
+
+  /* ─── Surface System (Tonal Layering) ─── */
+  --surface:                  #faf8ff;
+  --surface-bright:           #faf8ff;
+  --surface-dim:              #dad9e1;
+  --surface-container:        #eeedf4;
+  --surface-container-low:    #f4f3fa;
+  --surface-container-high:   #e9e7ef;
+  --surface-container-highest:#e3e1e9;
+  --surface-container-lowest: #ffffff;
+  --surface-tint:             #0053db;
+
+  /* ─── Outline ─── */
+  --outline:         #757682;
+  --outline-variant:  #c5c5d3;
+
+  /* ─── Mappings for backward compat ─── */
+  --content-bg:      var(--surface);
+  --card-bg:         var(--surface-container-lowest);
+  --sidebar-bg:      var(--surface-container-low);
+  --sidebar-hover:   var(--surface-container);
+  --sidebar-active:  var(--primary-fixed);
+  --sidebar-text:    var(--on-surface-variant);
+  --sidebar-text-active: var(--primary);
+  --sidebar-width:   280px;
   --sidebar-collapsed-width: 80px;
 
-  /* Typography */
-  --text-primary: var(--slate-800);
-  --text-secondary: var(--slate-500);
-  --text-muted: var(--slate-400);
-  --font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  /* ─── Typography ─── */
+  --font-headline: 'Manrope', -apple-system, system-ui, sans-serif;
+  --font-body:     'Inter', -apple-system, system-ui, sans-serif;
+  --font-label:    'Inter', -apple-system, system-ui, sans-serif;
+  --font-family:   var(--font-body);
 
-  /* Borders & Radius */
-  --border: rgba(226, 232, 240, 0.8);
-  --border-light: rgba(241, 245, 249, 0.5);
-  
-  --radius-sm: 6px;
-  --radius: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --text-primary:   var(--on-surface);
+  --text-secondary: var(--on-surface-variant);
+  --text-muted:     var(--outline);
+
+  /* ─── Borders & Radius ─── */
+  /* "No-Line" Rule: boundaries via surface color shifts instead of borders */
+  --border:       rgba(197, 197, 211, 0.15);  /* Ghost border — felt, not seen */
+  --border-light: rgba(197, 197, 211, 0.08);
+
+  --radius-sm:  6px;
+  --radius:     12px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
   --radius-full: 9999px;
 
-  /* Shadows (Depth system) */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+  /* ─── Shadows (Blue-tinted, never pure black) ─── */
+  --shadow-sm:    0 1px 3px rgba(0, 36, 106, 0.04);
+  --shadow-md:    0 4px 12px rgba(0, 36, 106, 0.06);
+  --shadow-lg:    0 12px 40px rgba(0, 36, 106, 0.06);
+  --shadow-glass: 0 8px 32px rgba(0, 36, 106, 0.05);
 
-  /* Transitions */
-  --transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* ─── Transitions ─── */
+  --transition:        all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
   --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  --blur-md: blur(12px);
+  --blur-md:           blur(12px);
+
+  /* ─── Spacing scale ─── */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-12: 3rem;
 }
 
 /* ======================== Reset ======================== */
@@ -92,20 +126,38 @@ html {
 }
 
 body {
-  font-family: var(--font-family);
-  color: var(--text-primary);
-  background: var(--content-bg);
-  background-image: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.04), transparent 25%),
-                    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.04), transparent 25%);
+  font-family: var(--font-body);
+  color: var(--on-surface);
+  background: var(--surface);
   line-height: 1.6;
   overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Typography Hierarchy ─── */
+h1, h2, h3, h4, h5, h6,
+.ant-typography h1,
+.ant-typography h2,
+.ant-typography h3,
+.ant-typography h4,
+.ant-typography h5 {
+  font-family: var(--font-headline) !important;
+  color: var(--on-surface);
+  letter-spacing: -0.02em;
+}
+
+/* Ant Design title overrides for Manrope */
+.ant-typography {
+  font-family: var(--font-body);
 }
 
 a {
-  color: var(--primary);
+  color: var(--secondary);
   text-decoration: none;
   transition: var(--transition);
+}
+
+a:hover {
+  color: var(--primary);
 }
 
 img {
@@ -122,7 +174,7 @@ button {
 }
 
 input, select, textarea {
-  font-family: inherit;
+  font-family: var(--font-body);
   font-size: 0.95rem;
   outline: none;
 }
@@ -147,42 +199,40 @@ input, select, textarea {
   justify-content: center;
   gap: 8px;
   padding: 10px 22px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.9rem;
   transition: var(--transition);
   white-space: nowrap;
   line-height: 1.2;
-  border: 1px solid transparent;
+  border: none;
   user-select: none;
 }
 
+/* Gradient CTA — signature style */
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-  border: none;
+  background: linear-gradient(135deg, var(--primary), var(--primary-container));
+  color: var(--on-primary);
+  box-shadow: 0 4px 16px rgba(0, 36, 106, 0.2);
 }
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
-  filter: brightness(1.05);
+  box-shadow: 0 8px 24px rgba(0, 36, 106, 0.3);
+  filter: brightness(1.1);
 }
 .btn-primary:active {
   transform: translateY(0);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: var(--blur-md);
-  color: var(--slate-700);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: var(--shadow-sm);
+  background: var(--surface-container-high);
+  color: var(--primary-hover);
+  border: none;
 }
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--surface-container-highest);
   color: var(--primary);
-  border-color: var(--primary-light);
   transform: translateY(-1px);
 }
 
@@ -205,8 +255,8 @@ input, select, textarea {
   border-radius: var(--radius);
 }
 .btn-ghost:hover {
-  background: var(--content-bg);
-  color: var(--text-primary);
+  background: var(--surface-container);
+  color: var(--on-surface);
 }
 
 .btn-sm {
@@ -220,13 +270,12 @@ input, select, textarea {
 }
 
 /* ======================== Cards ======================== */
+/* Tonal Layering: cards are surface-container-lowest on surface bg */
 .card {
-  background: var(--card-bg);
-  backdrop-filter: var(--blur-md);
-  -webkit-backdrop-filter: var(--blur-md);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-glass);
+  background: var(--surface-container-lowest);
+  border: none; /* No-Line Rule */
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   padding: 28px;
   transition: var(--transition-smooth);
 }
@@ -234,13 +283,13 @@ input, select, textarea {
 .card:hover {
   box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 1);
 }
 
 .card-title {
+  font-family: var(--font-headline);
   font-size: 1.15rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--on-surface);
   margin-bottom: 20px;
   letter-spacing: -0.01em;
 }
@@ -273,16 +322,17 @@ input, select, textarea {
 }
 
 .badge-primary {
-  background: var(--primary-bg);
-  color: var(--primary-dark);
+  background: var(--primary-fixed);
+  color: var(--primary);
 }
 
 .badge-purple {
-  background: var(--purple-bg);
+  background: #f3e8ff;
   color: #6d28d9;
 }
 
-/* ======================== Form ======================== */
+/* ======================== Form Inputs ======================== */
+/* Minimalist: surface-container-highest fill, ghost border on focus */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -290,27 +340,146 @@ input, select, textarea {
 }
 
 .form-label {
+  font-family: var(--font-label);
   font-size: 0.82rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--on-surface-variant);
 }
 
 .form-input {
   padding: 10px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  background: var(--card-bg);
-  color: var(--text-primary);
+  background: var(--surface-container-highest);
+  color: var(--on-surface);
   transition: var(--transition);
 }
 
 .form-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background: var(--surface-container-lowest);
+  border-color: rgba(0, 36, 106, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 83, 219, 0.1);
 }
 
 .form-input::placeholder {
-  color: var(--text-muted);
+  color: var(--outline);
+}
+
+/* ======================== Ant Design Overrides ======================== */
+/* Cards — apply tonal layering */
+.ant-card {
+  border: none !important;
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg) !important;
+  background: var(--surface-container-lowest) !important;
+}
+
+.ant-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Table — surface-dim hover instead of dividers */
+.ant-table-wrapper .ant-table-thead > tr > th {
+  font-family: var(--font-label) !important;
+  font-weight: 600;
+  color: var(--on-surface-variant) !important;
+  background: var(--surface-container-low) !important;
+  border-bottom: none !important;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--surface-container-high) !important;
+  font-family: var(--font-body);
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: var(--surface-container-low) !important;
+}
+
+/* Buttons */
+.ant-btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-container)) !important;
+  border: none !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: 0 4px 16px rgba(0, 36, 106, 0.2) !important;
+  font-weight: 600;
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, var(--primary-container), var(--primary)) !important;
+  box-shadow: 0 8px 24px rgba(0, 36, 106, 0.3) !important;
+  transform: translateY(-1px);
+}
+
+/* Menu / Sidebar — pill-shaped active state */
+.ant-menu-item-selected {
+  background: var(--primary-fixed) !important;
+  color: var(--primary) !important;
+  border-radius: var(--radius-lg) !important;
+  font-weight: 600;
+}
+
+.ant-menu-item {
+  border-radius: var(--radius-lg) !important;
+  margin: 2px 0 !important;
+  transition: var(--transition);
+}
+
+.ant-menu-item:hover {
+  background: var(--surface-container) !important;
+  color: var(--primary) !important;
+}
+
+/* Input */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector {
+  border-radius: var(--radius) !important;
+  border-color: var(--outline-variant) !important;
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  border-color: rgba(0, 36, 106, 0.4) !important;
+  box-shadow: 0 0 0 3px rgba(0, 83, 219, 0.1) !important;
+}
+
+/* Tags */
+.ant-tag {
+  border-radius: var(--radius) !important;
+  border: none !important;
+  font-weight: 500;
+}
+
+/* Modal */
+.ant-modal-content {
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: none !important;
+}
+
+/* Switch */
+.ant-switch-checked {
+  background: linear-gradient(135deg, var(--primary), var(--primary-container)) !important;
+}
+
+/* Statistic */
+.ant-statistic-content-value {
+  font-family: var(--font-headline) !important;
+  font-weight: 700 !important;
+  color: var(--on-surface) !important;
+}
+
+/* Sider */
+.ant-layout-sider {
+  background: var(--surface-container-low) !important;
+  border-right: none !important;
+  box-shadow: var(--shadow-sm);
 }
 
 /* ======================== Animations ======================== */
@@ -327,6 +496,11 @@ input, select, textarea {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
 }
 
 .animate-fadeIn {
@@ -348,12 +522,12 @@ input, select, textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--outline-variant);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--outline);
 }
 
 /* ======================== Global Utility ======================== */
@@ -362,9 +536,10 @@ input, select, textarea {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  font-family: var(--font-headline);
   font-size: 1.1rem;
-  color: var(--text-secondary);
-  background: var(--content-bg);
+  color: var(--on-surface-variant);
+  background: var(--surface);
 }
 
 .spin {

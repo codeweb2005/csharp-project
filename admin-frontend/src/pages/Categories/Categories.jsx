@@ -6,7 +6,7 @@ import useCurrentUser from '../../hooks/useCurrentUser.js'
 
 const { Title, Text } = Typography
 
-const defaultForm = { icon: '📍', color: '#3b82f6', sortOrder: 0, isActive: true, translations: [] }
+const defaultForm = { icon: '📍', color: '#00246a', sortOrder: 0, isActive: true, translations: [] }
 
 export default function Categories() {
     const { isVendor } = useCurrentUser()
@@ -156,7 +156,7 @@ export default function Categories() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Space>
                     <Title level={4} style={{ margin: 0 }}>Danh mục</Title>
-                    <Badge count={cats.length} style={{ backgroundColor: '#2563eb' }} />
+                    <Badge count={cats.length} style={{ backgroundColor: '#00246a' }} />
                 </Space>
                 {!isVendor && (
                     <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>

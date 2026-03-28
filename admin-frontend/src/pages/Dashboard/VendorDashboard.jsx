@@ -30,7 +30,7 @@ import { dashboard as dashboardApi, analytics as analyticsApi } from '../../api'
 import useCurrentUser from '../../hooks/useCurrentUser.js'
 
 const { Title, Text } = Typography
-const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4']
+const COLORS = ['#00246a', '#22c55e', '#f59e0b', '#4059aa', '#ef4444', '#06b6d4']
 
 const periods = [
     { key: '7d', label: '7 ngày' },
@@ -100,7 +100,7 @@ export default function VendorDashboard() {
             label: 'Tổng lượt ghé',
             value: stats?.totalVisits ?? 0,
             change: trends?.totalVisits?.changePercent ?? 0,
-            icon: Eye, color: '#3b82f6', bg: '#eff6ff',
+            icon: Eye, color: '#00246a', bg: '#eff6ff',
         },
         {
             label: 'Thuyết minh đã phát',
@@ -112,13 +112,13 @@ export default function VendorDashboard() {
             label: 'Thời gian nghe TB',
             value: `${trends?.avgListenTime?.value ?? 0}s`,
             change: trends?.avgListenTime?.changePercent ?? 0,
-            icon: Clock, color: '#8b5cf6', bg: '#f5f3ff',
+            icon: Clock, color: '#4059aa', bg: '#f5f3ff',
         },
         {
             label: 'Ngôn ngữ sử dụng',
             value: stats?.languages ?? langData.length,
             change: null,
-            icon: Globe, color: '#f97316', bg: '#fff7ed',
+            icon: Globe, color: '#5c3800', bg: '#fff7ed',
         },
     ]
 
@@ -189,14 +189,14 @@ export default function VendorDashboard() {
                             <AreaChart data={visitsByDay}>
                                 <defs>
                                     <linearGradient id="gVendorVisits" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />
-                                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                                        <stop offset="0%" stopColor="#00246a" stopOpacity={0.2} />
+                                        <stop offset="100%" stopColor="#00246a" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                                 <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                                <Area type="monotone" dataKey="visits" stroke="#3b82f6" fill="url(#gVendorVisits)" strokeWidth={2} />
+                                <Area type="monotone" dataKey="visits" stroke="#00246a" fill="url(#gVendorVisits)" strokeWidth={2} />
                                 {visitsByDay[0]?.narrations !== undefined && (
                                     <Area type="monotone" dataKey="narrations" stroke="#22c55e" fill="transparent" strokeWidth={2} />
                                 )}
@@ -219,13 +219,13 @@ export default function VendorDashboard() {
                                 <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                                 <Bar dataKey="visits" radius={[4, 4, 0, 0]}>
                                     {hourlyData.map((entry, i) => (
-                                        <Cell key={i} fill={entry.visits > 30 ? '#ef4444' : entry.visits > 15 ? '#f59e0b' : '#3b82f6'} />
+                                        <Cell key={i} fill={entry.visits > 30 ? '#ef4444' : entry.visits > 15 ? '#f59e0b' : '#00246a'} />
                                     ))}
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
                         <Space style={{ marginTop: 8, justifyContent: 'center', width: '100%', fontSize: 11 }}>
-                            <Badge color="#3b82f6" text="Thấp" /><Badge color="#f59e0b" text="TB" /><Badge color="#ef4444" text="Cao" />
+                            <Badge color="#00246a" text="Thấp" /><Badge color="#f59e0b" text="TB" /><Badge color="#ef4444" text="Cao" />
                         </Space>
                     </Card>
                 </Col>
@@ -289,7 +289,7 @@ export default function VendorDashboard() {
                                             <Text type="secondary" style={{ fontSize: 12 }}>{poi.visits}</Text>
                                         </div>
                                         <div style={{ background: '#f1f5f9', height: 6, borderRadius: 3, overflow: 'hidden' }}>
-                                            <div style={{ background: '#3b82f6', height: '100%', width: `${(poi.visits / maxVisits) * 100}%`, borderRadius: 3 }} />
+                                            <div style={{ background: '#00246a', height: '100%', width: `${(poi.visits / maxVisits) * 100}%`, borderRadius: 3 }} />
                                         </div>
                                     </div>
                                 </div>

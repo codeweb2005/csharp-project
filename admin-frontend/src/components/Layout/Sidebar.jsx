@@ -42,7 +42,7 @@ export default function Sidebar() {
     }
 
     const avatarInitial = name ? name.charAt(0).toUpperCase() : 'A'
-    const avatarColor = isVendor ? '#d97706' : '#3b82f6'
+    const avatarColor = isVendor ? '#653e00' : '#00246a'
 
     const items = visibleItems.map(item => {
         const Icon = item.icon
@@ -79,9 +79,9 @@ export default function Sidebar() {
             <div className="sidebar-logo-antd" style={{ padding: '20px 16px', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between' }}>
                 {!collapsed && (
                     <div>
-                        <Typography.Title level={4} style={{ margin: 0, color: '#2563eb' }}>VK Food Tour</Typography.Title>
+                        <Typography.Title level={4} style={{ margin: 0, color: '#00246a', fontFamily: "'Manrope', sans-serif", letterSpacing: '-0.03em' }}>VK Food Tour</Typography.Title>
                         {isVendor && (
-                            <Text style={{ fontSize: 11, color: '#d97706', fontWeight: 600 }}>🏪 Vendor Portal</Text>
+                            <Text style={{ fontSize: 11, color: '#5c3800', fontWeight: 600 }}>🏪 Vendor Portal</Text>
                         )}
                         {!isVendor && (
                             <Text type="secondary" style={{ fontSize: 11 }}>Admin Panel</Text>

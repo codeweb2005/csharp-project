@@ -205,7 +205,7 @@ export default function Users() {
                         <Text strong style={{ fontSize: 14 }}>{record.fullName || '—'}</Text>
                         {record.shopName && <Text type="secondary" style={{ fontSize: 12 }}><ShopOutlined /> {record.shopName}</Text>}
                         {record.vendorPOIIds?.length > 1 && (
-                            <Text type="secondary" style={{ fontSize: 11, color: '#8b5cf6' }}>+{record.vendorPOIIds.length - 1} POI khác</Text>
+                            <Text type="secondary" style={{ fontSize: 11, color: '#4059aa' }}>+{record.vendorPOIIds.length - 1} POI khác</Text>
                         )}
                     </div>
                 </div>
@@ -259,7 +259,7 @@ export default function Users() {
             render: (_, record) => (
                 <Space size="middle">
                     <Tooltip title="Sửa">
-                        <Button type="text" icon={<EditOutlined style={{ color: '#3b82f6' }} />} onClick={() => openEdit(record)} />
+                        <Button type="text" icon={<EditOutlined style={{ color: '#00246a' }} />} onClick={() => openEdit(record)} />
                     </Tooltip>
                     <Tooltip title="Reset mật khẩu">
                         <Button type="text" icon={<KeyOutlined style={{ color: '#f59e0b' }} />} onClick={() => handleResetPassword(record)} />

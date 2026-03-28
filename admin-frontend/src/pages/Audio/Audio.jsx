@@ -359,7 +359,7 @@ export default function Audio() {
                     <Card title={<span><PictureOutlined /> Hình ảnh — <Text type="secondary">{poiName}</Text></span>} bordered={false} style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
                             {images.map(img => (
-                                <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: img.isPrimary ? '2px solid #3b82f6' : '1px solid #e2e8f0', aspectRatio: '1/1', backgroundColor: '#f8fafc' }}>
+                                <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: img.isPrimary ? '2px solid #00246a' : '1px solid #e2e8f0', aspectRatio: '1/1', backgroundColor: '#f8fafc' }}>
                                     <div onClick={() => handleSetPrimary(img.id)} style={{ width: '100%', height: '100%', cursor: 'pointer' }} title="Click để đặt làm ảnh chính">
                                         {img.url ? (
                                             <img src={resolveImageUrl(img.url)} alt={img.caption || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -391,7 +391,7 @@ export default function Audio() {
                             <div 
                                 onClick={() => imgInputRef.current?.click()} 
                                 style={{ borderRadius: 8, border: '2px dashed #cbd5e1', aspectRatio: '1/1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backgroundColor: '#f8fafc', transition: 'all 0.2s', padding: 12, textAlign: 'center' }}
-                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.backgroundColor = '#eff6ff' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#00246a'; e.currentTarget.style.backgroundColor = '#eff6ff' }}
                                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.backgroundColor = '#f8fafc' }}
                             >
                                 <PlusOutlined style={{ fontSize: 24, color: '#94a3b8', marginBottom: 8 }} />
@@ -402,7 +402,7 @@ export default function Audio() {
                         </div>
                     </Card>
 
-                    <Card title={<span><AudioOutlined /> Audio Thuyết minh <Badge count={filtered.length} style={{ backgroundColor: '#2563eb', marginLeft: 8 }} /></span>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <Card title={<span><AudioOutlined /> Audio Thuyết minh <Badge count={filtered.length} style={{ backgroundColor: '#00246a', marginLeft: 8 }} /></span>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <Table 
                             columns={columns} 
                             dataSource={filtered} 
@@ -416,7 +416,7 @@ export default function Audio() {
 
                 {showTTS && (
                     <Col xs={24} xl={8}>
-                        <Card title={<Space><RobotOutlined style={{ color: '#2563eb' }} /><span>Tạo TTS tự động</span></Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'sticky', top: 24 }} extra={<Button type="text" onClick={() => setShowTTS(false)}>✕</Button>}>
+                        <Card title={<Space><RobotOutlined style={{ color: '#00246a' }} /><span>Tạo TTS tự động</span></Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'sticky', top: 24 }} extra={<Button type="text" onClick={() => setShowTTS(false)}>✕</Button>}>
                             <Form form={ttsForm} layout="vertical" onFinish={handleGenerateTTS}>
                                 <Form.Item name="languageId" label="Ngôn ngữ">
                                     <Select>
