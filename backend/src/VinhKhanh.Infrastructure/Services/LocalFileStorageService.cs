@@ -12,19 +12,21 @@ namespace VinhKhanh.Infrastructure.Services;
 /// </summary>
 public class LocalFileStorageService : IFileStorageService
 {
+    private const string UploadsDirectorySegment = "uploads";
+
     private readonly string _basePath;
     private readonly string _baseUrl;
 
     public LocalFileStorageService(IWebHostEnvironment env, IConfiguration config)
     {
-        _basePath = Path.Combine(env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot"), "uploads");
+        _basePath = Path.Combine(env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot"), UploadsDirectorySegment);
 
         // Use configured absolute base URL (e.g. http://localhost:5015) so the
         // frontend on a different port can load the image URLs directly.
         var configuredBase = config["FileStorage:BaseUrl"]?.TrimEnd('/');
         _baseUrl = string.IsNullOrWhiteSpace(configuredBase)
             ? "/uploads"   // fallback: relative (same origin)
-            : $"{configuredBase}/uploads";
+            : $"{configuredBase}/{UploadsDirectorySegment}";
 
         if (!Directory.Exists(_basePath))
             Directory.CreateDirectory(_basePath);
