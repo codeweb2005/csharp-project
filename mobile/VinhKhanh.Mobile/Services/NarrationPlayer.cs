@@ -33,9 +33,11 @@ public class NarrationPlayer : INarrationPlayer
     private CancellationTokenSource? _ttsCts;   // cancels in-flight TTS
     private bool _isTtsPlaying;
 
+    private const string DefaultNarrationLanguageCode = "vi";
+
     // T-10: track last TTS text/lang for MediaFailed fallback
     private string? _lastTtsText;
-    private string  _lastLangCode = "vi";
+    private string  _lastLangCode = DefaultNarrationLanguageCode;
 
     public bool IsPlaying { get; private set; }
     public string? CurrentPoiName { get; private set; }
