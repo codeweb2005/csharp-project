@@ -44,9 +44,9 @@ public class GeofenceEngine
     /// <summary>
     /// Minimum time before the same POI can trigger GeofenceEntered again.
     /// Prevents replaying narration when the tourist stands still inside a geofence.
-    /// Default: 5 minutes. Set to TimeSpan.Zero to disable cooldown.
+    /// Default: 10 minutes. Set to TimeSpan.Zero to disable cooldown.
     /// </summary>
-    public TimeSpan CooldownDuration { get; set; } = TimeSpan.FromMinutes(5);
+    public TimeSpan CooldownDuration { get; set; } = TimeSpan.FromMinutes(10);
 
     // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private List<PoiLocal> _pois = [];
