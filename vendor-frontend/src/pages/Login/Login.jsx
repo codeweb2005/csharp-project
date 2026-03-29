@@ -78,14 +78,14 @@ export default function Login() {
                         <div className="login-brand-icon">🍜</div>
                         <h2 className="login-brand-title">VK Food Tour</h2>
                     </div>
-                    <p className="login-form-subtitle">Đăng nhập hệ thống quản trị</p>
+                    <p className="login-form-subtitle">Cổng dành cho đối tác</p>
 
                     <Form
                         name="login"
                         layout="vertical"
                         initialValues={{
-                            email: 'admin@vinhkhanh.app',
-                            password: 'Admin@123',
+                            email: '',
+                            password: '',
                             remember: true,
                         }}
                         onFinish={onFinish}
@@ -97,7 +97,7 @@ export default function Login() {
                             label="Email"
                             rules={[{ required: true, message: 'Vui lòng nhập email!' }, { type: 'email', message: 'Email không hợp lệ!' }]}
                         >
-                            <Input prefix={<MailOutlined className="site-form-item-icon" />} placeholder="admin@vinhkhanh.app" />
+                            <Input prefix={<MailOutlined className="site-form-item-icon" />} placeholder="vendor@vinhkhanh.app" />
                         </Form.Item>
 
                         <Form.Item

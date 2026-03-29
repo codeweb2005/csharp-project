@@ -70,7 +70,7 @@ export default function Sidebar() {
             trigger={null} // custom trigger below
         >
             <div className="sidebar-logo-antd" style={{ padding: '20px 16px', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between' }}>
-                {!collapsed && <Typography.Title level={4} style={{ margin: 0, color: '#f59e0b' }}>VK Vendor Portal</Typography.Title>}
+                {!collapsed && <Typography.Title level={4} style={{ margin: 0, color: '#f59e0b' }}>Vendor</Typography.Title>}
                 <Button type="text" onClick={() => setCollapsed(!collapsed)} icon={collapsed ? <MenuIcon size={18} /> : <ChevronLeft size={18} />} />
             </div>
 

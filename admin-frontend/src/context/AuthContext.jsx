@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { auth as authApi, setTokens, clearTokens, getToken } from '../api'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { auth as authApi, clearTokens, getToken, setTokens } from '../api'
 
 const AuthContext = createContext(null)
 
@@ -16,6 +16,12 @@ export function AuthProvider({ children }) {
     if (token && !user) {
       authApi.getMe()
         .then(res => {
+          if (res.data?.role !== 'Admin') {
+            clearTokens()
+            setUser(null)
+            localStorage.removeItem('user')
+            return
+          }
           setUser(res.data)
           localStorage.setItem('user', JSON.stringify(res.data))
         })
@@ -32,6 +38,10 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const res = await authApi.login(email, password)
     if (res.success) {
+      const role = res.data.user?.role
+      if (role !== 'Admin') {
+        return { success: false, error: { code: 'FORBIDDEN', message: 'Tài khoản không có quyền truy cập trang quản trị. Vui lòng sử dụng cổng dành cho đối tác.' } }
+      }
       setTokens(res.data.accessToken, res.data.refreshToken)
       setUser(res.data.user)
       localStorage.setItem('user', JSON.stringify(res.data.user))

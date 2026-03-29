@@ -16,6 +16,12 @@ export function AuthProvider({ children }) {
     if (token && !user) {
       authApi.getMe()
         .then(res => {
+          if (res.data?.role !== 'Vendor') {
+            clearTokens()
+            setUser(null)
+            localStorage.removeItem('user')
+            return
+          }
           setUser(res.data)
           localStorage.setItem('user', JSON.stringify(res.data))
         })
@@ -32,6 +38,10 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const res = await authApi.login(email, password)
     if (res.success) {
+      const role = res.data.user?.role
+      if (role !== 'Vendor') {
+        return { success: false, error: { code: 'FORBIDDEN', message: 'Tài khoản không phải đối tác. Vui lòng sử dụng trang quản trị dành cho admin.' } }
+      }
       setTokens(res.data.accessToken, res.data.refreshToken)
       setUser(res.data.user)
       localStorage.setItem('user', JSON.stringify(res.data.user))
