@@ -60,7 +60,7 @@ export default function MenuPage() {
             const res = await menuApi.getByPOI(selectedPOI)
             setMenuItems(res.data ?? [])
         } catch (err) {
-            message.error('Không thể tải menu.')
+            message.error('Cannot load menu.')
             console.error('[Menu] fetch error:', err)
         } finally {
             setLoading(false)
@@ -147,15 +147,15 @@ export default function MenuPage() {
 
             if (isCreating) {
                 await menuApi.create(selectedPOI, payload)
-                message.success('Đã thêm món mới')
+                message.success('Added new item')
             } else {
                 await menuApi.update(editingState.id, payload)
-                message.success('Đã cập nhật món ăn')
+                message.success('Updated item')
             }
             closeDrawer()
             fetchMenu()
         } catch (err) {
-            message.error(err?.error?.message || 'Lỗi khi lưu món ăn.')
+            message.error(err?.error?.message || 'Error saving item.')
         } finally {
             setSaveLoading(false)
         }
@@ -165,11 +165,11 @@ export default function MenuPage() {
         try {
             await menuApi.delete(item.id)
             if (editingState?.id === item.id) closeDrawer()
-            message.success('Đã xóa món ăn')
+            message.success('Deleted item')
             fetchMenu()
         } catch (err) {
             console.error('[Menu] delete failed:', err)
-            message.error('Lỗi khi xóa món ăn')
+            message.error('Error deleting item')
         }
     }
 
@@ -182,10 +182,10 @@ export default function MenuPage() {
             label: '🇻🇳 VI',
             children: (
                 <>
-                    <Form.Item name="name_1" label="Tên món" rules={[{ required: true, message: 'Vui lòng nhập tên món' }]}>
+                    <Form.Item name="name_1" label="Dish name" rules={[{ required: true, message: 'Please enter dish name' }]}>
                         <Input />
                     </Form.Item>
-                    <Form.Item name="desc_1" label="Mô tả">
+                    <Form.Item name="desc_1" label="Description">
                         <Input.TextArea rows={3} />
                     </Form.Item>
                 </>
@@ -196,10 +196,10 @@ export default function MenuPage() {
             label: '🇬🇧 EN',
             children: (
                 <>
-                    <Form.Item name="name_2" label="Tên món">
+                    <Form.Item name="name_2" label="Dish name">
                         <Input />
                     </Form.Item>
-                    <Form.Item name="desc_2" label="Mô tả">
+                    <Form.Item name="desc_2" label="Description">
                         <Input.TextArea rows={3} />
                     </Form.Item>
                 </>
@@ -217,7 +217,7 @@ export default function MenuPage() {
                     ) : (
                         <Select
                             style={{ width: 250 }}
-                            placeholder="Chọn POI"
+                            placeholder="Select POI"
                             value={selectedPOI}
                             onChange={val => { setSelectedPOI(val); closeDrawer() }}
                             options={poiOptions.map(p => ({ label: p.name, value: p.id }))}
@@ -225,10 +225,10 @@ export default function MenuPage() {
                             optionFilterProp="label"
                         />
                     )}
-                    <Text type="secondary">{menuItems.length} món • {sigCount} đặc trưng</Text>
+                    <Text type="secondary">{menuItems.length} items • {sigCount} signatures</Text>
                 </Space>
                 <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} disabled={!selectedPOI}>
-                    Thêm món mới
+                    Add new item
                 </Button>
             </div>
 
@@ -239,8 +239,8 @@ export default function MenuPage() {
                     </Col>
                 ) : menuItems.length === 0 ? (
                     <Col span={24}>
-                        <Empty description="Chưa có món nào." image={Empty.PRESENTED_IMAGE_SIMPLE}>
-                            <Button type="link" onClick={openCreate}>Thêm món đầu tiên?</Button>
+                        <Empty description="No items available." image={Empty.PRESENTED_IMAGE_SIMPLE}>
+                            <Button type="link" onClick={openCreate}>Add first item?</Button>
                         </Empty>
                     </Col>
                 ) : menuItems.map(item => {
@@ -270,12 +270,12 @@ export default function MenuPage() {
                                         )}
                                         {item.isSignature && (
                                             <div style={{ position: 'absolute', top: 8, left: 8, backgroundColor: '#f59e0b', color: '#fff', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                <StarFilled /> Đặc trưng
+                                                <StarFilled /> Signature
                                             </div>
                                         )}
                                         {!item.isAvailable && (
                                             <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f172a', fontWeight: 600, fontSize: 18 }}>
-                                                Hết hàng
+                                                Out of stock
                                             </div>
                                         )}
                                     </div>
@@ -287,7 +287,7 @@ export default function MenuPage() {
                                 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
                                     <Text strong style={{ color: '#2563eb', fontSize: 15 }}>{formatPrice(item.price)}</Text>
-                                    <Badge status={item.isAvailable ? 'success' : 'error'} text={item.isAvailable ? 'Còn bán' : 'Hết hàng'} />
+                                    <Badge status={item.isAvailable ? 'success' : 'error'} text={item.isAvailable ? 'Available' : 'Out of stock'} />
                                 </div>
                             </Card>
                         </Col>
@@ -296,7 +296,7 @@ export default function MenuPage() {
             </Row>
 
             <Drawer
-                title={isCreating ? 'Thêm món mới' : 'Sửa món ăn'}
+                title={isCreating ? 'Add new item' : 'Edit item'}
                 placement="right"
                 onClose={closeDrawer}
                 open={drawerVisible}
@@ -304,25 +304,25 @@ export default function MenuPage() {
                 extra={
                     <Space>
                         {!isCreating && editingState && (
-                            <Popconfirm title="Xóa món ăn này?" onConfirm={() => handleDelete(editingState)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+                            <Popconfirm title="Delete this item?" onConfirm={() => handleDelete(editingState)} okText="Delete" cancelText="Cancel" okButtonProps={{ danger: true }}>
                                 <Button danger icon={<DeleteOutlined />} />
                             </Popconfirm>
                         )}
                         <Button type="primary" onClick={() => form.submit()} loading={saveLoading} icon={<SaveOutlined />}>
-                            {isCreating ? 'Tạo mới' : 'Lưu'}
+                            {isCreating ? 'Create' : 'Save'}
                         </Button>
                     </Space>
                 }
             >
                 <div style={{ textAlign: 'center', marginBottom: 24, padding: '24px', backgroundColor: '#f8fafc', borderRadius: 8, border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
                     <UploadOutlined style={{ fontSize: 24, color: '#94a3b8', marginBottom: 8 }} />
-                    <div style={{ color: '#64748b' }}>Upload ảnh món</div>
+                    <div style={{ color: '#64748b' }}>Upload dish image</div>
                 </div>
 
                 <Form form={form} layout="vertical" onFinish={handleSave}>
                     <Tabs items={tabItems} defaultActiveKey="1" style={{ marginBottom: 16 }} />
 
-                    <Form.Item name="price" label="Giá (VNĐ)" rules={[{ required: true, message: 'Vui lòng nhập giá' }]}>
+                    <Form.Item name="price" label="Price (VNĐ)" rules={[{ required: true, message: 'Please enter price' }]}>
                         <InputNumber style={{ width: '100%' }} min={0} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={value => value.replace(/\$\s?|(,*)/g, '')} />
                     </Form.Item>
 
@@ -331,7 +331,7 @@ export default function MenuPage() {
                             <Form.Item name="isSignature" valuePropName="checked">
                                 <Space>
                                     <Switch />
-                                    <span>⭐ Món đặc trưng</span>
+                                    <span>⭐ Signature dish</span>
                                 </Space>
                             </Form.Item>
                         </Col>
@@ -339,7 +339,7 @@ export default function MenuPage() {
                             <Form.Item name="isAvailable" valuePropName="checked">
                                 <Space>
                                     <Switch />
-                                    <span>🟢 Còn bán</span>
+                                    <span>🟢 Available</span>
                                 </Space>
                             </Form.Item>
                         </Col>

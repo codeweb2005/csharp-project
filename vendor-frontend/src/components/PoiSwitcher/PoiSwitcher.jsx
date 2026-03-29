@@ -27,7 +27,7 @@ export default function PoiSwitcher() {
                 <Space size={6}>
                     <span style={{ fontSize: 16 }}>{poi?.categoryIcon ?? '🏪'}</span>
                     <Text style={{ fontSize: 13 }}>{poi?.name ?? `Shop #${id}`}</Text>
-                    {!poi?.isActive && <Tag color="default" style={{ fontSize: 11, lineHeight: '16px', padding: '0 4px' }}>Tạm ngưng</Tag>}
+                    {!poi?.isActive && <Tag color="default" style={{ fontSize: 11, lineHeight: '16px', padding: '0 4px' }}>Inactive</Tag>}
                 </Space>
             ),
             // Plain text for search/filter
@@ -55,7 +55,7 @@ export default function PoiSwitcher() {
                 popupMatchSelectWidth={false}
                 size="small"
                 suffixIcon={null}
-                placeholder="Chọn quán..."
+                placeholder="Select shop..."
                 optionLabelProp="label"
             />
         </Space>

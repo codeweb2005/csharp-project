@@ -102,7 +102,7 @@ export default function Audio() {
             setAudioFiles(audioRes.data ?? [])
             setImages(mediaRes.data ?? [])
         } catch (err) {
-            message.error('Không thể tải dữ liệu audio/media.')
+            message.error('Failed to load audio/media data.')
             console.error('[Audio] fetch error:', err)
         } finally {
             setLoading(false)
@@ -128,11 +128,11 @@ export default function Audio() {
     async function handleSetDefault(id) {
         try {
             await audioApi.setDefault(id)
-            message.success('Đã đặt làm mặc định')
+            message.success('Set as default successfully')
             fetchData()
         } catch (err) {
             console.error('[Audio] set default failed:', err)
-            message.error('Lỗi khi thiết lập mặc định')
+            message.error('Error setting default')
         }
     }
 
@@ -140,11 +140,11 @@ export default function Audio() {
         try {
             await audioApi.delete(id)
             if (playingId === id) { audioRef.current?.pause(); setPlayingId(null) }
-            message.success('Đã xóa audio')
+            message.success('Deleted audio')
             fetchData()
         } catch (err) {
             console.error('[Audio] delete failed:', err)
-            message.error('Lỗi khi xóa audio')
+            message.error('Error deleting audio')
         }
     }
 
@@ -154,11 +154,11 @@ export default function Audio() {
         setUploading(true)
         try {
             await audioApi.upload(selectedPOI, file, uploadLangId)
-            message.success('Đã upload audio')
+            message.success('Uploaded audio')
             fetchData()
         } catch (err) {
             console.error('[Audio] upload failed:', err)
-            message.error(err?.error?.message || 'Upload thất bại.')
+            message.error(err?.error?.message || 'Upload failed.')
         } finally {
             setUploading(false)
             if (fileInputRef.current) fileInputRef.current.value = ''
@@ -176,10 +176,10 @@ export default function Audio() {
                 speed: Number(values.speed),
             })
             setShowTTS(false)
-            message.success('Đã tạo TTS thành công')
+            message.success('Generated TTS successfully')
             fetchData()
         } catch (err) {
-            message.error(err?.error?.message || 'Tạo TTS thất bại.')
+            message.error(err?.error?.message || 'Failed to generate TTS.')
         } finally {
             setTtsLoading(false)
         }
@@ -191,11 +191,11 @@ export default function Audio() {
         setUploading(true)
         try {
             await mediaApi.upload(selectedPOI, file, null, false)
-            message.success('Đã upload hình ảnh')
+            message.success('Uploaded image')
             fetchData()
         } catch (err) {
             console.error('[Audio] image upload failed:', err)
-            message.error('Upload hình thất bại.')
+            message.error('Image upload failed.')
         } finally {
             setUploading(false)
             if (imgInputRef.current) imgInputRef.current.value = ''
@@ -205,22 +205,22 @@ export default function Audio() {
     async function handleDeleteImage(id) {
         try {
             await mediaApi.delete(id)
-            message.success('Đã xóa hình ảnh')
+            message.success('Deleted image')
             fetchData()
         } catch (err) {
             console.error('[Audio] delete image failed:', err)
-            message.error('Xóa hình ảnh thất bại.')
+            message.error('Image deletion failed.')
         }
     }
 
     async function handleSetPrimary(id) {
         try {
             await mediaApi.setPrimary(id)
-            message.success('Đã thiết lập ảnh chính')
+            message.success('Set primary image successfully')
             fetchData()
         } catch (err) {
             console.error('[Audio] set primary failed:', err)
-            message.error('Thiết lập ảnh chính thất bại.')
+            message.error('Setting primary image failed.')
         }
     }
 
@@ -232,7 +232,7 @@ export default function Audio() {
 
     const columns = [
         {
-            title: 'Ngôn ngữ',
+            title: 'Language',
             key: 'language',
             render: (_, record) => <Space><span>{record.flagEmoji}</span><span>{record.languageName}</span></Space>,
         },
@@ -243,7 +243,7 @@ export default function Audio() {
             render: (text, record) => <Text>{text?.split('/').pop() || `audio_${record.id}`}</Text>,
         },
         {
-            title: 'Loại',
+            title: 'Type',
             dataIndex: 'voiceType',
             key: 'voiceType',
             render: (type) => (
@@ -253,26 +253,26 @@ export default function Audio() {
             ),
         },
         {
-            title: 'Thời lượng',
+            title: 'Duration',
             dataIndex: 'duration',
             key: 'duration',
             render: (dur) => formatDuration(dur),
         },
         {
-            title: 'Dung lượng',
+            title: 'Size',
             dataIndex: 'fileSize',
             key: 'fileSize',
             render: (size) => formatSize(size),
         },
         {
-            title: 'Mặc định',
+            title: 'Default',
             key: 'isDefault',
             render: (_, record) => (
                 <Radio checked={record.isDefault} onChange={() => handleSetDefault(record.id)} />
             )
         },
         {
-            title: 'Nghe',
+            title: 'Play',
             key: 'play',
             render: (_, record) => (
                 <Button 
@@ -284,15 +284,15 @@ export default function Audio() {
             )
         },
         {
-            title: 'Hành động',
+            title: 'Actions',
             key: 'action',
             render: (_, record) => (
                 <Space>
-                    <Tooltip title="Tải xuống">
+                    <Tooltip title="Download">
                         <Button type="text" icon={<DownloadOutlined />} href={`${API_BASE}/audio/${record.id}/stream`} download target="_blank" />
                     </Tooltip>
-                    <Tooltip title="Xóa">
-                        <Popconfirm title="Xóa file audio này?" onConfirm={() => handleDeleteAudio(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+                    <Tooltip title="Delete">
+                        <Popconfirm title="Delete this audio file?" onConfirm={() => handleDeleteAudio(record.id)} okText="Delete" cancelText="Cancel" okButtonProps={{ danger: true }}>
                             <Button type="text" danger icon={<DeleteOutlined />} />
                         </Popconfirm>
                     </Tooltip>
@@ -312,7 +312,7 @@ export default function Audio() {
                             ) : (
                                 <Select
                                     style={{ width: 250 }}
-                                    placeholder="Chọn POI"
+                                    placeholder="Select POI"
                                     value={selectedPOI}
                                     onChange={val => { setSelectedPOI(val); setShowTTS(false) }}
                                     options={poiOptions.map(p => ({ label: p.name, value: p.id }))}
@@ -325,7 +325,7 @@ export default function Audio() {
                                 value={filterLang}
                                 onChange={setFilterLang}
                                 options={[
-                                    { label: 'Tất cả ngôn ngữ', value: 'all' },
+                                    { label: 'All languages', value: 'all' },
                                     ...[...new Set(audioFiles.map(a => a.languageName))].map(lang => ({
                                         label: `${audioFiles.find(a => a.languageName === lang)?.flagEmoji} ${lang}`,
                                         value: lang
@@ -351,7 +351,7 @@ export default function Audio() {
                             <input ref={fileInputRef} type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleUploadAudio} />
                             
                             <Button type="primary" icon={<RobotOutlined />} onClick={() => { setShowTTS(true); ttsForm.setFieldsValue({ languageId: 1, voiceName: 'vi-VN-HoaiMyNeural', speed: 1.0, text: '' }) }} disabled={!selectedPOI}>
-                                Tạo TTS
+                                Generate TTS
                             </Button>
                         </Space>
                     </Col>
@@ -361,11 +361,11 @@ export default function Audio() {
             <Row gutter={[24, 24]}>
                 <Col xs={24} xl={showTTS ? 16 : 24} style={{ transition: 'all 0.3s' }}>
                     
-                    <Card title={<span><PictureOutlined /> Hình ảnh — <Text type="secondary">{poiName}</Text></span>} bordered={false} style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <Card title={<span><PictureOutlined /> Images — <Text type="secondary">{poiName}</Text></span>} bordered={false} style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
                             {images.map(img => (
                                 <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: img.isPrimary ? '2px solid #3b82f6' : '1px solid #e2e8f0', aspectRatio: '1/1', backgroundColor: '#f8fafc' }}>
-                                    <div onClick={() => handleSetPrimary(img.id)} style={{ width: '100%', height: '100%', cursor: 'pointer' }} title="Click để đặt làm ảnh chính">
+                                    <div onClick={() => handleSetPrimary(img.id)} style={{ width: '100%', height: '100%', cursor: 'pointer' }} title="Click to set as primary image">
                                         {img.url ? (
                                             <img src={resolveImageUrl(img.url)} alt={img.caption || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
@@ -386,7 +386,7 @@ export default function Audio() {
                                             <Text style={{ color: '#fff', fontSize: 12, display: 'block', maxWidth: 100 }} ellipsis>{img.caption || `IMG-${img.id}`}</Text>
                                             <Text style={{ color: '#cbd5e1', fontSize: 10 }}>{formatSize(img.fileSize)}</Text>
                                         </Space>
-                                        <Popconfirm title="Xóa hình này?" onConfirm={() => handleDeleteImage(img.id)} placement="topRight" okText="Xóa" cancelText="Hủy">
+                                        <Popconfirm title="Delete this image?" onConfirm={() => handleDeleteImage(img.id)} placement="topRight" okText="Delete" cancelText="Cancel">
                                             <Button type="text" danger size="small" icon={<DeleteOutlined />} style={{ color: '#ef4444', backgroundColor: 'rgba(255,255,255,0.9)' }} />
                                         </Popconfirm>
                                     </div>
@@ -400,14 +400,14 @@ export default function Audio() {
                                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.backgroundColor = '#f8fafc' }}
                             >
                                 <PlusOutlined style={{ fontSize: 24, color: '#94a3b8', marginBottom: 8 }} />
-                                <Text strong style={{ color: '#64748b' }}>Thêm hình ảnh</Text>
+                                <Text strong style={{ color: '#64748b' }}>Add Image</Text>
                                 <Text type="secondary" style={{ fontSize: 11, marginTop: 4 }}>JPG, PNG • Max 5MB</Text>
                             </div>
                             <input ref={imgInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUploadImage} />
                         </div>
                     </Card>
 
-                    <Card title={<span><AudioOutlined /> Audio Thuyết minh <Badge count={filtered.length} style={{ backgroundColor: '#2563eb', marginLeft: 8 }} /></span>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <Card title={<span><AudioOutlined /> Narration Audio <Badge count={filtered.length} style={{ backgroundColor: '#2563eb', marginLeft: 8 }} /></span>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <Table 
                             columns={columns} 
                             dataSource={filtered} 
@@ -421,36 +421,36 @@ export default function Audio() {
 
                 {showTTS && (
                     <Col xs={24} xl={8}>
-                        <Card title={<Space><RobotOutlined style={{ color: '#2563eb' }} /><span>Tạo TTS tự động</span></Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'sticky', top: 24 }} extra={<Button type="text" onClick={() => setShowTTS(false)}>✕</Button>}>
+                        <Card title={<Space><RobotOutlined style={{ color: '#2563eb' }} /><span>Generate Auto TTS</span></Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'sticky', top: 24 }} extra={<Button type="text" onClick={() => setShowTTS(false)}>✕</Button>}>
                             <Form form={ttsForm} layout="vertical" onFinish={handleGenerateTTS}>
-                                <Form.Item name="languageId" label="Ngôn ngữ">
+                                <Form.Item name="languageId" label="Language">
                                     <Select>
-                                        <Select.Option value={1}>🇻🇳 Tiếng Việt</Select.Option>
+                                        <Select.Option value={1}>🇻🇳 Vietnamese</Select.Option>
                                         <Select.Option value={2}>🇬🇧 English</Select.Option>
                                     </Select>
                                 </Form.Item>
                                 
-                                <Form.Item name="voiceName" label="Giọng đọc">
+                                <Form.Item name="voiceName" label="Voice">
                                     <Select>
-                                        <Select.Option value="vi-VN-HoaiMyNeural">vi-VN-HoaiMyNeural (Nữ)</Select.Option>
-                                        <Select.Option value="vi-VN-NamMinhNeural">vi-VN-NamMinhNeural (Nam)</Select.Option>
+                                        <Select.Option value="vi-VN-HoaiMyNeural">vi-VN-HoaiMyNeural (Female)</Select.Option>
+                                        <Select.Option value="vi-VN-NamMinhNeural">vi-VN-NamMinhNeural (Male)</Select.Option>
                                         <Select.Option value="en-US-JennyNeural">en-US-JennyNeural (Female)</Select.Option>
                                         <Select.Option value="en-US-GuyNeural">en-US-GuyNeural (Male)</Select.Option>
                                     </Select>
                                 </Form.Item>
 
-                                <Form.Item name="text" label="Văn bản thuyết minh" rules={[{ required: true, message: 'Vui lòng nhập nội dung' }]}>
-                                    <Input.TextArea rows={6} placeholder="Nhập văn bản thuyết minh..." style={{ resize: 'none' }} />
+                                <Form.Item name="text" label="Narration text" rules={[{ required: true, message: 'Please enter text' }]}>
+                                    <Input.TextArea rows={6} placeholder="Enter narration text..." style={{ resize: 'none' }} />
                                 </Form.Item>
 
-                                <Form.Item name="speed" label="Tốc độ đọc">
+                                <Form.Item name="speed" label="Speech rate">
                                     <Slider min={0.5} max={2.0} step={0.1} marks={{ 0.5: '0.5x', 1.0: '1.0x', 1.5: '1.5x', 2.0: '2.0x' }} />
                                 </Form.Item>
 
                                 <Divider style={{ margin: '16px 0' }} />
 
                                 <Button type="primary" htmlType="submit" block icon={<AudioOutlined />} loading={ttsLoading}>
-                                    {ttsLoading ? 'Đang tạo...' : 'Tạo & Lưu'}
+                                    {ttsLoading ? 'Generating...' : 'Generate & Save'}
                                 </Button>
                             </Form>
                         </Card>

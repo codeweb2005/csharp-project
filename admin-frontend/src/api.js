@@ -59,7 +59,7 @@ async function request(endpoint, options = {}) {
 
 async function handleResponse(res) {
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: { message: 'Lỗi không xác định' } }))
+    const error = await res.json().catch(() => ({ error: { message: 'Unknown error' } }))
     throw { status: res.status, ...error }
   }
   // Handle empty responses (204 No Content)

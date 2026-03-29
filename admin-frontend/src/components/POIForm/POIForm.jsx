@@ -145,18 +145,23 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
     async function handleSubmit(e) {
         e.preventDefault()
         setError(null)
+        console.log('[POIForm] handleSubmit called, isEdit:', isEdit, 'poi?.id:', poi?.id)
+        console.log('[POIForm] form state:', { categoryId: form.categoryId, lat: form.latitude, lng: form.longitude, viName: form.translations[0]?.name })
 
         // Basic validation
         const viTrans = form.translations[0]
         if (!viTrans.name.trim()) {
+            console.log('[POIForm] BLOCKED: Vietnamese name empty')
             setError('Vietnamese name is required.')
             return
         }
         if (!form.latitude || !form.longitude) {
+            console.log('[POIForm] BLOCKED: no coordinates', form.latitude, form.longitude)
             setError('Please pick a location on the map.')
             return
         }
         if (!form.categoryId) {
+            console.log('[POIForm] BLOCKED: no categoryId')
             setError('Please select a category.')
             return
         }
@@ -239,7 +244,6 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
                                     className="poi-form-input"
                                     value={form.categoryId}
                                     onChange={e => setField('categoryId', e.target.value)}
-                                    required
                                 >
                                     <option value="">Select category…</option>
                                     {categories.map(c => (
@@ -494,7 +498,7 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
                         <button type="button" className="poi-form-btn poi-form-btn-cancel" onClick={onClose}>
                             Cancel
                         </button>
-                        <button type="submit" className="poi-form-btn poi-form-btn-save" disabled={saving}>
+                        <button type="button" className="poi-form-btn poi-form-btn-save" disabled={saving} onClick={handleSubmit}>
                             <Save size={16} />
                             {saving ? 'Saving…' : (isEdit ? 'Save Changes' : 'Create POI')}
                         </button>

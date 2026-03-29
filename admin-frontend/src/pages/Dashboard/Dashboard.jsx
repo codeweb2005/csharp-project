@@ -11,8 +11,8 @@ const COLORS = ['#00246a', '#22c55e', '#5c3800', '#4059aa', '#ba1a1a', '#06b6d4'
 
 const statConfig = [
     { key: 'activePOIs', label: 'Active POIs', icon: MapPin, color: '#00246a', bg: '#dbe1ff' },
-    { key: 'totalVisits', label: 'Tổng lượt ghé', icon: Eye, color: '#22c55e', bg: '#d1fae5', changeKey: 'totalVisitsChange' },
-    { key: 'languages', label: 'Ngôn ngữ', icon: Globe, color: '#4059aa', bg: '#dce1ff' },
+    { key: 'totalVisits', label: 'Total Visits', icon: Eye, color: '#22c55e', bg: '#d1fae5', changeKey: 'totalVisitsChange' },
+    { key: 'languages', label: 'Languages', icon: Globe, color: '#4059aa', bg: '#dce1ff' },
     { key: 'audioFiles', label: 'Audio Files', icon: Volume2, color: '#5c3800', bg: '#ffddb8' },
 ]
 
@@ -99,10 +99,10 @@ export default function Dashboard() {
                 <Col xs={24} lg={16}>
                     <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                            <Title level={5} style={{ margin: 0 }}>Lượt ghé thăm theo ngày</Title>
+                            <Title level={5} style={{ margin: 0 }}>Visits by Day</Title>
                             <Space size="middle">
-                                <Space><Badge color="#00246a" /><Text type="secondary" style={{ fontSize: 13 }}>Lượt ghé</Text></Space>
-                                <Space><Badge color="#22c55e" /><Text type="secondary" style={{ fontSize: 13 }}>Thuyết minh</Text></Space>
+                                <Space><Badge color="#00246a" /><Text type="secondary" style={{ fontSize: 13 }}>Visits</Text></Space>
+                                <Space><Badge color="#22c55e" /><Text type="secondary" style={{ fontSize: 13 }}>Narrations</Text></Space>
                             </Space>
                         </div>
                         <ResponsiveContainer width="100%" height={260}>
@@ -128,8 +128,8 @@ export default function Dashboard() {
                 </Col>
 
                 <Col xs={24} lg={8}>
-                    <Card title={<Title level={5} style={{ margin: 0 }}>Top điểm ghé thăm</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
-                        {topPOIs.length === 0 && <Text type="secondary">Chưa có dữ liệu</Text>}
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Top Locations</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
+                        {topPOIs.length === 0 && <Text type="secondary">No data yet</Text>}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
                             {topPOIs.map((poi, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -154,7 +154,7 @@ export default function Dashboard() {
             {/* Bottom Row */}
             <Row gutter={[16, 16]}>
                 <Col xs={24} lg={8}>
-                    <Card title={<Title level={5} style={{ margin: 0 }}>Phân bố ngôn ngữ</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Language Distribution</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         <ResponsiveContainer width="100%" height={200}>
                             <PieChart>
                                 <Pie
@@ -170,7 +170,7 @@ export default function Dashboard() {
                                         <Cell key={i} fill={COLORS[i % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip formatter={(v, name) => [`${v} lượt`, name]} />
+                                <Tooltip formatter={(v, name) => [`${v} visits`, name]} />
                             </PieChart>
                         </ResponsiveContainer>
                         <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -183,25 +183,25 @@ export default function Dashboard() {
                                     <Text strong>{l.percentage}%</Text>
                                 </div>
                             ))}
-                            {langData.length === 0 && <Text type="secondary">Chưa có dữ liệu</Text>}
+                            {langData.length === 0 && <Text type="secondary">No data yet</Text>}
                         </div>
                     </Card>
                 </Col>
 
                 <Col xs={24} lg={16}>
-                    <Card title={<Title level={5} style={{ margin: 0 }}>Hoạt động gần đây</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Recent Activity</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         <List
                             itemLayout="horizontal"
                             dataSource={recentActivity}
-                            locale={{ emptyText: 'Chưa có hoạt động' }}
+                            locale={{ emptyText: 'No recent activity' }}
                             renderItem={(item) => (
                                 <List.Item>
                                     <List.Item.Meta
                                         avatar={<Avatar style={{ backgroundColor: 'rgba(143,167,254,0.15)' }}>{item.flagEmoji || '🌐'}</Avatar>}
                                         title={<>
-                                            <Text strong>{item.userName}</Text> <Text type="secondary">đã ghé</Text> <Text strong>{item.poiName}</Text>
+                                            <Text strong>{item.userName}</Text> <Text type="secondary">visited</Text> <Text strong>{item.poiName}</Text>
                                         </>}
-                                        description={new Date(item.visitedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                                        description={new Date(item.visitedAt).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                                     />
                                     <Space>
                                         <Badge status={item.triggerType === 'Geofence' ? 'processing' : 'warning'} text={<span style={{ fontSize: 12 }}>{item.triggerType}</span>} style={{ background: '#eeedf4', padding: '4px 10px', borderRadius: 12, border: 'none' }} />

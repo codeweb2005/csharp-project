@@ -95,7 +95,7 @@ public class AuthController(IAuthService authService) : BaseApiController
 // POI Controller
 // ================================
 [Authorize]
-public class POIsController(IPOIService poiService) : BaseApiController
+public class POIsController(IPOIService poiService, IUserService userSvc) : BaseApiController
 {
     [HttpGet]
     public async Task<IActionResult> GetList(
@@ -103,7 +103,8 @@ public class POIsController(IPOIService poiService) : BaseApiController
         [FromQuery] string? search = null, [FromQuery] int? categoryId = null,
         [FromQuery] bool? isActive = null,
         [FromQuery] string sortBy = "name", [FromQuery] string order = "asc")
-        => ApiResult(await poiService.GetListAsync(page, size, search, categoryId, isActive, sortBy, order));
+        => ApiResult(await poiService.GetListAsync(page, size, search, categoryId, isActive, sortBy, order,
+            await GetVendorPOIIdsAsync(userSvc)));
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetDetail(int id)

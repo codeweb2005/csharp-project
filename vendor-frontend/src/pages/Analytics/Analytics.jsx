@@ -11,9 +11,9 @@ const { Title, Text } = Typography
 const LANG_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4']
 
 const periods = [
-    { key: '7d', label: '7 ngày' },
-    { key: '30d', label: '30 ngày' },
-    { key: '90d', label: '90 ngày' },
+    { key: '7d', label: '7 days' },
+    { key: '30d', label: '30 days' },
+    { key: '90d', label: '90 days' },
 ]
 
 function daysFromPeriod(period) {
@@ -65,10 +65,10 @@ export default function Analytics() {
     useEffect(() => { fetchData() }, [fetchData])
 
     const trendCards = trends ? [
-        { label: 'Tổng lượt ghé', value: trends.totalVisits?.value ?? 0, change: trends.totalVisits?.changePercent ?? 0, color: '#3b82f6', bg: '#eff6ff' },
-        { label: 'Thuyết minh đã phát', value: trends.narrations?.value ?? 0, change: trends.narrations?.changePercent ?? 0, color: '#22c55e', bg: '#f0fdf4' },
-        { label: 'Người dùng mới', value: trends.newUsers?.value ?? 0, change: trends.newUsers?.changePercent ?? 0, color: '#8b5cf6', bg: '#f5f3ff' },
-        { label: 'Thời gian nghe TB', value: `${trends.avgListenTime?.value ?? 0}s`, change: trends.avgListenTime?.changePercent ?? 0, color: '#f97316', bg: '#fff7ed' },
+        { label: 'Total Visits', value: trends.totalVisits?.value ?? 0, change: trends.totalVisits?.changePercent ?? 0, color: '#3b82f6', bg: '#eff6ff' },
+        { label: 'Narrations Played', value: trends.narrations?.value ?? 0, change: trends.narrations?.changePercent ?? 0, color: '#22c55e', bg: '#f0fdf4' },
+        { label: 'New Users', value: trends.newUsers?.value ?? 0, change: trends.newUsers?.changePercent ?? 0, color: '#8b5cf6', bg: '#f5f3ff' },
+        { label: 'Avg Listen Time', value: `${trends.avgListenTime?.value ?? 0}s`, change: trends.avgListenTime?.changePercent ?? 0, color: '#f97316', bg: '#fff7ed' },
     ] : []
 
     if (loading && !trends) {
@@ -123,7 +123,7 @@ export default function Analytics() {
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={24} lg={16}>
                     <Card
-                        title={<><BarChartOutlined style={{ color: '#3b82f6', marginRight: 8 }} /> Lượt ghé thăm biên độ ngày</>}
+                        title={<><BarChartOutlined style={{ color: '#3b82f6', marginRight: 8 }} /> Visits by day</>}
                         bordered={false}
                         bodyStyle={{ padding: '20px 24px' }}
                         style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', height: '100%' }}
@@ -152,7 +152,7 @@ export default function Analytics() {
 
                 <Col xs={24} lg={8}>
                     <Card
-                        title={<><ClockCircleOutlined style={{ color: '#f59e0b', marginRight: 8 }} /> Lượt ghé theo giờ</>}
+                        title={<><ClockCircleOutlined style={{ color: '#f59e0b', marginRight: 8 }} /> Visits by hour</>}
                         bordered={false}
                         bodyStyle={{ padding: '20px 24px' }}
                         style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', height: '100%' }}
@@ -172,9 +172,9 @@ export default function Analytics() {
                             </ResponsiveContainer>
                         </div>
                         <Space style={{ marginTop: 12, justifyContent: 'center', width: '100%', fontSize: 12 }}>
-                            <Badge color="#3b82f6" text="Thấp" />
-                            <Badge color="#f59e0b" text="TB" />
-                            <Badge color="#ef4444" text="Cao" />
+                            <Badge color="#3b82f6" text="Low" />
+                            <Badge color="#f59e0b" text="Avg" />
+                            <Badge color="#ef4444" text="High" />
                         </Space>
                     </Card>
                 </Col>
@@ -183,7 +183,7 @@ export default function Analytics() {
             <Row gutter={[16, 16]}>
                 <Col xs={24} md={10} lg={8}>
                     <Card
-                        title={<><GlobalOutlined style={{ color: '#10b981', marginRight: 8 }} /> Ngôn ngữ sử dụng</>}
+                        title={<><GlobalOutlined style={{ color: '#10b981', marginRight: 8 }} /> Language distribution</>}
                         bordered={false}
                         bodyStyle={{ padding: '20px 24px' }}
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
@@ -204,7 +204,7 @@ export default function Analytics() {
                                                 <Cell key={i} fill={langData.length > 0 ? LANG_COLORS[i % LANG_COLORS.length] : '#f1f5f9'} />
                                             )}
                                         </Pie>
-                                        <Tooltip formatter={(v, name) => [`${v} lượt`, name]} contentStyle={{ borderRadius: 8 }} />
+                                        <Tooltip formatter={(v, name) => [`${v} visits`, name]} contentStyle={{ borderRadius: 8 }} />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
@@ -221,7 +221,7 @@ export default function Analytics() {
                                         <Text strong>{item.percentage}%</Text>
                                     </List.Item>
                                 )}
-                                locale={{ emptyText: 'Chưa có dữ liệu' }}
+                                locale={{ emptyText: 'No data' }}
                                 style={{ flex: 1, overflowY: 'auto' }}
                             />
                         </div>
@@ -230,7 +230,7 @@ export default function Analytics() {
 
                 <Col xs={24} md={14} lg={16}>
                     <Card
-                        title={<><ThunderboltOutlined style={{ color: '#8b5cf6', marginRight: 8 }} /> Hoạt động gần đây</>}
+                        title={<><ThunderboltOutlined style={{ color: '#8b5cf6', marginRight: 8 }} /> Recent activity</>}
                         bordered={false}
                         bodyStyle={{ padding: 0 }}
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
@@ -238,13 +238,13 @@ export default function Analytics() {
                         <List
                             itemLayout="horizontal"
                             dataSource={recentVisits}
-                            locale={{ emptyText: <div style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8' }}>Chưa có hoạt động</div> }}
+                            locale={{ emptyText: <div style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8' }}>No recent activity</div> }}
                             renderItem={item => (
                                 <List.Item style={{ padding: '16px 24px', borderBottom: '1px solid #f1f5f9' }}>
                                     <List.Item.Meta
                                         avatar={<Avatar style={{ backgroundColor: '#f8fafc', fontSize: 20 }}>{item.flagEmoji || '🌐'}</Avatar>}
                                         title={<Text strong>{item.userName}</Text>}
-                                        description={<span>ghé thăm <strong>{item.poiName}</strong></span>}
+                                        description={<span>visited <strong>{item.poiName}</strong></span>}
                                     />
                                     <div style={{ textAlign: 'right' }}>
                                         <Tag color={item.triggerType === 'Geofence' ? 'blue' : item.triggerType === 'Manual' ? 'purple' : 'orange'} style={{ borderRadius: 12 }}>

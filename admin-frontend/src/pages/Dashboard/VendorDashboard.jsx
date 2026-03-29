@@ -33,9 +33,9 @@ const { Title, Text } = Typography
 const COLORS = ['#00246a', '#22c55e', '#f59e0b', '#4059aa', '#ef4444', '#06b6d4']
 
 const periods = [
-    { key: '7d', label: '7 ngày' },
-    { key: '30d', label: '30 ngày' },
-    { key: '90d', label: '90 ngày' },
+    { key: '7d', label: '7 days' },
+    { key: '30d', label: '30 days' },
+    { key: '90d', label: '90 days' },
 ]
 function daysFrom(period) { return period === '7d' ? 7 : period === '90d' ? 90 : 30 }
 
@@ -97,25 +97,25 @@ export default function VendorDashboard() {
 
     const kpiCards = [
         {
-            label: 'Tổng lượt ghé',
+            label: 'Total Visits',
             value: stats?.totalVisits ?? 0,
             change: trends?.totalVisits?.changePercent ?? 0,
             icon: Eye, color: '#00246a', bg: '#eff6ff',
         },
         {
-            label: 'Thuyết minh đã phát',
+            label: 'Narrations Played',
             value: trends?.narrations?.value ?? 0,
             change: trends?.narrations?.changePercent ?? 0,
             icon: Volume2, color: '#22c55e', bg: '#f0fdf4',
         },
         {
-            label: 'Thời gian nghe TB',
+            label: 'Avg Listen Time',
             value: `${trends?.avgListenTime?.value ?? 0}s`,
             change: trends?.avgListenTime?.changePercent ?? 0,
             icon: Clock, color: '#4059aa', bg: '#f5f3ff',
         },
         {
-            label: 'Ngôn ngữ sử dụng',
+            label: 'Active Languages',
             value: stats?.languages ?? langData.length,
             change: null,
             icon: Globe, color: '#5c3800', bg: '#fff7ed',
@@ -133,7 +133,7 @@ export default function VendorDashboard() {
                     <Title level={4} style={{ margin: 0 }}>🏪 My Shop Dashboard</Title>
                     {vendorPOIIds.length > 0 && (
                         <Text type="secondary" style={{ fontSize: 13 }}>
-                            {vendorPOIIds.length} POI{vendorPOIIds.length > 1 ? 's' : ''} đang quản lý
+                            {vendorPOIIds.length} POI{vendorPOIIds.length > 1 ? 's' : ''} managed
                         </Text>
                     )}
                 </div>
@@ -181,7 +181,7 @@ export default function VendorDashboard() {
                 {/* Visits/day Area Chart */}
                 <Col xs={24} lg={16}>
                     <Card
-                        title={<Title level={5} style={{ margin: 0 }}>Lượt ghé thăm theo ngày</Title>}
+                        title={<Title level={5} style={{ margin: 0 }}>Visits by Day</Title>}
                         bordered={false}
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
@@ -208,7 +208,7 @@ export default function VendorDashboard() {
                 {/* Hourly Bar Chart */}
                 <Col xs={24} lg={8}>
                     <Card
-                        title={<Title level={5} style={{ margin: 0 }}>Lượt ghé theo giờ (hôm nay)</Title>}
+                        title={<Title level={5} style={{ margin: 0 }}>Visits by Hour (Today)</Title>}
                         bordered={false}
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
@@ -225,7 +225,7 @@ export default function VendorDashboard() {
                             </BarChart>
                         </ResponsiveContainer>
                         <Space style={{ marginTop: 8, justifyContent: 'center', width: '100%', fontSize: 11 }}>
-                            <Badge color="#00246a" text="Thấp" /><Badge color="#f59e0b" text="TB" /><Badge color="#ef4444" text="Cao" />
+                            <Badge color="#00246a" text="Low" /><Badge color="#f59e0b" text="Avg" /><Badge color="#ef4444" text="High" />
                         </Space>
                     </Card>
                 </Col>
@@ -236,7 +236,7 @@ export default function VendorDashboard() {
                 {/* Language Pie */}
                 <Col xs={24} lg={8}>
                     <Card
-                        title={<Title level={5} style={{ margin: 0 }}>Phân bố ngôn ngữ</Title>}
+                        title={<Title level={5} style={{ margin: 0 }}>Language Distribution</Title>}
                         bordered={false}
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
@@ -252,7 +252,7 @@ export default function VendorDashboard() {
                                         <Cell key={i} fill={langData.length > 0 ? COLORS[i % COLORS.length] : '#f1f5f9'} />
                                     ))}
                                 </Pie>
-                                <Tooltip formatter={(v, name) => [`${v} lượt`, name]} />
+                                <Tooltip formatter={(v, name) => [`${v} visits`, name]} />
                             </PieChart>
                         </ResponsiveContainer>
                         <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -265,7 +265,7 @@ export default function VendorDashboard() {
                                     <Text strong>{l.percentage}%</Text>
                                 </div>
                             ))}
-                            {langData.length === 0 && <Text type="secondary">Chưa có dữ liệu</Text>}
+                            {langData.length === 0 && <Text type="secondary">No data available</Text>}
                         </div>
                     </Card>
                 </Col>
@@ -273,11 +273,11 @@ export default function VendorDashboard() {
                 {/* Top POIs */}
                 <Col xs={24} lg={8}>
                     <Card
-                        title={<Title level={5} style={{ margin: 0 }}>Top điểm ghé thăm</Title>}
+                        title={<Title level={5} style={{ margin: 0 }}>Top Visited POIs</Title>}
                         bordered={false}
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
-                        {topPOIs.length === 0 && <Text type="secondary">Chưa có dữ liệu</Text>}
+                        {topPOIs.length === 0 && <Text type="secondary">No data available</Text>}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             {topPOIs.map((poi, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -301,14 +301,14 @@ export default function VendorDashboard() {
                 {/* Recent Activity */}
                 <Col xs={24} lg={8}>
                     <Card
-                        title={<Title level={5} style={{ margin: 0 }}>Hoạt động gần đây</Title>}
+                        title={<Title level={5} style={{ margin: 0 }}>Recent Activity</Title>}
                         bordered={false}
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
                         <List
                             size="small"
                             dataSource={recentActivity}
-                            locale={{ emptyText: 'Chưa có hoạt động' }}
+                            locale={{ emptyText: 'No recent activity' }}
                             renderItem={(item) => (
                                 <List.Item style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
                                     <List.Item.Meta
@@ -316,8 +316,8 @@ export default function VendorDashboard() {
                                         title={<Text strong style={{ fontSize: 13 }}>{item.userName}</Text>}
                                         description={
                                             <span style={{ fontSize: 12 }}>
-                                                đã ghé <strong>{item.poiName}</strong> ·{' '}
-                                                {new Date(item.visitedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                                visited <strong>{item.poiName}</strong> ·{' '}
+                                                {new Date(item.visitedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         }
                                     />

@@ -14,7 +14,7 @@ const { Text } = Typography
 
 const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: Store, label: 'Thông tin quán', path: '/pois' },
+    { icon: Store, label: 'Shop Info', path: '/pois' },
     { icon: Volume2, label: 'Audio & Media', path: '/audio' },
     { icon: UtensilsCrossed, label: 'Menu', path: '/menu' },
     { icon: BarChart3, label: 'Analytics', path: '/analytics' },
@@ -94,7 +94,7 @@ export default function Sidebar() {
                 </div>
                 {!collapsed && (
                     <Button type="text" icon={<LogOut size={16} />} onClick={handleLogout} style={{ width: '100%', justifyContent: 'flex-start' }} danger>
-                        Đăng xuất
+                        Logout
                     </Button>
                 )}
                 {collapsed && (

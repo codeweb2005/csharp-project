@@ -8,12 +8,12 @@ const { Title, Text } = Typography
 const statusConfig = {
     active: { label: 'Active', color: 'success', icon: <CheckCircleOutlined /> },
     Active: { label: 'Active', color: 'success', icon: <CheckCircleOutlined /> },
-    building: { label: 'Đang tạo...', color: 'warning', icon: <ClockCircleOutlined /> },
-    Building: { label: 'Đang tạo...', color: 'warning', icon: <ClockCircleOutlined /> },
-    draft: { label: 'Bản nháp', color: 'default', icon: <FileTextOutlined /> },
-    Draft: { label: 'Bản nháp', color: 'default', icon: <FileTextOutlined /> },
-    error: { label: 'Lỗi', color: 'error', icon: <WarningOutlined /> },
-    Error: { label: 'Lỗi', color: 'error', icon: <WarningOutlined /> },
+    building: { label: 'Building...', color: 'warning', icon: <ClockCircleOutlined /> },
+    Building: { label: 'Building...', color: 'warning', icon: <ClockCircleOutlined /> },
+    draft: { label: 'Draft', color: 'default', icon: <FileTextOutlined /> },
+    Draft: { label: 'Draft', color: 'default', icon: <FileTextOutlined /> },
+    error: { label: 'Error', color: 'error', icon: <WarningOutlined /> },
+    Error: { label: 'Error', color: 'error', icon: <WarningOutlined /> },
 }
 
 function formatSize(bytes) {
@@ -41,7 +41,7 @@ export default function Offline() {
             setPackages(res.data ?? [])
             setLoading(false)
         } catch (err) {
-            message.error('Không thể tải danh sách gói.')
+            message.error('Failed to load packages.')
             setLoading(false)
             console.error('[Offline] fetch error:', err)
         }
@@ -69,10 +69,10 @@ export default function Offline() {
         try {
             await pkgApi.build(id)
             fetchPackages()
-            message.success('Đã bắt đầu tạo gói')
+            message.success('Package building started')
         } catch (err) {
             console.error('[Offline] build failed:', err)
-            message.error(err?.error?.message || 'Không thể bắt đầu build.')
+            message.error(err?.error?.message || 'Failed to start build.')
         }
     }
 
@@ -80,10 +80,10 @@ export default function Offline() {
         try {
             await pkgApi.delete(id)
             fetchPackages()
-            message.success('Đã xóa gói')
+            message.success('Package deleted')
         } catch (err) {
             console.error('[Offline] delete failed:', err)
-            message.error('Lỗi khi xóa gói')
+            message.error('Error deleting package')
         }
     }
 
@@ -97,10 +97,10 @@ export default function Offline() {
             })
             setIsModalVisible(false)
             form.resetFields()
-            message.success('Đã tạo gói mới')
+            message.success('New package created')
             fetchPackages()
         } catch (err) {
-            message.error(err?.error?.message || 'Không thể tạo gói.')
+            message.error(err?.error?.message || 'Failed to create package.')
         } finally {
             setCreateLoading(false)
         }
@@ -112,11 +112,11 @@ export default function Offline() {
         <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
             <Row align="middle" justify="space-between" style={{ marginBottom: 24 }}>
                 <Col>
-                    <Statistic title="Tổng lượt tải" value={totalDownloads} />
+                    <Statistic title="Total Downloads" value={totalDownloads} />
                 </Col>
                 <Col>
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
-                        Tạo gói mới
+                        Create Package
                     </Button>
                 </Col>
             </Row>
@@ -125,7 +125,7 @@ export default function Offline() {
                 grid={{ gutter: 16, xs: 1, sm: 1, md: 1, lg: 2, xl: 2, xxl: 3 }}
                 dataSource={packages}
                 loading={loading}
-                locale={{ emptyText: 'Chưa có gói offline nào. Hãy tạo gói đầu tiên!' }}
+                locale={{ emptyText: 'No offline packages found. Create one!' }}
                 renderItem={pkg => {
                     const sc = statusConfig[pkg.status] || statusConfig.draft
                     const isBuilding = pkg.status === 'building' || pkg.status === 'Building'
@@ -139,7 +139,7 @@ export default function Offline() {
                                 style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', height: '100%' }}
                                 actions={[
                                     isActive && (
-                                        <Tooltip title="Tải về" key="download">
+                                        <Tooltip title="Download" key="download">
                                             <Button type="link" href={`${API_BASE}/offlinepackages/${pkg.id}/download`} download icon={<DownloadOutlined />} />
                                         </Tooltip>
                                     ),
@@ -149,21 +149,21 @@ export default function Offline() {
                                         </Tooltip>
                                     ),
                                     isDraft && (
-                                        <Button type="link" key="build" onClick={() => handleBuild(pkg.id)}>Tạo gói</Button>
+                                        <Button type="link" key="build" onClick={() => handleBuild(pkg.id)}>Build Package</Button>
                                     ),
                                     isBuilding && (
-                                        <span key="building" style={{ color: '#faad14', fontSize: 13 }}><SyncOutlined spin /> Đang xử lý...</span>
+                                        <span key="building" style={{ color: '#faad14', fontSize: 13 }}><SyncOutlined spin /> Processing...</span>
                                     ),
                                     <Popconfirm
                                         key="delete"
-                                        title="Xóa gói offline này?"
-                                        description="Hành động này không thể hoàn tác."
+                                        title="Delete this offline package?"
+                                        description="This action cannot be undone."
                                         onConfirm={() => handleDelete(pkg.id)}
-                                        okText="Xóa"
-                                        cancelText="Hủy"
+                                        okText="Delete"
+                                        cancelText="Cancel"
                                         okButtonProps={{ danger: true }}
                                     >
-                                        <Tooltip title="Xóa">
+                                        <Tooltip title="Delete">
                                             <Button type="link" danger icon={<DeleteOutlined />} />
                                         </Tooltip>
                                     </Popconfirm>
@@ -174,7 +174,7 @@ export default function Offline() {
                                         <div style={{ fontSize: 32, lineHeight: 1 }}>{pkg.flagEmoji || '🌐'}</div>
                                         <div>
                                             <Title level={5} style={{ margin: 0 }}>{pkg.name}</Title>
-                                            <Text type="secondary" style={{ fontSize: 12 }}>Phiên bản {pkg.version}</Text>
+                                            <Text type="secondary" style={{ fontSize: 12 }}>Version {pkg.version}</Text>
                                         </div>
                                     </Space>
                                     <Tag color={sc.color} icon={sc.icon}>{sc.label}</Tag>
@@ -183,21 +183,21 @@ export default function Offline() {
                                 <Space size="middle" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
                                     <Text type="secondary">📍 {pkg.poiCount} POI</Text>
                                     <Text type="secondary">🔊 {pkg.audioCount} Audio</Text>
-                                    <Text type="secondary">🖼️ {pkg.imageCount} Hình</Text>
+                                    <Text type="secondary">🖼️ {pkg.imageCount} Images</Text>
                                     <Text type="secondary">📦 {formatSize(pkg.fileSize)}</Text>
-                                    <Text type="secondary">⬇️ {pkg.downloadCount || 0} lượt tải</Text>
+                                    <Text type="secondary">⬇️ {pkg.downloadCount || 0} downloads</Text>
                                 </Space>
 
                                 {isBuilding && (
                                     <div style={{ marginTop: 8 }}>
                                         <Progress percent={pkg.progress || 0} status="active" size="small" />
-                                        <Text type="secondary" style={{ fontSize: 12 }}>{pkg.currentStep ? `Đang xử lý: ${pkg.currentStep}` : 'Đang xử lý...'}</Text>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>{pkg.currentStep ? `Processing: ${pkg.currentStep}` : 'Processing...'}</Text>
                                     </div>
                                 )}
 
                                 {pkg.updatedAt && (
                                     <div style={{ marginTop: 16 }}>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>Cập nhật: {new Date(pkg.updatedAt).toLocaleDateString('vi-VN')}</Text>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>Updated: {new Date(pkg.updatedAt).toLocaleDateString()}</Text>
                                     </div>
                                 )}
                             </Card>
@@ -207,35 +207,35 @@ export default function Offline() {
             />
 
             <Modal
-                title="Tạo gói Offline mới"
+                title="Create Offline Package"
                 open={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
                 footer={null}
                 destroyOnClose
             >
                 <Form layout="vertical" form={form} onFinish={handleCreate} initialValues={{ languageId: '1', version: '1.0' }}>
-                    <Form.Item name="name" label="Tên gói" rules={[{ required: true, message: 'Vui lòng nhập tên gói!' }]}>
-                        <Input placeholder="VD: Vĩnh Khánh Pack - Tiếng Việt" />
+                    <Form.Item name="name" label="Package Name" rules={[{ required: true, message: 'Please enter package name!' }]}>
+                        <Input placeholder="e.g. Vinh Khanh Pack - English" />
                     </Form.Item>
 
-                    <Form.Item name="languageId" label="Ngôn ngữ">
+                    <Form.Item name="languageId" label="Language">
                         <Select>
-                            <Select.Option value="1">🇻🇳 Tiếng Việt</Select.Option>
+                            <Select.Option value="1">🇻🇳 Vietnamese</Select.Option>
                             <Select.Option value="2">🇬🇧 English</Select.Option>
-                            <Select.Option value="3">🇨🇳 中文</Select.Option>
-                            <Select.Option value="4">🇯🇵 日本語</Select.Option>
-                            <Select.Option value="5">🇰🇷 한국어</Select.Option>
+                            <Select.Option value="3">🇨🇳 Chinese</Select.Option>
+                            <Select.Option value="4">🇯🇵 Japanese</Select.Option>
+                            <Select.Option value="5">🇰🇷 Korean</Select.Option>
                         </Select>
                     </Form.Item>
 
-                    <Form.Item name="version" label="Phiên bản" rules={[{ required: true, message: 'Vui lòng nhập phiên bản!' }]}>
+                    <Form.Item name="version" label="Version" rules={[{ required: true, message: 'Please enter version!' }]}>
                         <Input />
                     </Form.Item>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
-                        <Button onClick={() => setIsModalVisible(false)}>Hủy</Button>
+                        <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
                         <Button type="primary" htmlType="submit" loading={createLoading}>
-                            Tạo mới
+                            Create
                         </Button>
                     </div>
                 </Form>

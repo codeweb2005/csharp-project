@@ -186,6 +186,7 @@ Du an su dung pattern **1 file cho moi loai** de de nhin toan bo contract:
 - **TAT CA API calls** di qua `api.js` function `request()`. KHONG BAO GIO dung `fetch()` truc tiep trong components.
 - `request()` tu dong refresh token khi gap 401. KHONG them logic refresh token rieng.
 - Token storage: `localStorage` voi keys `accessToken`, `refreshToken`, `user`.
+- **Ngon ngu chu thich:** TAT CA comments, labels, placeholders, tooltips, va UI text trong code frontend PHAI dung **tieng Anh**. KHONG dung tieng Viet trong code comments hoac hardcoded UI strings.
 
 ### Thu vien UI (BAT BUOC tuan thu)
 

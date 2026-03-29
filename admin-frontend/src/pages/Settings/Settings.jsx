@@ -44,7 +44,7 @@ export default function Settings() {
                 setIsMaintenance(data.api.maintenanceMode)
             } catch (err) {
                 console.error('[Settings] load error:', err)
-                message.error('Không thể tải cài đặt')
+                message.error('Failed to load settings')
             } finally {
                 setLoading(false)
             }
@@ -82,9 +82,9 @@ export default function Settings() {
                 }
             }
             await settingsApi.update(updatePayload)
-            message.success('Đã lưu cài đặt hệ thống thành công!')
+            message.success('System settings saved successfully!')
         } catch (err) {
-            message.error(err?.error?.message || 'Lỗi khi lưu cài đặt.')
+            message.error(err?.error?.message || 'Error saving settings.')
         } finally {
             setSaving(false)
         }
@@ -94,30 +94,30 @@ export default function Settings() {
         setIsMaintenance(enabled)
         try {
             await settingsApi.setMaintenance(enabled)
-            message.success(`Đã ${enabled ? 'BẬT' : 'TẮT'} chế độ bảo trì`)
+            message.success(`Maintenance mode ${enabled ? 'ENABLED' : 'DISABLED'}`)
         } catch (err) {
             console.error('[Settings] maintenance toggle failed:', err)
             setIsMaintenance(!enabled) // revert
-            message.error('Lỗi khi thay đổi chế độ bảo trì')
+            message.error('Error changing maintenance mode')
         }
     }
 
     const handleGenerateApiKey = () => {
         Modal.confirm({
-            title: 'Tạo API key mới?',
-            content: 'API key cũ sẽ bị vô hiệu ngay lập tức.',
-            okText: 'Tạo mới',
-            cancelText: 'Hủy',
+            title: 'Generate new API key?',
+            content: 'The old API key will be invalidated immediately.',
+            okText: 'Generate',
+            cancelText: 'Cancel',
             onOk: async () => {
                 try {
                     const res = await settingsApi.generateApiKey()
                     if (res.data) {
                         form.setFieldsValue({ api_apiKey: res.data })
-                        message.success('Đã tạo API key mới')
+                        message.success('New API key generated')
                     }
                 } catch (err) {
                     console.error('[Settings] generate key failed:', err)
-                    message.error('Lỗi khi tạo API key mới')
+                    message.error('Error generating new API key')
                 }
             }
         })
@@ -127,15 +127,15 @@ export default function Settings() {
         const key = form.getFieldValue('api_apiKey')
         if (key) {
             navigator.clipboard.writeText(key)
-            message.success('Đã copy API key!')
+            message.success('API key copied!')
         }
     }
 
     const handleReset = () => {
         Modal.confirm({
-            title: 'Đặt lại về mặc định?',
-            content: 'Tất cả cài đặt sẽ trở về giá trị mặc định của hệ thống.',
-            okText: 'Đặt lại',
+            title: 'Reset to defaults?',
+            content: 'All settings will return to system defaults.',
+            okText: 'Reset',
             onOk: () => {
                 form.setFieldsValue({
                     geofence_defaultRadius: defaultSettings.geofence.defaultRadius,
@@ -152,7 +152,7 @@ export default function Settings() {
                     sync_compressData: defaultSettings.sync.compressData,
                     sync_wifiOnly: defaultSettings.sync.wifiOnly,
                 })
-                message.info('Đã khôi phục cài đặt mặc định (chưa lưu)')
+                message.info('Default settings restored (not saved)')
             }
         })
     }
@@ -172,41 +172,41 @@ export default function Settings() {
                 <Row gutter={[24, 24]}>
                     <Col xs={24} lg={12}>
                         {/* Geofence */}
-                        <Card title={<Space><EnvironmentOutlined /> Cài đặt Geofence</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                        <Card title={<Space><EnvironmentOutlined /> Geofence Settings</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                             <Row gutter={16}>
                                 <Col span={12}>
-                                    <Form.Item name="geofence_defaultRadius" label="Bán kính mặc định (mét)" extra="Phạm vi 10 – 500">
+                                    <Form.Item name="geofence_defaultRadius" label="Default Radius (meters)" extra="Range 10 – 500">
                                         <InputNumber min={10} max={500} style={{ width: '100%' }} />
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
-                                    <Form.Item name="geofence_gpsUpdateFrequency" label="Tần suất GPS (giây)">
+                                    <Form.Item name="geofence_gpsUpdateFrequency" label="GPS Update Frequency (seconds)">
                                         <InputNumber min={1} style={{ width: '100%' }} />
                                     </Form.Item>
                                 </Col>
                                 <Col span={24}>
-                                    <Form.Item name="geofence_gpsAccuracy" label="Độ chính xác GPS">
+                                    <Form.Item name="geofence_gpsAccuracy" label="GPS Accuracy">
                                         <Select>
-                                            <Select.Option value="High">Cao (High)</Select.Option>
-                                            <Select.Option value="Medium">Trung bình (Medium)</Select.Option>
-                                            <Select.Option value="Low">Thấp (Low)</Select.Option>
+                                            <Select.Option value="High">High</Select.Option>
+                                            <Select.Option value="Medium">Medium</Select.Option>
+                                            <Select.Option value="Low">Low</Select.Option>
                                         </Select>
                                     </Form.Item>
                                 </Col>
                             </Row>
-                            <Alert type="info" message="Bán kính nhỏ hơn sẽ kích hoạt chính xác hơn nhưng tốn pin thiết bị hơn" showIcon />
+                            <Alert type="info" message="Smaller radius triggers more accurately but consumes more device battery" showIcon />
                         </Card>
 
                         {/* Sync */}
-                        <Card title={<Space><RetweetOutlined /> Cài đặt Đồng bộ</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginTop: 24 }}>
+                        <Card title={<Space><RetweetOutlined /> Sync Settings</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginTop: 24 }}>
                             <Row gutter={16}>
                                 <Col span={12}>
-                                    <Form.Item name="sync_syncFrequency" label="Tần suất đồng bộ (phút)">
+                                    <Form.Item name="sync_syncFrequency" label="Sync Frequency (minutes)">
                                         <InputNumber min={1} style={{ width: '100%' }} />
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
-                                    <Form.Item name="sync_batchSize" label="Kích thước batch" extra="Records/lần sync">
+                                    <Form.Item name="sync_batchSize" label="Batch Size" extra="Records/sync">
                                         <InputNumber min={1} style={{ width: '100%' }} />
                                     </Form.Item>
                                 </Col>
@@ -216,8 +216,8 @@ export default function Settings() {
                             
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                 <div>
-                                    <Text strong>Nén dữ liệu khi đồng bộ</Text><br />
-                                    <Text type="secondary" style={{ fontSize: 13 }}>Giảm dung lượng dữ liệu truyền tải</Text>
+                                    <Text strong>Compress sync data</Text><br />
+                                    <Text type="secondary" style={{ fontSize: 13 }}>Reduces data transfer size</Text>
                                 </div>
                                 <Form.Item name="sync_compressData" valuePropName="checked" style={{ marginBottom: 0 }}>
                                     <Switch />
@@ -226,8 +226,8 @@ export default function Settings() {
                             
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
-                                    <Text strong>Chỉ đồng bộ qua Wi-Fi</Text><br />
-                                    <Text type="secondary" style={{ fontSize: 13 }}>Không sử dụng dữ liệu di động để sync</Text>
+                                    <Text strong>Sync over Wi-Fi only</Text><br />
+                                    <Text type="secondary" style={{ fontSize: 13 }}>Do not use cellular data for syncing</Text>
                                 </div>
                                 <Form.Item name="sync_wifiOnly" valuePropName="checked" style={{ marginBottom: 0 }}>
                                     <Switch />
@@ -238,41 +238,41 @@ export default function Settings() {
 
                     <Col xs={24} lg={12}>
                         {/* Narration */}
-                        <Card title={<Space><SoundOutlined /> Cài đặt Thuyết minh</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                        <Card title={<Space><SoundOutlined /> Narration Settings</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                             <Row gutter={16}>
                                 <Col span={12}>
-                                    <Form.Item name="narration_defaultCooldown" label="Cooldown mặc định (phút)">
+                                    <Form.Item name="narration_defaultCooldown" label="Default Cooldown (minutes)">
                                         <InputNumber min={0} style={{ width: '100%' }} />
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
-                                    <Form.Item name="narration_defaultMode" label="Chế độ mặc định">
+                                    <Form.Item name="narration_defaultMode" label="Default Mode">
                                         <Select>
-                                            <Select.Option value="Auto">Tự động</Select.Option>
-                                            <Select.Option value="Recorded">Chỉ file ghi âm</Select.Option>
-                                            <Select.Option value="TTS">Chỉ TTS</Select.Option>
-                                            <Select.Option value="Text">Chỉ văn bản</Select.Option>
+                                            <Select.Option value="Auto">Auto</Select.Option>
+                                            <Select.Option value="Recorded">Recorded audio only</Select.Option>
+                                            <Select.Option value="TTS">TTS only</Select.Option>
+                                            <Select.Option value="Text">Text only</Select.Option>
                                         </Select>
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
-                                    <Form.Item name="narration_ttsVoiceVi" label="Giọng TTS (Tiếng Việt)">
+                                    <Form.Item name="narration_ttsVoiceVi" label="TTS Voice (Vietnamese)">
                                         <Select>
-                                            <Select.Option value="vi-VN-HoaiMyNeural">Hoài My (Nữ)</Select.Option>
-                                            <Select.Option value="vi-VN-NamMinhNeural">Nam Minh (Nam)</Select.Option>
+                                            <Select.Option value="vi-VN-HoaiMyNeural">Hoài My (Female)</Select.Option>
+                                            <Select.Option value="vi-VN-NamMinhNeural">Nam Minh (Male)</Select.Option>
                                         </Select>
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
-                                    <Form.Item name="narration_ttsVoiceEn" label="Giọng TTS (Tiếng Anh)">
+                                    <Form.Item name="narration_ttsVoiceEn" label="TTS Voice (English)">
                                         <Select>
-                                            <Select.Option value="en-US-JennyNeural">Jenny (Nữ)</Select.Option>
-                                            <Select.Option value="en-US-GuyNeural">Guy (Nam)</Select.Option>
+                                            <Select.Option value="en-US-JennyNeural">Jenny (Female)</Select.Option>
+                                            <Select.Option value="en-US-GuyNeural">Guy (Male)</Select.Option>
                                         </Select>
                                     </Form.Item>
                                 </Col>
                                 <Col span={24}>
-                                    <Form.Item name="narration_ttsSpeed" label="Tốc độ đọc TTS" style={{ marginBottom: 8 }}>
+                                    <Form.Item name="narration_ttsSpeed" label="TTS Speech Rate" style={{ marginBottom: 8 }}>
                                         <Row>
                                             <Col span={20}>
                                                 <Slider min={0.5} max={2.0} step={0.1} marks={{ 0.5: '0.5x', 1: '1x', 2: '2x' }} />
@@ -289,8 +289,8 @@ export default function Settings() {
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
-                                    <Text strong>Tự động tạo TTS khi thêm POI</Text><br />
-                                    <Text type="secondary" style={{ fontSize: 13 }}>Hệ thống sẽ gọi Azure TTS API để tạo file audio</Text>
+                                    <Text strong>Auto-generate TTS when adding POI</Text><br />
+                                    <Text type="secondary" style={{ fontSize: 13 }}>System will call Azure TTS API to generate audio files</Text>
                                 </div>
                                 <Form.Item name="narration_autoGenerateTTS" valuePropName="checked" style={{ marginBottom: 0 }}>
                                     <Switch />
@@ -299,12 +299,12 @@ export default function Settings() {
                         </Card>
 
                         {/* API Config */}
-                        <Card title={<Space><ApiOutlined /> API & Tích hợp</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginTop: 24 }}>
+                        <Card title={<Space><ApiOutlined /> API & Integration</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginTop: 24 }}>
                             <Form.Item name="api_apiKey" label="API Key">
                                 <Space.Compact style={{ width: '100%' }}>
                                     <Input readOnly placeholder="—" />
                                     <Button icon={<CopyOutlined />} onClick={handleCopyKey}>Copy</Button>
-                                    <Button icon={<SyncOutlined />} onClick={handleGenerateApiKey}>Mới</Button>
+                                    <Button icon={<SyncOutlined />} onClick={handleGenerateApiKey}>New</Button>
                                 </Space.Compact>
                             </Form.Item>
 
@@ -312,14 +312,14 @@ export default function Settings() {
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                 <div>
-                                    <Space><WarningOutlined style={{ color: '#faad14' }} /><Text strong>Chế độ bảo trì</Text></Space><br />
-                                    <Text type="secondary" style={{ fontSize: 13 }}>Tạm ngưng tất cả API cho mobile app</Text>
+                                    <Space><WarningOutlined style={{ color: '#faad14' }} /><Text strong>Maintenance Mode</Text></Space><br />
+                                    <Text type="secondary" style={{ fontSize: 13 }}>Suspend all mobile app APIs</Text>
                                 </div>
-                                <Switch checked={isMaintenance} onChange={handleMaintenance} checkedChildren="Bật" unCheckedChildren="Tắt" />
+                                <Switch checked={isMaintenance} onChange={handleMaintenance} checkedChildren="On" unCheckedChildren="Off" />
                             </div>
 
                             {isMaintenance && (
-                                <Alert type="error" message="Chế độ bảo trì đang BẬT — Tất cả API cho mobile app đã tạm ngưng!" banner />
+                                <Alert type="error" message="Maintenance mode is ON — All mobile app APIs are suspended!" banner />
                             )}
                         </Card>
                     </Col>
@@ -327,10 +327,10 @@ export default function Settings() {
 
                 <div style={{ marginTop: 24, padding: 24, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', gap: 16 }}>
                     <Button type="primary" htmlType="submit" size="large" icon={<SaveOutlined />} loading={saving}>
-                        Lưu thay đổi
+                        Save changes
                     </Button>
                     <Button size="large" icon={<ReloadOutlined />} onClick={handleReset}>
-                        Đặt lại mặc định
+                        Reset to defaults
                     </Button>
                 </div>
             </Form>

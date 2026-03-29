@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
     if (res.success) {
       const role = res.data.user?.role
       if (role !== 'Vendor') {
-        return { success: false, error: { code: 'FORBIDDEN', message: 'Tài khoản không phải đối tác. Vui lòng sử dụng trang quản trị dành cho admin.' } }
+        return { success: false, error: { code: 'FORBIDDEN', message: 'Account is not a vendor. Please use the admin panel.' } }
       }
       setTokens(res.data.accessToken, res.data.refreshToken)
       setUser(res.data.user)

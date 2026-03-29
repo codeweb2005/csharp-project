@@ -23,14 +23,16 @@ public class POIService : IPOIService
 
     public async Task<ApiResponse<PagedResult<POIListDto>>> GetListAsync(
         int page, int size, string? search, int? categoryId,
-        bool? isActive, string sortBy, string order)
+        bool? isActive, string sortBy, string order,
+        List<int>? vendorPOIIds = null)
     {
-        var (items, totalCount) = await _poiRepo.GetPagedAsync(page, size, search, categoryId, isActive, sortBy, order);
+        var (items, totalCount) = await _poiRepo.GetPagedAsync(page, size, search, categoryId, isActive, sortBy, order, vendorPOIIds);
 
         var dtos = items.Select(p => new POIListDto
         {
             Id = p.Id,
             Name = p.Translations.OrderBy(t => t.LanguageId).Select(t => t.Name).FirstOrDefault() ?? "",
+            CategoryId = p.CategoryId,
             CategoryName = p.Category.Translations.OrderBy(t => t.LanguageId).Select(t => t.Name).FirstOrDefault() ?? "",
             CategoryIcon = p.Category.Icon,
             CategoryColor = p.Category.Color,
@@ -271,6 +273,7 @@ public class POIService : IPOIService
         {
             Id = p.Id,
             Name = p.Translations.OrderBy(t => t.LanguageId).Select(t => t.Name).FirstOrDefault() ?? "",
+            CategoryId = p.CategoryId,
             CategoryName = p.Category?.Translations.OrderBy(t => t.LanguageId).Select(t => t.Name).FirstOrDefault() ?? "",
             CategoryIcon = p.Category?.Icon ?? "",
             CategoryColor = p.Category?.Color ?? "",
@@ -363,6 +366,7 @@ public class POIService : IPOIService
     {
         Id = p.Id,
         Name = p.Translations.OrderBy(t => t.LanguageId).Select(t => t.Name).FirstOrDefault() ?? "",
+        CategoryId = p.CategoryId,
         CategoryName = p.Category?.Translations.OrderBy(t => t.LanguageId).Select(t => t.Name).FirstOrDefault() ?? "",
         CategoryIcon = p.Category?.Icon ?? "",
         CategoryColor = p.Category?.Color ?? "",

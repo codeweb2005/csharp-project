@@ -124,7 +124,7 @@ export default function VendorDashboard() {
                 </div>
                 {activePOI && (
                     <Tag color={activePOI.isActive ? 'green' : 'default'} style={{ fontSize: 13, padding: '2px 10px' }}>
-                        {activePOI.isActive ? '🟢 Đang hoạt động' : '⚫ Tạm ngưng'}
+                        {activePOI.isActive ? '🟢 Active' : '⚫ Inactive'}
                     </Tag>
                 )}
             </div>

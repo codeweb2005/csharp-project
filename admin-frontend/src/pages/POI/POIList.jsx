@@ -78,7 +78,7 @@ export default function POIList() {
             fetchData()
         } catch (err) {
             console.error('[POIList] toggle active failed:', err)
-            message.error('Lỗi khi thay đổi trạng thái')
+            message.error('Error updating status')
         }
     }
 
@@ -88,7 +88,7 @@ export default function POIList() {
             fetchData()
         } catch (err) {
             console.error('[POIList] toggle featured failed:', err)
-            message.error('Lỗi khi thay đổi nổi bật')
+            message.error('Error updating featured status')
         }
     }
 
@@ -96,11 +96,11 @@ export default function POIList() {
         try {
             await poisApi.delete(poi.id)
             fetchData()
-            message.success('Đã xóa POI')
+            message.success('POI deleted')
             if (selectedPoiId === poi.id) setSelectedPoiId(null)
         } catch (err) {
             console.error('[POIList] delete failed:', err)
-            message.error('Lỗi khi xóa POI')
+            message.error('Error deleting POI')
         }
     }
 
@@ -116,7 +116,7 @@ export default function POIList() {
             setShowForm(true)
         } catch (err) {
             console.error('[POIList] load detail for edit failed:', err)
-            message.error('Lỗi khi tải thông tin POI')
+            message.error('Error loading POI details')
         }
     }
 
@@ -188,34 +188,33 @@ export default function POIList() {
         {
             title: 'Actions',
             key: 'actions',
+            width: isVendor ? 100 : 150,
             render: (_, record) => (
                 <Space size="small" onClick={e => e.stopPropagation()}>
                     {!isVendor && (
                         <Tooltip title={record.isFeatured ? 'Unfeature' : 'Feature'}>
-                            <Button 
-                                type="text" 
-                                icon={record.isFeatured ? <StarFilled style={{ color: '#f59e0b' }} /> : <StarOutlined />} 
-                                onClick={() => handleToggleFeatured(record.id)} 
+                            <Button
+                                type="text"
+                                icon={record.isFeatured ? <StarFilled style={{ color: '#f59e0b' }} /> : <StarOutlined />}
+                                onClick={() => handleToggleFeatured(record.id)}
                             />
                         </Tooltip>
                     )}
                     <Tooltip title="Edit">
                         <Button type="text" icon={<EditOutlined style={{ color: '#00246a' }} />} onClick={() => openEdit(record.id)} />
                     </Tooltip>
-                    {!isVendor && (
+                    <Popconfirm
+                        title={`Delete "${record.name}"?`}
+                        description="This action will permanently delete this POI and all its audio/media."
+                        onConfirm={() => handleDelete(record)}
+                        okText="Delete"
+                        cancelText="Cancel"
+                        okButtonProps={{ danger: true }}
+                    >
                         <Tooltip title="Delete">
-                            <Popconfirm
-                                title={`Delete "${record.name}"?`}
-                                description="This will permanently remove the POI and all its audio/media files."
-                                onConfirm={() => handleDelete(record)}
-                                okText="Delete"
-                                cancelText="Cancel"
-                                okButtonProps={{ danger: true }}
-                            >
-                                <Button type="text" danger icon={<DeleteOutlined />} />
-                            </Popconfirm>
+                            <Button type="text" danger icon={<DeleteOutlined />} />
                         </Tooltip>
-                    )}
+                    </Popconfirm>
                 </Space>
             )
         }
@@ -236,7 +235,7 @@ export default function POIList() {
                     <Space wrap>
                         {vendorPOIOptions.length > 0 ? (
                             <Select
-                                placeholder="Chọn POI để chỉnh sửa..."
+                                placeholder="Select a POI to edit..."
                                 style={{ minWidth: 220 }}
                                 showSearch
                                 optionFilterProp="label"
@@ -245,7 +244,7 @@ export default function POIList() {
                                 value={null}  // always reset after selection
                             />
                         ) : (
-                            <Text type="secondary">Chưa được gán POI nào</Text>
+                            <Text type="secondary">No POIs assigned</Text>
                         )}
                     </Space>
                 </div>
@@ -293,13 +292,13 @@ export default function POIList() {
                             total: total,
                             onChange: (p) => setPage(p),
                             showSizeChanger: false,
-                            showTotal: (t, range) => `Hiển thị ${range[0]}–${range[1]} trong ${t} POI`
+                            showTotal: (t, range) => `Showing ${range[0]}–${range[1]} of ${t} POIs`
                         }}
                         onRow={(record) => ({
                             onClick: () => openEdit(record.id),
                             style: { cursor: 'pointer' }
                         })}
-                        locale={{ emptyText: <div style={{ padding: '40px 0', color: '#94a3b8' }}>Chưa có POI nào được gán cho bạn</div> }}
+                        locale={{ emptyText: <div style={{ padding: '40px 0', color: '#94a3b8' }}>No POIs assigned to you</div> }}
                     />
                 </Card>
             ) : (

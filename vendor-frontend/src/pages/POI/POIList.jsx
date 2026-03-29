@@ -34,7 +34,7 @@ export default function POIList() {
             setData(result.data?.items ?? [])
             setTotal(result.data?.pagination?.totalItems ?? 0)
         } catch (err) {
-            message.error('Không thể tải danh sách quán. Hãy kiểm tra backend.')
+            message.error('Failed to load shop list. Please check the backend.')
             console.error('[POIList] fetch error:', err)
         } finally {
             setLoading(false)
@@ -58,10 +58,10 @@ export default function POIList() {
         try {
             await poisApi.delete(poi.id)
             fetchData()
-            message.success(`Đã xóa "${poi.name}"`)
+            message.success(`Deleted "${poi.name}"`)
         } catch (err) {
             console.error('[POIList] delete failed:', err)
-            message.error(err?.error?.message ?? 'Lỗi khi xóa')
+            message.error(err?.error?.message ?? 'Error deleting')
         }
     }
 
@@ -77,7 +77,7 @@ export default function POIList() {
             setShowForm(true)
         } catch (err) {
             console.error('[POIList] load detail for edit failed:', err)
-            message.error('Lỗi khi tải thông tin')
+            message.error('Error loading details')
         }
     }
 
@@ -91,9 +91,9 @@ export default function POIList() {
         return (
             <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                    <Title level={4} style={{ margin: 0 }}>Thông tin quán</Title>
+                    <Title level={4} style={{ margin: 0 }}>Shop Info</Title>
                     <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                        Thêm quán mới
+                        Add New Shop
                     </Button>
                 </div>
 
@@ -103,10 +103,10 @@ export default function POIList() {
                     <Card bordered={false} style={{ borderRadius: 12, textAlign: 'center', padding: '48px 0' }}>
                         <Empty
                             image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            description="Bạn chưa có quán nào"
+                            description="You don't have any shops yet"
                         >
                             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                                Tạo quán đầu tiên
+                                Create First Shop
                             </Button>
                         </Empty>
                     </Card>
@@ -118,22 +118,22 @@ export default function POIList() {
                                     bordered={false}
                                     style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', height: '100%' }}
                                     actions={[
-                                        <Tooltip title="Chỉnh sửa" key="edit">
+                                        <Tooltip title="Edit" key="edit">
                                             <Button type="text" icon={<EditOutlined style={{ color: '#3b82f6' }} />} onClick={() => openEdit(poi.id)}>
-                                                Sửa
+                                                Edit
                                             </Button>
                                         </Tooltip>,
                                         <Popconfirm
                                             key="delete"
-                                            title={`Xóa "${poi.name}"?`}
-                                            description="Thao tác này sẽ xóa vĩnh viễn quán và toàn bộ dữ liệu liên quan."
+                                            title={`Delete "${poi.name}"?`}
+                                            description="This will permanently delete the shop and all its related data."
                                             onConfirm={() => handleDelete(poi)}
-                                            okText="Xóa"
-                                            cancelText="Hủy"
+                                            okText="Delete"
+                                            cancelText="Cancel"
                                             okButtonProps={{ danger: true }}
                                         >
                                             <Button type="text" danger icon={<DeleteOutlined />}>
-                                                Xóa
+                                                Delete
                                             </Button>
                                         </Popconfirm>,
                                     ]}
@@ -166,7 +166,7 @@ export default function POIList() {
                                             </Tag>
                                             <div style={{ marginTop: 4 }}>
                                                 <Tag color={poi.isActive ? 'green' : 'default'}>
-                                                    {poi.isActive ? 'Đang hoạt động' : 'Tạm ngưng'}
+                                                    {poi.isActive ? 'Active' : 'Inactive'}
                                                 </Tag>
                                             </div>
                                         </div>
@@ -187,7 +187,7 @@ export default function POIList() {
                                                 </div>
                                             )}
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                <Text type="secondary">{poi.totalVisits?.toLocaleString() ?? 0} lượt ghé thăm</Text>
+                                                <Text type="secondary">{poi.totalVisits?.toLocaleString() ?? 0} visits</Text>
                                             </div>
                                             {poi.audioCount > 0 && (
                                                 <Text type="secondary">{poi.audioCount} audio</Text>
@@ -307,7 +307,7 @@ export default function POIList() {
             fetchData()
         } catch (err) {
             console.error('[POIList] toggle active failed:', err)
-            message.error('Lỗi khi thay đổi trạng thái')
+            message.error('Error changing status')
         }
     }
 

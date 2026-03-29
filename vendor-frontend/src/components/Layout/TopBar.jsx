@@ -10,15 +10,15 @@ const { Header } = Layout
 const { Title, Text } = Typography
 
 const pageTitles = {
-    '/dashboard': { title: 'Dashboard', subtitle: 'Tổng quan hệ thống' },
-    '/pois': { title: 'Quản lý POI', subtitle: 'Điểm ăn uống trên phố Vĩnh Khánh' },
-    '/categories': { title: 'Danh mục', subtitle: 'Quản lý danh mục loại quán' },
-    '/audio': { title: 'Audio & Media', subtitle: 'Quản lý file thuyết minh và hình ảnh' },
-    '/menu': { title: 'Thực đơn', subtitle: 'Quản lý thực đơn các quán' },
-    '/users': { title: 'Người dùng', subtitle: 'Quản lý tài khoản hệ thống' },
-    '/analytics': { title: 'Thống kê', subtitle: 'Phân tích dữ liệu ghé thăm' },
-    '/offline': { title: 'Gói Offline', subtitle: 'Quản lý gói dữ liệu tải về cho mobile' },
-    '/settings': { title: 'Cài đặt', subtitle: 'Cấu hình hệ thống' },
+    '/dashboard': { title: 'Dashboard', subtitle: 'System Overview' },
+    '/pois': { title: 'Manage POIs', subtitle: 'Vinh Khanh food street locations' },
+    '/categories': { title: 'Categories', subtitle: 'Manage shop categories' },
+    '/audio': { title: 'Audio & Media', subtitle: 'Manage narration files and images' },
+    '/menu': { title: 'Menu', subtitle: 'Manage shop menus' },
+    '/users': { title: 'Users', subtitle: 'Manage system accounts' },
+    '/analytics': { title: 'Analytics', subtitle: 'Analyze visitor data' },
+    '/offline': { title: 'Offline Packages', subtitle: 'Manage downloadable data packages for mobile' },
+    '/settings': { title: 'Settings', subtitle: 'System configuration' },
 }
 
 const vendorPageTitles = {
@@ -46,7 +46,7 @@ export default function TopBar() {
         items: [
             {
                 key: 'logout',
-                label: 'Đăng xuất',
+                label: 'Logout',
                 icon: <LogOut size={16} />,
                 danger: true,
                 onClick: handleLogout,

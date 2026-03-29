@@ -21,7 +21,8 @@ public interface IPOIService
 {
     Task<ApiResponse<PagedResult<POIListDto>>> GetListAsync(
         int page, int size, string? search, int? categoryId,
-        bool? isActive, string sortBy, string order);
+        bool? isActive, string sortBy, string order,
+        List<int>? vendorPOIIds = null);
     Task<ApiResponse<POIDetailDto>> GetDetailAsync(int id);
     Task<ApiResponse<POIDetailDto>> CreateAsync(CreatePOIRequest request);
     /// <summary>

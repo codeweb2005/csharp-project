@@ -22,7 +22,8 @@ public interface IPOIRepository : IRepository<POI>
     Task<(IReadOnlyList<POI> Items, int TotalCount)> GetPagedAsync(
         int page, int size, string? search = null,
         int? categoryId = null, bool? isActive = null,
-        string sortBy = "name", string order = "asc");
+        string sortBy = "name", string order = "asc",
+        List<int>? vendorPOIIds = null);
     Task<POI?> GetDetailAsync(int id);
     Task<IReadOnlyList<POI>> GetNearbyAsync(double lat, double lng, double radiusKm);
 }

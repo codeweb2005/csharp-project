@@ -58,7 +58,8 @@ public class POIRepository : Repository<POI>, IPOIRepository
     public async Task<(IReadOnlyList<POI> Items, int TotalCount)> GetPagedAsync(
         int page, int size, string? search = null,
         int? categoryId = null, bool? isActive = null,
-        string sortBy = "name", string order = "asc")
+        string sortBy = "name", string order = "asc",
+        List<int>? vendorPOIIds = null)
     {
         var query = _set
             .Include(p => p.Category).ThenInclude(c => c.Translations)
@@ -67,6 +68,10 @@ public class POIRepository : Repository<POI>, IPOIRepository
             .Include(p => p.AudioNarrations)
             .AsNoTracking()
             .AsQueryable();
+
+        // Vendor scoping
+        if (vendorPOIIds != null)
+            query = query.Where(p => vendorPOIIds.Contains(p.Id));
 
         // Filters
         if (!string.IsNullOrEmpty(search))

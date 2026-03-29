@@ -28,7 +28,7 @@ export default function Categories() {
             const res = await catsApi.getAll()
             setCats(res.data ?? [])
         } catch (err) {
-            message.error('Không thể tải danh mục. Hãy kiểm tra backend.')
+            message.error('Cannot load categories. Please check backend.')
             console.error('[Categories] fetch error:', err)
         } finally {
             setLoading(false)
@@ -109,15 +109,15 @@ export default function Categories() {
 
             if (isCreating) {
                 await catsApi.create(payload)
-                message.success('Đã thêm danh mục mới')
+                message.success('Added new category')
             } else {
                 await catsApi.update(editingState.id, payload)
-                message.success('Đã cập nhật danh mục')
+                message.success('Updated category')
             }
             closeDrawer()
             fetchCategories()
         } catch (err) {
-            message.error(err?.error?.message || 'Lỗi khi lưu danh mục.')
+            message.error(err?.error?.message || 'Error saving category.')
         } finally {
             setSaveLoading(false)
         }
@@ -126,22 +126,22 @@ export default function Categories() {
     async function handleDelete(cat) {
         try {
             await catsApi.delete(cat.id)
-            message.success('Đã xóa danh mục')
+            message.success('Deleted category')
             fetchCategories()
         } catch (err) {
             console.error('[Categories] delete failed:', err)
-            message.error(err?.error?.message || 'Không thể xóa danh mục.')
+            message.error(err?.error?.message || 'Cannot delete category.')
         }
     }
 
     async function handleToggle(cat, checked) {
         try {
             await catsApi.toggle(cat.id)
-            message.success(checked ? 'Đã bật danh mục' : 'Đã tắt danh mục')
+            message.success(checked ? 'Enabled category' : 'Disabled category')
             fetchCategories()
         } catch (err) {
             console.error('[Categories] toggle failed:', err)
-            message.error('Lỗi khi bật/tắt danh mục')
+            message.error('Error toggling category')
         }
     }
 
@@ -155,12 +155,12 @@ export default function Categories() {
         <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Space>
-                    <Title level={4} style={{ margin: 0 }}>Danh mục</Title>
+                    <Title level={4} style={{ margin: 0 }}>Categories</Title>
                     <Badge count={cats.length} style={{ backgroundColor: '#2563eb' }} />
                 </Space>
                 {!isVendor && (
                     <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                        Thêm danh mục
+                        Add category
                     </Button>
                 )}
             </div>
@@ -179,10 +179,10 @@ export default function Categories() {
                             bordered={false}
                             style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%', opacity: cat.isActive ? 1 : 0.6, borderLeft: `4px solid ${cat.color}` }}
                             actions={isVendor ? undefined : [
-                                <Tooltip title={cat.isActive ? 'Đang bật' : 'Đang tắt'} key="toggle"><Switch size="small" checked={cat.isActive} onChange={(checked) => handleToggle(cat, checked)} /></Tooltip>,
-                                <Tooltip title="Sửa" key="edit"><Button type="text" icon={<EditOutlined style={{ color: '#10b981' }} />} onClick={() => openEdit(cat)} /></Tooltip>,
-                                <Tooltip title="Xóa" key="delete">
-                                    <Popconfirm title="Bạn có chắc chắn muốn xóa?" description="Tất cả POI thuộc danh mục này cần được chuyển trước." onConfirm={() => handleDelete(cat)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+                                <Tooltip title={cat.isActive ? 'Enabled' : 'Disabled'} key="toggle"><Switch size="small" checked={cat.isActive} onChange={(checked) => handleToggle(cat, checked)} /></Tooltip>,
+                                <Tooltip title="Edit" key="edit"><Button type="text" icon={<EditOutlined style={{ color: '#10b981' }} />} onClick={() => openEdit(cat)} /></Tooltip>,
+                                <Tooltip title="Delete" key="delete">
+                                    <Popconfirm title="Are you sure you want to delete?" description="All POIs under this category must be reassigned first." onConfirm={() => handleDelete(cat)} okText="Delete" cancelText="Cancel" okButtonProps={{ danger: true }}>
                                         <Button type="text" danger icon={<DeleteOutlined />} />
                                     </Popconfirm>
                                 </Tooltip>
@@ -207,14 +207,14 @@ export default function Categories() {
             </Row>
 
             <Drawer
-                title={isCreating ? 'Thêm danh mục mới' : 'Sửa danh mục'}
+                title={isCreating ? 'Add new category' : 'Edit category'}
                 placement="right"
                 onClose={closeDrawer}
                 open={drawerVisible}
                 width={400}
                 extra={
                     <Button type="primary" onClick={() => form.submit()} loading={saveLoading} icon={<SaveOutlined />}>
-                        {isCreating ? 'Tạo mới' : 'Lưu lại'}
+                        {isCreating ? 'Create' : 'Save'}
                     </Button>
                 }
             >
@@ -223,23 +223,23 @@ export default function Categories() {
                 </div>
 
                 <Form form={form} layout="vertical" onFinish={handleSave}>
-                    <Form.Item name="icon" label="Emoji Icon" rules={[{ required: true, message: 'Vui lòng nhập icon' }]}>
+                    <Form.Item name="icon" label="Emoji Icon" rules={[{ required: true, message: 'Please enter icon' }]}>
                         <Input />
                     </Form.Item>
-                    <Form.Item name="color" label="Màu sắc" rules={[{ required: true, message: 'Vui lòng chọn màu' }]}>
+                    <Form.Item name="color" label="Color" rules={[{ required: true, message: 'Please select a color' }]}>
                         <ColorPicker format="hex" showText />
                     </Form.Item>
-                    <Form.Item name="sortOrder" label="Thứ tự hiển thị (càng nhỏ càng đứng trước)">
+                    <Form.Item name="sortOrder" label="Display order (smaller appears first)">
                         <InputNumber min={0} style={{ width: '100%' }} />
                     </Form.Item>
 
                     <div style={{ marginTop: 24, marginBottom: 16, borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
-                        <Text strong>Tên đa ngôn ngữ</Text>
+                        <Text strong>Multilingual name</Text>
                     </div>
 
                     {editingState?.translations?.map((t, i) => (
-                        <Form.Item key={i} name={`trans_${i}`} label={<span>{t.flagEmoji || '🌐'} {t.languageCode?.toUpperCase()}</span>} rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
-                            <Input placeholder="Nhập tên..." />
+                        <Form.Item key={i} name={`trans_${i}`} label={<span>{t.flagEmoji || '🌐'} {t.languageCode?.toUpperCase()}</span>} rules={[{ required: true, message: 'Please enter a name' }]}>
+                            <Input placeholder="Enter name..." />
                         </Form.Item>
                     ))}
                 </Form>

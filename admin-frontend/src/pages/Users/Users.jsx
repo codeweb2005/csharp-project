@@ -11,13 +11,13 @@ function timeAgo(dateStr) {
     if (!dateStr) return '—'
     const diff = Date.now() - new Date(dateStr).getTime()
     const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'Đang online'
-    if (mins < 60) return `${mins} phút trước`
+    if (mins < 1) return 'Online'
+    if (mins < 60) return `${mins} mins ago`
     const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours} giờ trước`
+    if (hours < 24) return `${hours} hours ago`
     const days = Math.floor(hours / 24)
-    if (days < 7) return `${days} ngày trước`
-    return new Date(dateStr).toLocaleDateString('vi-VN')
+    if (days < 7) return `${days} days ago`
+    return new Date(dateStr).toLocaleDateString()
 }
 
 export default function Users() {
@@ -52,7 +52,7 @@ export default function Users() {
             setData(res.data?.items ?? [])
             setTotal(res.data?.pagination?.totalItems ?? 0)
         } catch (err) {
-            message.error('Không thể tải danh sách người dùng. Hãy kiểm tra backend.')
+            message.error('Failed to load users. Check backend.')
             console.error('[Users] fetch error:', err)
         } finally {
             setLoading(false)
@@ -84,28 +84,28 @@ export default function Users() {
         try {
             await usersApi.toggle(id)
             fetchUsers()
-            message.success('Trạng thái đã được cập nhật')
+            message.success('Status updated')
         } catch (err) {
             console.error('[Users] toggle failed:', err)
-            message.error('Lỗi khi cập nhật trạng thái')
+            message.error('Error updating status')
         }
     }
 
     const handleDelete = (user) => {
         Modal.confirm({
-            title: `Xóa "${user.fullName}"?`,
-            content: 'Hành động này không thể hoàn tác.',
-            okText: 'Xóa',
+            title: `Delete "${user.fullName}"?`,
+            content: 'This action cannot be undone.',
+            okText: 'Delete',
             okType: 'danger',
-            cancelText: 'Hủy',
+            cancelText: 'Cancel',
             onOk: async () => {
                 try {
                     await usersApi.delete(user.id)
                     fetchUsers()
-                    message.success('Đã xóa người dùng')
+                    message.success('User deleted')
                 } catch (err) {
                     console.error('[Users] delete failed:', err)
-                    message.error('Lỗi khi xóa người dùng')
+                    message.error('Error deleting user')
                 }
             }
         })
@@ -113,17 +113,17 @@ export default function Users() {
 
     const handleResetPassword = (user) => {
         Modal.confirm({
-            title: `Reset mật khẩu cho "${user.fullName}"?`,
-            content: 'Mật khẩu mới sẽ được gửi qua email.',
+            title: `Reset password for "${user.fullName}"?`,
+            content: 'New password will be sent via email.',
             okText: 'Reset',
-            cancelText: 'Hủy',
+            cancelText: 'Cancel',
             onOk: async () => {
                 try {
                     await usersApi.resetPassword(user.id)
-                    message.success('Mật khẩu đã được reset thành công.')
+                    message.success('Password reset successfully.')
                 } catch (err) {
                     console.error('[Users] reset password failed:', err)
-                    message.error('Không thể reset mật khẩu.')
+                    message.error('Failed to reset password.')
                 }
             }
         })
@@ -168,7 +168,7 @@ export default function Users() {
                     // Send updated POI list only when editing a Vendor
                     poiIds: editingUser.role === 'Vendor' ? poiIds : undefined,
                 })
-                message.success('Đã cập nhật người dùng')
+                message.success('User updated')
             } else {
                 await usersApi.create({
                     email: values.email,
@@ -178,12 +178,12 @@ export default function Users() {
                     phone: values.phone || null,
                     poiIds: values.role === 'Vendor' ? poiIds : [],
                 })
-                message.success('Đã tạo người dùng mới')
+                message.success('New user created')
             }
             setIsModalVisible(false)
             fetchUsers()
         } catch (err) {
-            message.error(err?.error?.message || 'Lỗi khi lưu người dùng.')
+            message.error(err?.error?.message || 'Error saving user.')
         } finally {
             setFormLoading(false)
         }
@@ -191,7 +191,7 @@ export default function Users() {
 
     const columns = [
         {
-            title: 'Người dùng',
+            title: 'User',
             key: 'user',
             render: (text, record) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -205,7 +205,7 @@ export default function Users() {
                         <Text strong style={{ fontSize: 14 }}>{record.fullName || '—'}</Text>
                         {record.shopName && <Text type="secondary" style={{ fontSize: 12 }}><ShopOutlined /> {record.shopName}</Text>}
                         {record.vendorPOIIds?.length > 1 && (
-                            <Text type="secondary" style={{ fontSize: 11, color: '#4059aa' }}>+{record.vendorPOIIds.length - 1} POI khác</Text>
+                            <Text type="secondary" style={{ fontSize: 11, color: '#4059aa' }}>+{record.vendorPOIIds.length - 1} other POIs</Text>
                         )}
                     </div>
                 </div>
@@ -218,53 +218,53 @@ export default function Users() {
             render: (text) => <Text>{text}</Text>
         },
         {
-            title: 'Vai trò',
+            title: 'Role',
             dataIndex: 'role',
             key: 'role',
             render: (role) => <Tag color={roleColors[role] || 'default'}>{role}</Tag>
         },
         {
-            title: 'Điện thoại',
+            title: 'Phone',
             dataIndex: 'phone',
             key: 'phone',
             render: (phone) => <Text>{phone || '—'}</Text>
         },
         {
-            title: 'Đăng nhập cuối',
+            title: 'Last Login',
             dataIndex: 'lastLoginAt',
             key: 'lastLoginAt',
             render: (lastLoginAt) => {
                 const text = timeAgo(lastLoginAt)
-                if (text === 'Đang online') {
-                    return <Space><Badge status="success" /> <Text type="success">Đang online</Text></Space>
+                if (text === 'Online') {
+                    return <Space><Badge status="success" /> <Text type="success">Online</Text></Space>
                 }
                 return <Text type="secondary">{text}</Text>
             }
         },
         {
-            title: 'Trạng thái',
+            title: 'Status',
             key: 'isActive',
             render: (_, record) => (
                 <Switch 
                     checked={record.isActive} 
                     onChange={() => handleToggle(record.id)} 
-                    checkedChildren="Bật" 
-                    unCheckedChildren="Tắt"
+                    checkedChildren="On" 
+                    unCheckedChildren="Off"
                 />
             )
         },
         {
-            title: 'Hành động',
+            title: 'Actions',
             key: 'action',
             render: (_, record) => (
                 <Space size="middle">
-                    <Tooltip title="Sửa">
+                    <Tooltip title="Edit">
                         <Button type="text" icon={<EditOutlined style={{ color: '#00246a' }} />} onClick={() => openEdit(record)} />
                     </Tooltip>
-                    <Tooltip title="Reset mật khẩu">
+                    <Tooltip title="Reset Password">
                         <Button type="text" icon={<KeyOutlined style={{ color: '#f59e0b' }} />} onClick={() => handleResetPassword(record)} />
                     </Tooltip>
-                    <Tooltip title="Xóa">
+                    <Tooltip title="Delete">
                         <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} />
                     </Tooltip>
                 </Space>
@@ -277,12 +277,12 @@ export default function Users() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
                 <Space align="center" size="large">
                     <Radio.Group value={tab} onChange={e => setTab(e.target.value)} buttonStyle="solid">
-                        <Radio.Button value="all">Tất cả ({counts.all})</Radio.Button>
-                        <Radio.Button value="vendor">Chủ quán ({counts.vendor})</Radio.Button>
-                        <Radio.Button value="customer">Khách hàng ({counts.customer})</Radio.Button>
+                        <Radio.Button value="all">All ({counts.all})</Radio.Button>
+                        <Radio.Button value="vendor">Vendors ({counts.vendor})</Radio.Button>
+                        <Radio.Button value="customer">Customers ({counts.customer})</Radio.Button>
                     </Radio.Group>
                     <Input
-                        placeholder="Tìm theo tên, email..."
+                        placeholder="Search by name, email..."
                         prefix={<SearchOutlined style={{ color: '#cbd5e1' }} />}
                         value={search}
                         onChange={e => setSearch(e.target.value)}
@@ -291,7 +291,7 @@ export default function Users() {
                     />
                 </Space>
                 <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                    Thêm người dùng
+                    Add User
                 </Button>
             </div>
 
@@ -307,14 +307,14 @@ export default function Users() {
                         total: total,
                         onChange: (p) => setPage(p),
                         showSizeChanger: false,
-                        showTotal: (t, range) => `Hiển thị ${range[0]}-${range[1]} trong ${t}`
+                        showTotal: (t, range) => `Showing ${range[0]}-${range[1]} of ${t}`
                     }}
                     rowClassName={record => !record.isActive ? 'ant-table-row-disabled' : ''}
                 />
             </Card>
 
             <Modal
-                title={editingUser ? 'Sửa người dùng' : 'Thêm người dùng mới'}
+                title={editingUser ? 'Edit User' : 'Add New User'}
                 open={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
                 footer={null}
@@ -322,27 +322,27 @@ export default function Users() {
             >
                 <Form layout="vertical" form={form} onFinish={handleModalSubmit} initialValues={{ role: 'Customer' }}>
                     {!editingUser && (
-                        <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Vui lòng nhập email!' }, { type: 'email', message: 'Email không hợp lệ!' }]}>
+                        <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Please enter email!' }, { type: 'email', message: 'Invalid email!' }]}>
                             <Input />
                         </Form.Item>
                     )}
 
-                    <Form.Item name="fullName" label="Họ tên" rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}>
+                    <Form.Item name="fullName" label="Full Name" rules={[{ required: true, message: 'Please enter full name!' }]}>
                         <Input />
                     </Form.Item>
 
                     {!editingUser && (
-                        <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }, { min: 8, message: 'Tối thiểu 8 ký tự' }]}>
+                        <Form.Item name="password" label="Password" rules={[{ required: true, message: 'Please enter password!' }, { min: 8, message: 'Min 8 characters' }]}>
                             <Input.Password />
                         </Form.Item>
                     )}
 
                     {!editingUser && (
-                        <Form.Item name="role" label="Vai trò">
+                        <Form.Item name="role" label="Role">
                             <Select onChange={(val) => { if (val === 'Vendor') loadPoiOptions() }}>
-                                <Select.Option value="Customer">Khách hàng</Select.Option>
-                                <Select.Option value="Vendor">Chủ quán</Select.Option>
-                                <Select.Option value="Admin">Quản trị viên</Select.Option>
+                                <Select.Option value="Customer">Customer</Select.Option>
+                                <Select.Option value="Vendor">Vendor</Select.Option>
+                                <Select.Option value="Admin">Admin</Select.Option>
                             </Select>
                         </Form.Item>
                     )}
@@ -357,14 +357,14 @@ export default function Users() {
                                     name="poiIds"
                                     label={
                                         <span>
-                                            Gán vào quán (POI)
-                                            <Text type="secondary" style={{ marginLeft: 6, fontSize: 12 }}>có thể chọn nhiều</Text>
+                                            Assign to POIs
+                                            <Text type="secondary" style={{ marginLeft: 6, fontSize: 12 }}>multiple selection allowed</Text>
                                         </span>
                                     }
                                 >
                                     <Select
                                         mode="multiple"
-                                        placeholder="Chọn một hoặc nhiều POI..."
+                                        placeholder="Select one or more POIs..."
                                         allowClear
                                         showSearch
                                         optionFilterProp="label"
@@ -378,14 +378,14 @@ export default function Users() {
                         }}
                     </Form.Item>
 
-                    <Form.Item name="phone" label="Số điện thoại">
+                    <Form.Item name="phone" label="Phone Number">
                         <Input />
                     </Form.Item>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
-                        <Button onClick={() => setIsModalVisible(false)}>Hủy</Button>
+                        <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
                         <Button type="primary" htmlType="submit" loading={formLoading}>
-                            {editingUser ? 'Cập nhật' : 'Tạo mới'}
+                            {editingUser ? 'Update' : 'Create'}
                         </Button>
                     </div>
                 </Form>

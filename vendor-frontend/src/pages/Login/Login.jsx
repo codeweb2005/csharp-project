@@ -26,12 +26,12 @@ export default function Login() {
             if (res.success) {
                 navigate('/dashboard')
             } else {
-                setError(res.error?.message || 'Sai email hoặc mật khẩu')
-                message.error(res.error?.message || 'Sai email hoặc mật khẩu')
+                setError(res.error?.message || 'Invalid email or password')
+                message.error(res.error?.message || 'Invalid email or password')
             }
         } catch (err) {
-            setError(err?.error?.message || 'Không thể kết nối server. Hãy kiểm tra backend đang chạy.')
-            message.error(err?.error?.message || 'Không thể kết nối server. Hãy kiểm tra backend đang chạy.')
+            setError(err?.error?.message || 'Cannot connect to server. Please check if the backend is running.')
+            message.error(err?.error?.message || 'Cannot connect to server. Please check if the backend is running.')
         } finally {
             setLoading(false)
         }
@@ -43,24 +43,24 @@ export default function Login() {
             <div className="login-hero">
                 <div className="login-hero-overlay" />
                 <div className="login-hero-content">
-                    <div className="login-hero-badge">🍜 Phố Ẩm Thực</div>
-                    <h1 className="login-hero-title">Vĩnh Khánh</h1>
+                    <div className="login-hero-badge">🍜 Food Street</div>
+                    <h1 className="login-hero-title">Vinh Khanh</h1>
                     <p className="login-hero-desc">
-                        Hệ thống thuyết minh tự động đa ngôn ngữ
-                        <br />cho phố ẩm thực nổi tiếng nhất Sài Gòn
+                        Multilingual auto-narration system
+                        <br />for Saigon's most famous food street
                     </p>
                     <div className="login-hero-stats">
                         <div className="login-hero-stat">
                             <span className="login-hero-stat-value">10+</span>
-                            <span className="login-hero-stat-label">Điểm ăn uống</span>
+                            <span className="login-hero-stat-label">Spots</span>
                         </div>
                         <div className="login-hero-stat">
                             <span className="login-hero-stat-value">5</span>
-                            <span className="login-hero-stat-label">Ngôn ngữ</span>
+                            <span className="login-hero-stat-label">Languages</span>
                         </div>
                         <div className="login-hero-stat">
                             <span className="login-hero-stat-value">1K+</span>
-                            <span className="login-hero-stat-label">Lượt ghé</span>
+                            <span className="login-hero-stat-label">Visits</span>
                         </div>
                     </div>
                 </div>
@@ -78,7 +78,7 @@ export default function Login() {
                         <div className="login-brand-icon">🍜</div>
                         <h2 className="login-brand-title">VK Food Tour</h2>
                     </div>
-                    <p className="login-form-subtitle">Cổng dành cho đối tác</p>
+                    <p className="login-form-subtitle">Vendor Portal</p>
 
                     <Form
                         name="login"
@@ -95,15 +95,15 @@ export default function Login() {
                         <Form.Item
                             name="email"
                             label="Email"
-                            rules={[{ required: true, message: 'Vui lòng nhập email!' }, { type: 'email', message: 'Email không hợp lệ!' }]}
+                            rules={[{ required: true, message: 'Please enter email!' }, { type: 'email', message: 'Invalid email!' }]}
                         >
                             <Input prefix={<MailOutlined className="site-form-item-icon" />} placeholder="vendor@vinhkhanh.app" />
                         </Form.Item>
 
                         <Form.Item
                             name="password"
-                            label={<div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}><span>Mật khẩu</span> <a href="#">Quên mật khẩu?</a></div>}
-                            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
+                            label={<div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}><span>Password</span> <a href="#">Forgot password?</a></div>}
+                            rules={[{ required: true, message: 'Please enter password!' }]}
                         >
                             <Input.Password
                                 prefix={<LockOutlined className="site-form-item-icon" />}
@@ -112,18 +112,18 @@ export default function Login() {
                         </Form.Item>
 
                         <Form.Item name="remember" valuePropName="checked">
-                            <Checkbox>Nhớ đăng nhập</Checkbox>
+                            <Checkbox>Remember me</Checkbox>
                         </Form.Item>
 
                         <Form.Item>
                             <Button type="primary" htmlType="submit" className="login-btn-antd" loading={loading} block icon={<ArrowRightOutlined />}>
-                                Đăng nhập
+                                Login
                             </Button>
                         </Form.Item>
                     </Form>
 
                     <p className="login-footer">
-                        © 2026 VK Food Tour — Phố Ẩm Thực Vĩnh Khánh
+                        © 2026 VK Food Tour — Vinh Khanh Food Street
                     </p>
                 </div>
             </div>

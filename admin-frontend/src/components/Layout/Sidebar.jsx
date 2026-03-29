@@ -111,7 +111,7 @@ export default function Sidebar() {
                 </div>
                 {!collapsed && (
                     <Button type="text" icon={<LogOut size={16} />} onClick={handleLogout} style={{ width: '100%', justifyContent: 'flex-start' }} danger>
-                        Đăng xuất
+                        Logout
                     </Button>
                 )}
                 {collapsed && (

@@ -163,8 +163,8 @@ export default function POIMiniMap({ pois = [], selectedPoiId, onSelectPoi }) {
     return (
         <div className="poi-minimap-wrap">
             <div className="poi-minimap-header">
-                <span>🗺️ Bản đồ POI</span>
-                <span className="poi-minimap-count">{pois.filter(p => p.latitude).length} điểm</span>
+                <span>🗺️ POI Map</span>
+                <span className="poi-minimap-count">{pois.filter(p => p.latitude).length} locations</span>
             </div>
             <div ref={containerRef} className="poi-minimap-container" />
         </div>
