@@ -272,6 +272,8 @@ public class AuthService : IAuthService
         Phone = user.Phone,
         AvatarUrl = user.AvatarUrl,
         IsActive = user.IsActive,
-        LastLoginAt = user.LastLoginAt
+        LastLoginAt = user.LastLoginAt,
+        // Include linked POI IDs so GET /auth/me returns the authoritative vendor shop list
+        VendorPOIIds = user.VendorPOIs?.Select(p => p.Id).ToList() ?? [],
     };
 }

@@ -200,6 +200,22 @@ public class UserService : IUserService
         return ApiResponse<bool>.Ok(true);
     }
 
+    /// <summary>
+    /// Returns the DB-authoritative list of POI IDs assigned to this vendor.
+    /// Performs a lightweight projection query — no navigation objects loaded.
+    /// Returns null if the user is not a Vendor or does not exist.
+    /// </summary>
+    public async Task<List<int>?> GetVendorPOIIdsAsync(int userId)
+    {
+        var user = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId && u.Role == Domain.Enums.UserRole.Vendor)
+            .Select(u => new { POIIds = u.VendorPOIs.Select(p => p.Id).ToList() })
+            .FirstOrDefaultAsync();
+
+        return user?.POIIds; // null = not a vendor; empty list = vendor with no shops
+    }
+
     private static UserDto MapToDto(User u) => new()
     {
         Id = u.Id,

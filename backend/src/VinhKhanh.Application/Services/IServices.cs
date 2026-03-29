@@ -107,6 +107,12 @@ public interface IUserService
     Task<ApiResponse<bool>> DeleteAsync(int id);
     Task<ApiResponse<bool>> ToggleActiveAsync(int id);
     Task<ApiResponse<bool>> ResetPasswordAsync(int id);
+    /// <summary>
+    /// Returns the DB-authoritative list of POI IDs assigned to this vendor.
+    /// Always fresh — does not rely on the JWT claim.
+    /// Returns null for non-Vendor users.
+    /// </summary>
+    Task<List<int>?> GetVendorPOIIdsAsync(int userId);
 }
 
 // ============ Dashboard Service ============

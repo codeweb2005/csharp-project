@@ -1,24 +1,28 @@
 /**
- * useCurrentUser — React hook for reading the current authenticated user's context.
+ * useCurrentUser — React hook for reading the current authenticated user's identity from the JWT.
  *
- * Decodes the JWT access token stored in localStorage and extracts:
+ * Decodes the JWT access token stored in localStorage and extracts identity claims:
  *   - userId    {number}  JWT 'sub' claim
  *   - role      {string}  'Admin' | 'Vendor' | 'Customer'
  *   - name      {string}  User's display name
  *   - email     {string}  User's email address
  *   - isAdmin   {boolean} convenience shortcut
  *   - isVendor  {boolean} convenience shortcut
- *   - vendorPOIId {number|null}  linked POI id (only for Vendor role)
+ *
+ * ⚠️  Vendor POI IDs are NOT read from the JWT.
+ *     They are always fetched from the database via GET /auth/me
+ *     inside PoiSwitcherContext. This ensures newly assigned shops are
+ *     visible immediately without requiring re-login.
  *
  * Usage:
- *   const { isVendor, vendorPOIId, name } = useCurrentUser()
+ *   const { isVendor, name } = useCurrentUser()
  *   if (isVendor) renderVendorView()
  *
  * Notes:
- *   - Does NOT make any API calls — reads from the already-validated JWT in localStorage.
+ *   - Does NOT make any API calls — reads only identity claims from JWT.
  *   - Returns null/false defaults if no token is present (e.g. on the login page).
- *   - The JWT payload is base64url-encoded and can be read without the signing key.
- *     Never trust client-side role checks for actual security — that is enforced by the backend.
+ *   - The JWT payload is base64url-encoded and readable client-side.
+ *     Never trust client-side role checks for actual security — backend enforces this.
  *     These flags are for UI-only decisions (show/hide elements).
  */
 
@@ -34,31 +38,23 @@ import { useMemo } from 'react'
 function decodeJwt(token) {
     if (!token) return null
     try {
-        // JWT is three base64url segments: header.payload.signature
         const base64Url = token.split('.')[1]
         if (!base64Url) return null
-
-        // base64url → base64 → JSON
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
         const jsonStr = decodeURIComponent(atob(base64).split('').map(function (c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        }).join(''))
         return JSON.parse(jsonStr)
     } catch {
-        return null  // malformed token — treat as unauthenticated
+        return null
     }
 }
 
 /**
- * React hook that returns the current user's decoded JWT claims.
+ * React hook that returns the current user's identity from the JWT.
  * Memoized so it only re-computes when the token changes.
  *
- * After the 1:N Vendor-POI migration the JWT carries:
- *   vendorPoiIds  — JSON-serialized int array, e.g. "[3,7]"
- *
- * This hook parses that array and exposes:
- *   vendorPOIIds  {number[]}     — full array of linked POI IDs
- *   vendorPOIId   {number|null}  — first element (convenience alias for single-POI usage)
+ * Vendor POI IDs are NOT included here — use usePoiSwitcher() for that.
  */
 export default function useCurrentUser() {
     return useMemo(() => {
@@ -73,46 +69,19 @@ export default function useCurrentUser() {
                 email: null,
                 isAdmin: false,
                 isVendor: false,
-                vendorPOIIds: [],
-                vendorPOIId: null,
             }
         }
 
         const role = payload.role ?? ''
-
-        // Backend serialises as JSON array: vendorPoiIds = "[3,7]"
-        // (singular vendorPoiId is no longer emitted after 1:N migration)
-        let vendorPOIIds = []
-        if (payload.vendorPoiIds) {
-            try {
-                const parsed = JSON.parse(payload.vendorPoiIds)
-                if (Array.isArray(parsed)) {
-                    vendorPOIIds = parsed.map(Number).filter(Boolean)
-                }
-            } catch {
-                // Fallback: treat as scalar (old tokens)
-                const single = parseInt(payload.vendorPoiIds, 10)
-                if (!isNaN(single)) vendorPOIIds = [single]
-            }
-        }
-        // Legacy scalar claim (old JWTs before migration)
-        if (vendorPOIIds.length === 0 && payload.vendorPoiId) {
-            const single = parseInt(payload.vendorPoiId, 10)
-            if (!isNaN(single)) vendorPOIIds = [single]
-        }
 
         return {
             userId: parseInt(payload.sub, 10) || null,
             role,
             name: payload.name ?? '',
             email: payload.email ?? '',
-            // Convenience booleans for conditional rendering
+            // Convenience booleans for conditional UI rendering
             isAdmin: role === 'Admin',
             isVendor: role === 'Vendor',
-            // Full array of linked POI IDs (1:N)
-            vendorPOIIds,
-            // First element — convenience alias for pages that only need one POI
-            vendorPOIId: vendorPOIIds[0] ?? null,
         }
     }, [
         // Re-memoize if localStorage token changes — effectively triggers on re-render after login

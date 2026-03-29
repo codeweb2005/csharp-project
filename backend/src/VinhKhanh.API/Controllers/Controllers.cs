@@ -8,7 +8,7 @@ namespace VinhKhanh.API.Controllers;
 
 /// <summary>
 /// Base controller for all API controllers.
-/// Provides JWT claim helpers used throughout the application.
+/// Provides JWT claim helpers and DB-backed vendor scoping used throughout the application.
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
@@ -16,29 +16,26 @@ public abstract class BaseApiController : ControllerBase
 {
     /// <summary>Returns the authenticated user's ID from the JWT 'sub' claim.</summary>
     protected int GetUserId() =>
-        int.Parse(User.FindFirst("sub")?.Value ?? "0");
+        int.Parse(User.FindFirst("sub")?.Value 
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+            ?? "0");
 
     /// <summary>Returns the authenticated user's role string (e.g. "Admin", "Vendor", "Customer").</summary>
     protected string GetUserRole() =>
-        User.FindFirst("role")?.Value ?? "";
+        User.FindFirst("role")?.Value 
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value 
+            ?? "";
 
     /// <summary>
-    /// Returns the Vendor's linked POI IDs from the JWT 'vendorPoiIds' claim (JSON array).
-    /// Returns <c>null</c> for Admin and Customer users (claim not present in their tokens).
-    /// Use this to pass vendor scoping into Dashboard/Analytics/POI services.
+    /// Returns the Vendor's linked POI IDs by querying the database directly.
+    /// Always fresh — bypasses the JWT claim so admin changes (add/remove shops)
+    /// are reflected immediately without requiring the vendor to re-login.
+    /// Returns <c>null</c> for Admin and Customer users.
     /// </summary>
-    protected List<int>? GetVendorPOIIds()
+    protected async Task<List<int>?> GetVendorPOIIdsAsync(IUserService userService)
     {
-        var raw = User.FindFirst("vendorPoiIds")?.Value;
-        if (raw == null) return null;
-        try
-        {
-            return System.Text.Json.JsonSerializer.Deserialize<List<int>>(raw);
-        }
-        catch
-        {
-            return null;
-        }
+        if (GetUserRole() != "Vendor") return null;
+        return await userService.GetVendorPOIIdsAsync(GetUserId());
     }
 
     /// <summary>Maps an <see cref="ApiResponse{T}"/> to an appropriate HTTP result.</summary>
@@ -47,11 +44,11 @@ public abstract class BaseApiController : ControllerBase
         if (response.Success) return Ok(response);
         return response.Error?.Code switch
         {
-            "NOT_FOUND"       => NotFound(response),
-            "FORBIDDEN"       => StatusCode(403, response),
-            "UNAUTHORIZED"    => Unauthorized(response),
-            "VALIDATION_ERROR"=> BadRequest(response),
-            _                 => BadRequest(response)
+            "NOT_FOUND"        => NotFound(response),
+            "FORBIDDEN"        => StatusCode(403, response),
+            "UNAUTHORIZED"     => Unauthorized(response),
+            "VALIDATION_ERROR" => BadRequest(response),
+            _                  => BadRequest(response)
         };
     }
 }
@@ -404,58 +401,59 @@ public class UsersController(IUserService svc) : BaseApiController
 // ================================
 /// <summary>
 /// Dashboard stats endpoint - accessible by both Admin and Vendor.
-/// Vendor calls are automatically scoped to their own POIs via the JWT vendorPoiIds claim.
+/// Vendor scoping is done via a fresh DB query (not JWT claim) so newly
+/// assigned shops are visible immediately without re-login.
 /// </summary>
 [Authorize(Roles = "Admin,Vendor")]
-public class DashboardController(IDashboardService svc) : BaseApiController
+public class DashboardController(IDashboardService svc, IUserService userSvc) : BaseApiController
 {
     [HttpGet("stats")]
     public async Task<IActionResult> GetStats()
-        => ApiResult(await svc.GetStatsAsync(GetVendorPOIIds()));
+        => ApiResult(await svc.GetStatsAsync(await GetVendorPOIIdsAsync(userSvc)));
 
     [HttpGet("top-pois")]
     public async Task<IActionResult> GetTopPOIs([FromQuery] int count = 5)
-        => ApiResult(await svc.GetTopPOIsAsync(count, GetVendorPOIIds()));
+        => ApiResult(await svc.GetTopPOIsAsync(count, await GetVendorPOIIdsAsync(userSvc)));
 
     [HttpGet("visits-chart")]
     public async Task<IActionResult> GetVisitsChart([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetVisitsChartAsync(from, to, GetVendorPOIIds()));
+        => ApiResult(await svc.GetVisitsChartAsync(from, to, await GetVendorPOIIdsAsync(userSvc)));
 
     [HttpGet("language-stats")]
     public async Task<IActionResult> GetLanguageStats()
-        => ApiResult(await svc.GetLanguageStatsAsync(GetVendorPOIIds()));
+        => ApiResult(await svc.GetLanguageStatsAsync(await GetVendorPOIIdsAsync(userSvc)));
 
     [HttpGet("recent-activity")]
     public async Task<IActionResult> GetRecentActivity([FromQuery] int count = 10)
-        => ApiResult(await svc.GetRecentActivityAsync(count, GetVendorPOIIds()));
+        => ApiResult(await svc.GetRecentActivityAsync(count, await GetVendorPOIIdsAsync(userSvc)));
 }
 
-// ================================
 // ================================
 // Analytics Controller
 // ================================
 /// <summary>
 /// Detailed analytics - accessible by Admin and Vendor.
-/// Vendor calls are automatically scoped to their own POIs via the JWT vendorPoiIds claim.
+/// Vendor scoping is done via a fresh DB query (not JWT claim) so newly
+/// assigned shops are visible immediately without re-login.
 /// </summary>
 [Authorize(Roles = "Admin,Vendor")]
-public class AnalyticsController(IAnalyticsService svc) : BaseApiController
+public class AnalyticsController(IAnalyticsService svc, IUserService userSvc) : BaseApiController
 {
     [HttpGet("trends")]
     public async Task<IActionResult> GetTrends([FromQuery] string period = "30d")
-        => ApiResult(await svc.GetTrendsAsync(period, GetVendorPOIIds()));
+        => ApiResult(await svc.GetTrendsAsync(period, await GetVendorPOIIdsAsync(userSvc)));
 
     [HttpGet("visits-by-day")]
     public async Task<IActionResult> GetVisitsByDay([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetVisitsByDayAsync(from, to, GetVendorPOIIds()));
+        => ApiResult(await svc.GetVisitsByDayAsync(from, to, await GetVendorPOIIdsAsync(userSvc)));
 
     [HttpGet("visits-by-hour")]
     public async Task<IActionResult> GetVisitsByHour([FromQuery] DateTime date)
-        => ApiResult(await svc.GetVisitsByHourAsync(date, GetVendorPOIIds()));
+        => ApiResult(await svc.GetVisitsByHourAsync(date, await GetVendorPOIIdsAsync(userSvc)));
 
     [HttpGet("language-distribution")]
     public async Task<IActionResult> GetLanguages([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetLanguageDistributionAsync(from, to, GetVendorPOIIds()));
+        => ApiResult(await svc.GetLanguageDistributionAsync(from, to, await GetVendorPOIIdsAsync(userSvc)));
 }
 
 // ================================

@@ -2,11 +2,11 @@
  * VendorDashboard — Dashboard page shown to Vendor (shop owner) users.
  *
  * Data flow:
- *   Login → JWT includes `vendorPoiIds` claim (array)
- *   → PoiSwitcherContext resolves `activePOIId` (defaults to first, persisted in localStorage)
+ *   Login → PoiSwitcherContext fetches GET /auth/me (DB-authoritative) to get vendorPOIIds
+ *   → activePOIId defaults to first (persisted in localStorage)
  *   → Vendor selects a different shop via the TopBar PoiSwitcher dropdown
  *   → useEffect re-fetches all stats for the newly selected POI
- *   → Backend backend-scopes queries because the JWT already limits which POIs this vendor can see
+ *   → Backend scopes queries via a fresh DB query (not JWT claim)
  */
 
 import { useEffect, useState } from 'react'
@@ -21,8 +21,8 @@ import './VendorDashboard.css'
 const { Title, Text } = Typography
 
 export default function VendorDashboard() {
-    const { name, vendorPOIIds } = useCurrentUser()
-    const { activePOIId, activePOI, hasMultiplePOIs } = usePoiSwitcher()
+    const { name } = useCurrentUser()
+    const { activePOIId, activePOI, hasMultiplePOIs, vendorPOIIds, loadingPois } = usePoiSwitcher()
     const navigate = useNavigate()
 
     const [stats, setStats] = useState(null)
@@ -72,7 +72,8 @@ export default function VendorDashboard() {
         ? peakHours.reduce((a, b) => (a.visits > b.visits ? a : b))
         : null
 
-    if (loading) {
+    // Still fetching shop list from server — show spinner
+    if (loadingPois || (loading && !activePOIId)) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
                 <Spin size="large" tip="Loading your shop data…" />
@@ -80,12 +81,13 @@ export default function VendorDashboard() {
         )
     }
 
-    if (vendorPOIIds.length === 0) {
+    // Server responded but no shops assigned yet
+    if (!loadingPois && vendorPOIIds.length === 0) {
         return (
             <div style={{ padding: '0 0 24px 0' }}>
                 <Alert
                     message="Shop Not Linked"
-                    description="Your account hasn't been linked to any shop yet. Please contact the admin, or try logging out and back in if you recently had shops assigned."
+                    description="Your account hasn't been linked to any shop yet. Please contact the admin — new shops will appear automatically without requiring re-login."
                     type="info"
                     showIcon
                     style={{ margin: 24 }}

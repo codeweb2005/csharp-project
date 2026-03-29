@@ -1,11 +1,17 @@
 /**
  * PoiSwitcherContext — Tracks the "active POI" for Vendor users who manage multiple shops.
  *
- * POI list is always fresh from the server (not just the JWT):
- *   - On mount: calls GET /auth/me to get the server-authoritative vendorPOIIds list
+ * POI list is ALWAYS fetched from the server (never from the JWT):
+ *   - On mount: calls GET /auth/me to get the DB-authoritative vendorPOIIds list
  *   - On window focus / tab visibility restore: re-fetches /auth/me to pick up
  *     any POIs added by the Admin while this tab was in the background
- *   - Exposes refresh() so components can force a re-fetch
+ *   - Exposes refresh() so components can force a re-fetch on demand
+ *
+ * Why not use the JWT claim?
+ *   The JWT is issued at login time. If an admin adds a new shop to a vendor
+ *   after login, the old JWT wouldn't contain the new POI ID. By always querying
+ *   /auth/me (which reads from the DB), the vendor sees new shops immediately
+ *   without needing to re-login.
  *
  * The active selection is persisted to localStorage so it survives page refresh.
  *
@@ -20,27 +26,23 @@ import useCurrentUser from '../hooks/useCurrentUser.js'
 const PoiSwitcherContext = createContext(null)
 
 const STORAGE_KEY = 'vendor_active_poi_id'
-// Re-fetch on focus only if last fetch was > 30s ago
-const REFETCH_COOLDOWN_MS = 30_000
+// Minimum ms between two consecutive /auth/me refreshes (prevents hammering on rapid focus events)
+const REFETCH_COOLDOWN_MS = 10_000
 
 export function PoiSwitcherProvider({ children }) {
-    const { vendorPOIIds: jwtPOIIds, isVendor } = useCurrentUser()
+    const { isVendor, userId } = useCurrentUser()
 
-    // Live list of POI IDs — starts from JWT, then synced from /auth/me
-    const [liveIds, setLiveIds] = useState(jwtPOIIds ?? [])
+    // Live list of POI IDs — always sourced from DB, never from JWT
+    const [liveIds, setLiveIds] = useState([])
 
-    // Restore last selected POI from localStorage, or fall back to first in list
-    const [activePOIId, setActivePOIIdState] = useState(() => {
-        if (!isVendor || !jwtPOIIds?.length) return null
-        const saved = parseInt(localStorage.getItem(STORAGE_KEY), 10)
-        if (saved && jwtPOIIds.includes(saved)) return saved
-        return jwtPOIIds[0] ?? null
-    })
+    // Restore last selected POI from localStorage
+    const [activePOIId, setActivePOIIdState] = useState(null)
 
     // Map of id → full POI detail object
     const [poisMap, setPoisMap] = useState({})
     const [loadingPois, setLoadingPois] = useState(false)
     const lastFetchTime = useRef(0)
+    const initialized = useRef(false)
 
     // ── Step 1: fetch POI details for a given list of IDs ──────────────────────
     const loadPoiDetails = useCallback(async (ids) => {
@@ -61,20 +63,19 @@ export function PoiSwitcherProvider({ children }) {
         }
     }, [])
 
-    // ── Step 2: fetch /auth/me → get the server-authoritative POI list ─────────
-    const refreshFromServer = useCallback(async () => {
+    // ── Step 2: fetch /auth/me → get DB-authoritative POI list ─────────────────
+    const refreshFromServer = useCallback(async (force = false) => {
         if (!isVendor) return
         const now = Date.now()
-        if (now - lastFetchTime.current < REFETCH_COOLDOWN_MS) return
+        if (!force && now - lastFetchTime.current < REFETCH_COOLDOWN_MS) return
         lastFetchTime.current = now
 
         try {
             const res = await authApi.getMe()
             if (!res?.data) return
 
-            // API returns camelCase vendorPOIIds (serialised from C# VendorPOIIds)
+            // Backend returns vendorPOIIds (C# → camelCase via JSON serialiser)
             const freshIds = (res.data.vendorPOIIds ?? res.data.VendorPOIIds ?? []).map(Number)
-            if (!freshIds.length) return
 
             setLiveIds(prev => {
                 // Only update (and reload details) if the list actually changed
@@ -84,14 +85,17 @@ export function PoiSwitcherProvider({ children }) {
                 return freshIds
             })
         } catch (err) {
-            // Non-fatal — we still have JWT-based IDs
+            // Non-fatal — log and keep showing whatever we have
             console.warn('[PoiSwitcher] /auth/me refresh failed:', err)
         }
     }, [isVendor])
 
-    // ── On mount: immediate server sync ───────────────────────────────────────
+    // ── On mount: immediate server sync (force = skip cooldown) ───────────────
     useEffect(() => {
-        if (isVendor) refreshFromServer()
+        if (isVendor && !initialized.current) {
+            initialized.current = true
+            refreshFromServer(true)
+        }
     }, [isVendor]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── On window focus / tab restore: re-sync (picks up admin changes) ────────
@@ -116,16 +120,18 @@ export function PoiSwitcherProvider({ children }) {
         if (!liveIds.length) return
         loadPoiDetails(liveIds)
 
-        // If current active POI was removed, or nothing is selected, pick first
+        // Restore saved selection; fall back to first item
         setActivePOIIdState(prev => {
-            if (prev && liveIds.includes(prev)) return prev
-            const newFirst = liveIds[0] ?? null
-            if (newFirst) localStorage.setItem(STORAGE_KEY, String(newFirst))
-            return newFirst
+            const saved = parseInt(localStorage.getItem(STORAGE_KEY), 10)
+            const candidate = prev ?? (saved && liveIds.includes(saved) ? saved : null)
+            if (candidate && liveIds.includes(candidate)) return candidate
+            const first = liveIds[0] ?? null
+            if (first) localStorage.setItem(STORAGE_KEY, String(first))
+            return first
         })
     }, [liveIds.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ── Keep localStorage in sync & update state ───────────────────────────────
+    // ── Keep localStorage in sync & update state ────────────────────────────────
     const setActivePOIId = useCallback((id) => {
         const numId = Number(id)
         setActivePOIIdState(numId)
@@ -143,8 +149,8 @@ export function PoiSwitcherProvider({ children }) {
             vendorPOIIds: liveIds,
             loadingPois,
             hasMultiplePOIs: liveIds.length > 1,
-            /** Call this after admin grants a new POI to force an immediate re-sync */
-            refresh: refreshFromServer,
+            /** Call this to force an immediate re-sync from the server */
+            refresh: () => refreshFromServer(true),
         }}>
             {children}
         </PoiSwitcherContext.Provider>
