@@ -203,18 +203,18 @@ export default function POIList() {
                         <Button type="text" icon={<EditOutlined style={{ color: '#00246a' }} />} onClick={() => openEdit(record.id)} />
                     </Tooltip>
                     {!isVendor && (
-                        <Popconfirm
-                            title={`Delete "${record.name}"?`}
-                            description="This will permanently remove the POI and all its audio/media files."
-                            onConfirm={() => handleDelete(record)}
-                            okText="Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{ danger: true }}
-                        >
-                            <Tooltip title="Delete">
+                        <Tooltip title="Delete">
+                            <Popconfirm
+                                title={`Delete "${record.name}"?`}
+                                description="This will permanently remove the POI and all its audio/media files."
+                                onConfirm={() => handleDelete(record)}
+                                okText="Delete"
+                                cancelText="Cancel"
+                                okButtonProps={{ danger: true }}
+                            >
                                 <Button type="text" danger icon={<DeleteOutlined />} />
-                            </Tooltip>
-                        </Popconfirm>
+                            </Popconfirm>
+                        </Tooltip>
                     )}
                 </Space>
             )
