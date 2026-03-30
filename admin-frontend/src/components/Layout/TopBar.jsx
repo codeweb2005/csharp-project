@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Layout, Typography, Avatar, Dropdown, Space, Button } from 'antd'
 import { LogOut } from 'lucide-react'
@@ -35,6 +36,11 @@ export default function TopBar() {
     const { user, logout } = useAuth()
     const { isVendor } = useCurrentUser()
     const page = (isVendor ? vendorPageTitles[location.pathname] : null) || pageTitles[location.pathname] || { title: 'VK Food Tour', subtitle: '' }
+    const roleLabel = isVendor ? 'Vendor' : 'Admin'
+
+    useEffect(() => {
+        document.title = `${page.title} - ${roleLabel}`
+    }, [page.title, roleLabel])
 
     const handleLogout = () => {
         logout()

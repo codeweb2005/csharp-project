@@ -84,8 +84,6 @@ export default function Login() {
                         name="login"
                         layout="vertical"
                         initialValues={{
-                            email: 'admin@vinhkhanh.app',
-                            password: 'Admin@123',
                             remember: true,
                         }}
                         onFinish={onFinish}
@@ -97,7 +95,7 @@ export default function Login() {
                             label="Email"
                             rules={[{ required: true, message: 'Please input your email!' }, { type: 'email', message: 'Invalid email format!' }]}
                         >
-                            <Input prefix={<MailOutlined className="site-form-item-icon" />} placeholder="admin@vinhkhanh.app" />
+                            <Input prefix={<MailOutlined className="site-form-item-icon" />} placeholder="Enter your email" />
                         </Form.Item>
 
                         <Form.Item
