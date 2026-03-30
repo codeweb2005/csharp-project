@@ -97,7 +97,7 @@ export default function Login() {
                             label="Email"
                             rules={[{ required: true, message: 'Please enter email!' }, { type: 'email', message: 'Invalid email!' }]}
                         >
-                            <Input prefix={<MailOutlined className="site-form-item-icon" />} placeholder="vendor@vinhkhanh.app" />
+                            <Input prefix={<MailOutlined className="site-form-item-icon" />} placeholder="Enter your email" />
                         </Form.Item>
 
                         <Form.Item
