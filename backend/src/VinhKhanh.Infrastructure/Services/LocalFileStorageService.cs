@@ -32,6 +32,9 @@ public class LocalFileStorageService : IFileStorageService
 
     public async Task<string> UploadAsync(Stream fileStream, string fileName, string folder)
     {
+        if (fileStream.CanSeek)
+            fileStream.Position = 0;
+
         // Sanitize filename
         var safeName = $"{Guid.NewGuid():N}{Path.GetExtension(fileName)}";
         var folderPath = Path.Combine(_basePath, folder.Replace('/', Path.DirectorySeparatorChar));

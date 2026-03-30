@@ -13,12 +13,14 @@ public class AudioService : IAudioService
 {
     private readonly AppDbContext _db;
     private readonly IFileStorageService _storage;
+    private readonly ITTSService _tts;
     private readonly ILogger<AudioService> _logger;
 
-    public AudioService(AppDbContext db, IFileStorageService storage, ILogger<AudioService> logger)
+    public AudioService(AppDbContext db, IFileStorageService storage, ITTSService tts, ILogger<AudioService> logger)
     {
         _db = db;
         _storage = storage;
+        _tts = tts;
         _logger = logger;
     }
 
@@ -75,13 +77,29 @@ public class AudioService : IAudioService
         return ApiResponse<AudioDto>.Ok(MapToDto(created));
     }
 
-    public async Task<ApiResponse<AudioDto>> GenerateTTSAsync(int poiId, GenerateTTSRequest request)
+    public async Task<ApiResponse<AudioDto>> GenerateTTSAsync(int poiId, GenerateTTSRequest request, List<int>? vendorPOIIds = null)
     {
         // Verify POI exists
         if (!await _db.POIs.AnyAsync(p => p.Id == poiId))
             return ApiResponse<AudioDto>.Fail("NOT_FOUND", "Không tìm thấy POI");
 
-        // In production, call ITTSService. For now, create a placeholder entry.
+        // Vendor ownership check
+        if (vendorPOIIds != null && !vendorPOIIds.Contains(poiId))
+            return ApiResponse<AudioDto>.Fail("FORBIDDEN", "You do not have permission for this POI");
+
+        // Resolve language TtsCode for SSML xml:lang attribute
+        var language = await _db.Languages.FindAsync(request.LanguageId);
+        var langCode = language?.TtsCode ?? "vi-VN";
+
+        // Generate audio via Azure TTS
+        var ttsResult = await _tts.GenerateAsync(request.Text, langCode, request.VoiceName, request.Speed);
+
+        // Upload generated audio to file storage
+        using var audioStream = new MemoryStream(ttsResult.AudioData);
+        var fileName = $"tts-{Guid.NewGuid():N}.mp3";
+        var filePath = await _storage.UploadAsync(audioStream, fileName, $"audio/poi-{poiId}");
+
+        // Check if this is the first audio for this lang → make default
         var hasExisting = await _db.AudioNarrations
             .AnyAsync(a => a.POIId == poiId && a.LanguageId == request.LanguageId);
 
@@ -89,11 +107,11 @@ public class AudioService : IAudioService
         {
             POIId = poiId,
             LanguageId = request.LanguageId,
-            FilePath = $"audio/poi-{poiId}/tts-{Guid.NewGuid():N}.mp3",
+            FilePath = filePath,
             VoiceType = VoiceType.TTS,
             VoiceName = request.VoiceName,
-            Duration = (int)(request.Text.Length * 0.06), // rough estimate
-            FileSize = request.Text.Length * 100,         // rough estimate
+            Duration = ttsResult.DurationSeconds,
+            FileSize = ttsResult.AudioData.Length,
             IsDefault = !hasExisting,
             IsActive = true
         };
@@ -109,11 +127,15 @@ public class AudioService : IAudioService
         return ApiResponse<AudioDto>.Ok(MapToDto(created));
     }
 
-    public async Task<ApiResponse<bool>> DeleteAsync(int id)
+    public async Task<ApiResponse<bool>> DeleteAsync(int id, List<int>? vendorPOIIds = null)
     {
         var audio = await _db.AudioNarrations.FindAsync(id);
         if (audio == null)
             return ApiResponse<bool>.Fail("NOT_FOUND", "Không tìm thấy audio");
+
+        // Vendor ownership check
+        if (vendorPOIIds != null && !vendorPOIIds.Contains(audio.POIId))
+            return ApiResponse<bool>.Fail("FORBIDDEN", "You do not have permission to delete this audio");
 
         // Try delete file
         try { await _storage.DeleteAsync(audio.FilePath); } catch { /* log but continue */ }
@@ -147,6 +169,12 @@ public class AudioService : IAudioService
         var audio = await _db.AudioNarrations.FindAsync(id);
         if (audio == null) return null;
         return await _storage.GetFileAsync(audio.FilePath);
+    }
+
+    public async Task<string?> GetFileKeyAsync(int id)
+    {
+        var audio = await _db.AudioNarrations.FindAsync(id);
+        return audio?.FilePath;
     }
 
     private static AudioDto MapToDto(AudioNarration a) => new()

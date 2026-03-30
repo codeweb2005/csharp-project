@@ -70,10 +70,11 @@ public interface IAudioService
 {
     Task<ApiResponse<List<AudioDto>>> GetByPOIAsync(int poiId, string? lang = null);
     Task<ApiResponse<AudioDto>> UploadAsync(int poiId, int languageId, Stream file, string fileName);
-    Task<ApiResponse<AudioDto>> GenerateTTSAsync(int poiId, GenerateTTSRequest request);
-    Task<ApiResponse<bool>> DeleteAsync(int id);
+    Task<ApiResponse<AudioDto>> GenerateTTSAsync(int poiId, GenerateTTSRequest request, List<int>? vendorPOIIds = null);
+    Task<ApiResponse<bool>> DeleteAsync(int id, List<int>? vendorPOIIds = null);
     Task<ApiResponse<bool>> SetDefaultAsync(int id);
     Task<Stream?> GetStreamAsync(int id);
+    Task<string?> GetFileKeyAsync(int id);
 }
 
 // ============ Media Service ============

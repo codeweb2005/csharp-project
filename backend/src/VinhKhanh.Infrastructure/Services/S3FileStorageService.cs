@@ -65,6 +65,11 @@ public class S3FileStorageService : IFileStorageService
     /// </summary>
     public async Task<string> UploadAsync(Stream fileStream, string fileName, string folder)
     {
+        // Ensure stream is at the beginning — callers may have read it or ASP.NET buffering
+        // may have advanced the position, which would cause S3 to receive 0 bytes.
+        if (fileStream.CanSeek)
+            fileStream.Position = 0;
+
         var extension = Path.GetExtension(fileName);
         var key = $"{folder.Trim('/')}/{Guid.NewGuid():N}{extension}";
 
