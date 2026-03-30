@@ -238,7 +238,7 @@ public class CategoriesController(ICategoryService svc) : BaseApiController
 // Audio Controller
 // ================================
 [Authorize]
-public class AudioController(IAudioService svc, IFileStorageService fileStorage) : BaseApiController
+public class AudioController(IAudioService svc, IFileStorageService fileStorage, IUserService userSvc) : BaseApiController
 {
     [HttpGet("poi/{poiId}")]
     public async Task<IActionResult> GetByPOI(int poiId, [FromQuery] string? lang = null)
@@ -253,9 +253,9 @@ public class AudioController(IAudioService svc, IFileStorageService fileStorage)
     }
 
     [HttpPost("poi/{poiId}/generate-tts")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Vendor")]
     public async Task<IActionResult> GenerateTTS(int poiId, [FromBody] GenerateTTSRequest req)
-        => ApiResult(await svc.GenerateTTSAsync(poiId, req));
+        => ApiResult(await svc.GenerateTTSAsync(poiId, req, await GetVendorPOIIdsAsync(userSvc)));
 
     /// <summary>
     /// Stream or redirect audio content.
@@ -269,16 +269,10 @@ public class AudioController(IAudioService svc, IFileStorageService fileStorage)
     {
         if (fileStorage.IsCloudStorage)
         {
-            // Ask the audio service for the file key, then generate a presigned URL
-            var stream = await svc.GetStreamAsync(id);
-            if (stream == null) return NotFound();
-            // If the service returned a stream, the key was embedded — redirect
-            // For S3, GetStreamAsync returns null; we use the key from the DB via service method
-            // Simple fallback: redirect to the GetFileUrl which is the public S3 URL
-            stream.Dispose();
-            // Minimal implementation : redirect to the public CDN url stored in DB
-            // Full implementation would need AudioService.GetKeyAsync(id)
-            return NotFound(); // placeholder if service doesn't support presigned yet
+            var key = await svc.GetFileKeyAsync(id);
+            if (key == null) return NotFound();
+            var url = fileStorage.GetSignedUrl(key);
+            return Redirect(url);
         }
 
         var localStream = await svc.GetStreamAsync(id);
@@ -287,9 +281,9 @@ public class AudioController(IAudioService svc, IFileStorageService fileStorage)
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Vendor")]
     public async Task<IActionResult> Delete(int id)
-        => ApiResult(await svc.DeleteAsync(id));
+        => ApiResult(await svc.DeleteAsync(id, await GetVendorPOIIdsAsync(userSvc)));
 
     [HttpPatch("{id}/set-default")]
     public async Task<IActionResult> SetDefault(int id)

@@ -85,6 +85,9 @@ builder.Services.AddScoped<ISyncService, SyncService>();
 // Language service — anonymous endpoint for mobile app language picker
 builder.Services.AddScoped<ILanguageService, LanguageService>();
 
+// TTS service — Azure Cognitive Services Speech SDK
+builder.Services.AddSingleton<ITTSService, AzureTTSService>();
+
 // File storage: switch between local (dev) and S3 (prod) via config.
 // Set FileStorage:Provider=s3 in production ECS environment variables.
 var storageProvider = builder.Configuration["FileStorage:Provider"];
