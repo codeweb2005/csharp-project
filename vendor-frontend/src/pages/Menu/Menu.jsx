@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { PlusOutlined, DeleteOutlined, SaveOutlined, UploadOutlined, StarFilled } from '@ant-design/icons'
 import { Card, Drawer, Form, Input, InputNumber, Button, Switch, Row, Col, Typography, Space, Badge, Popconfirm, Select, Tabs, message, Empty, Spin } from 'antd'
 import { menu as menuApi, pois as poisApi } from '../../api.js'
@@ -27,6 +27,7 @@ export default function MenuPage() {
     const [saveLoading, setSaveLoading] = useState(false)
 
     const [form] = Form.useForm()
+    const dishImgRef = useRef(null)
 
     // Sync selectedPOI with PoiSwitcherContext for vendor; load full list for admin
     useEffect(() => {
@@ -173,6 +174,22 @@ export default function MenuPage() {
         }
     }
 
+    async function handleUploadImage(e) {
+        const file = e.target.files?.[0]
+        if (!file || !editingState?.id) return
+        try {
+            const res = await menuApi.uploadImage(editingState.id, file)
+            message.success('Image uploaded')
+            setEditingState(prev => ({ ...prev, imageUrl: res.data?.imageUrl }))
+            fetchMenu()
+        } catch (err) {
+            console.error('[Menu] image upload failed:', err)
+            message.error('Image upload failed')
+        } finally {
+            if (dishImgRef.current) dishImgRef.current.value = ''
+        }
+    }
+
     const sigCount = menuItems.filter(m => m.isSignature).length
 
     // Generating Tabs for translations
@@ -314,10 +331,20 @@ export default function MenuPage() {
                     </Space>
                 }
             >
-                <div style={{ textAlign: 'center', marginBottom: 24, padding: '24px', backgroundColor: '#f8fafc', borderRadius: 8, border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
-                    <UploadOutlined style={{ fontSize: 24, color: '#94a3b8', marginBottom: 8 }} />
-                    <div style={{ color: '#64748b' }}>Upload dish image</div>
+                <div
+                    onClick={() => !isCreating && dishImgRef.current?.click()}
+                    style={{ textAlign: 'center', marginBottom: 24, padding: '24px', backgroundColor: '#f8fafc', borderRadius: 8, border: '1px dashed #cbd5e1', cursor: isCreating ? 'not-allowed' : 'pointer', overflow: 'hidden' }}
+                >
+                    {editingState?.imageUrl ? (
+                        <img src={editingState.imageUrl} alt="Dish" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 6 }} />
+                    ) : (
+                        <>
+                            <UploadOutlined style={{ fontSize: 24, color: '#94a3b8', marginBottom: 8 }} />
+                            <div style={{ color: '#64748b' }}>{isCreating ? 'Save item first, then upload image' : 'Upload dish image'}</div>
+                        </>
+                    )}
                 </div>
+                <input ref={dishImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUploadImage} />
 
                 <Form form={form} layout="vertical" onFinish={handleSave}>
                     <Tabs items={tabItems} defaultActiveKey="1" style={{ marginBottom: 16 }} />

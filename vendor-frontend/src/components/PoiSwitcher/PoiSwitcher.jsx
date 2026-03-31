@@ -14,10 +14,10 @@ import { usePoiSwitcher } from '../../context/PoiSwitcherContext.jsx'
 const { Text } = Typography
 
 export default function PoiSwitcher() {
-    const { activePOIId, setActivePOIId, poisMap, vendorPOIIds, hasMultiplePOIs, loadingPois } = usePoiSwitcher()
+    const { activePOIId, setActivePOIId, poisMap, vendorPOIIds, loadingPois } = usePoiSwitcher()
 
-    // Only show if vendor has 2+ POIs
-    if (!hasMultiplePOIs) return null
+    // Show for any vendor with at least 1 POI
+    if (!vendorPOIIds.length) return null
 
     const options = vendorPOIIds.map(id => {
         const poi = poisMap[id]
@@ -41,6 +41,7 @@ export default function PoiSwitcher() {
             border: '1px solid #fde68a',
             borderRadius: 8,
             padding: '2px 10px 2px 8px',
+            marginBottom: 16,
         }}>
             <Store size={15} color="#d97706" />
             <Select

@@ -351,6 +351,14 @@ public class MenuController(IMenuService svc) : BaseApiController
     [HttpPatch("{id}/toggle-signature")]
     public async Task<IActionResult> ToggleSignature(int id)
         => ApiResult(await svc.ToggleSignatureAsync(id));
+
+    [HttpPost("{id}/upload-image")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadImage(int id, IFormFile file)
+    {
+        using var stream = file.OpenReadStream();
+        return ApiResult(await svc.UploadImageAsync(id, stream, file.FileName));
+    }
 }
 
 // ================================

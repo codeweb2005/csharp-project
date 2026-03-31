@@ -4,7 +4,6 @@ import { Layout, Typography, Avatar, Dropdown } from 'antd'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import useCurrentUser from '../../hooks/useCurrentUser.js'
-import PoiSwitcher from '../PoiSwitcher/PoiSwitcher.jsx'
 import './TopBar.css'
 
 const { Header } = Layout
@@ -65,9 +64,6 @@ export default function TopBar() {
                 <Title level={4} style={{ margin: 0 }}>{page.title}</Title>
                 <Text type="secondary" style={{ fontSize: 13 }}>{page.subtitle}</Text>
             </div>
-
-            {/* POI switcher — only visible for vendors with 2+ shops */}
-            <PoiSwitcher />
 
             <Dropdown menu={userMenuProps} placement="bottomRight" arrow>
                 <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', borderRadius: 8, transition: 'background 0.2s' }} className="topbar-user-dropdown">

@@ -182,6 +182,11 @@ export const menu = {
   delete: (id) => request(`/menu/${id}`, { method: 'DELETE' }),
   toggleAvailable: (id) => request(`/menu/${id}/toggle-available`, { method: 'PATCH' }),
   toggleSignature: (id) => request(`/menu/${id}/toggle-signature`, { method: 'PATCH' }),
+  uploadImage: (id, file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return request(`/menu/${id}/upload-image`, { method: 'POST', body: form })
+  },
 }
 
 // ============ Analytics ============

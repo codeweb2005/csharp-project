@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using VinhKhanh.Application.DTOs;
 using VinhKhanh.Application.Services;
 using VinhKhanh.Domain.Entities;
+using VinhKhanh.Domain.Interfaces;
 using VinhKhanh.Infrastructure.Data;
 
 namespace VinhKhanh.Infrastructure.Services;
@@ -10,11 +11,13 @@ namespace VinhKhanh.Infrastructure.Services;
 public class MenuService : IMenuService
 {
     private readonly AppDbContext _db;
+    private readonly IFileStorageService _storage;
     private readonly ILogger<MenuService> _logger;
 
-    public MenuService(AppDbContext db, ILogger<MenuService> logger)
+    public MenuService(AppDbContext db, IFileStorageService storage, ILogger<MenuService> logger)
     {
         _db = db;
+        _storage = storage;
         _logger = logger;
     }
 
@@ -135,12 +138,35 @@ public class MenuService : IMenuService
         return ApiResponse<bool>.Ok(true);
     }
 
-    private static MenuItemDto MapToDto(POIMenuItem m) => new()
+    public async Task<ApiResponse<MenuItemDto>> UploadImageAsync(int id, Stream file, string fileName)
+    {
+        var item = await _db.MenuItems
+            .Include(m => m.Translations).ThenInclude(t => t.Language)
+            .FirstOrDefaultAsync(m => m.Id == id);
+
+        if (item == null)
+            return ApiResponse<MenuItemDto>.Fail("NOT_FOUND", "Không tìm thấy món ăn");
+
+        // Delete old image if exists
+        if (!string.IsNullOrEmpty(item.ImagePath))
+        {
+            try { await _storage.DeleteAsync(item.ImagePath); } catch { /* log but continue */ }
+        }
+
+        var filePath = await _storage.UploadAsync(file, fileName, $"menu/poi-{item.POIId}");
+        item.ImagePath = filePath;
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Menu item image uploaded: {Id}", id);
+        return ApiResponse<MenuItemDto>.Ok(MapToDto(item));
+    }
+
+    private MenuItemDto MapToDto(POIMenuItem m) => new()
     {
         Id = m.Id,
         POIId = m.POIId,
         Price = m.Price,
-        ImageUrl = m.ImagePath,
+        ImageUrl = string.IsNullOrEmpty(m.ImagePath) ? null : _storage.GetFileUrl(m.ImagePath),
         IsSignature = m.IsSignature,
         IsAvailable = m.IsAvailable,
         SortOrder = m.SortOrder,

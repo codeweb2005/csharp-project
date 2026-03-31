@@ -96,6 +96,7 @@ public interface IMenuService
     Task<ApiResponse<bool>> DeleteAsync(int id);
     Task<ApiResponse<bool>> ToggleAvailableAsync(int id);
     Task<ApiResponse<bool>> ToggleSignatureAsync(int id);
+    Task<ApiResponse<MenuItemDto>> UploadImageAsync(int id, Stream file, string fileName);
 }
 
 // ============ User Service ============
