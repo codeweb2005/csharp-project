@@ -361,6 +361,126 @@ public class POIService : IPOIService
         return ApiResponse<POIDetailDto>.Ok(MapToDetail(poi));
     }
 
+    /// <summary>
+    /// Returns an ordered audio playback queue for a user's current position.
+    /// Sorts nearby POIs by Priority DESC then Distance ASC, and selects
+    /// one default audio track per POI so the mobile app plays them sequentially.
+    /// </summary>
+    public async Task<ApiResponse<AudioQueueResponse>> GetAudioQueueAsync(
+        double lat, double lng, int radiusMeters, int? langId)
+    {
+        const int MaxRadiusMeters = 5000;
+        if (radiusMeters > MaxRadiusMeters)
+            radiusMeters = MaxRadiusMeters;
+
+        // Step 1: Find nearby active POIs with distance via spatial query
+        var sql = $@"
+            SELECT p.Id,
+                   ST_Distance_Sphere(
+                       point(p.Longitude, p.Latitude),
+                       point({lng}, {lat})
+                   ) AS DistanceMeters
+            FROM POIs p
+            WHERE p.IsActive = 1
+              AND ST_Distance_Sphere(
+                       point(p.Longitude, p.Latitude),
+                       point({lng}, {lat})
+                  ) <= {radiusMeters}
+            ORDER BY DistanceMeters ASC";
+
+        var distanceResults = await _db.Database
+            .SqlQueryRaw<PoiDistanceResult>(sql)
+            .ToListAsync();
+
+        if (distanceResults.Count == 0)
+            return ApiResponse<AudioQueueResponse>.Ok(new AudioQueueResponse());
+
+        var poiIds = distanceResults.Select(r => r.Id).ToList();
+        var distanceMap = distanceResults.ToDictionary(r => r.Id, r => r.DistanceMeters);
+
+        // Step 2: Load POIs with audio, translations, category, primary image
+        var pois = await _db.POIs
+            .Where(p => poiIds.Contains(p.Id))
+            .Include(p => p.Category)
+                .ThenInclude(c => c.Translations)
+            .Include(p => p.Translations.Where(t => langId == null || t.LanguageId == langId))
+                .ThenInclude(t => t.Language)
+            .Include(p => p.AudioNarrations.Where(a => a.IsActive &&
+                          (langId == null || a.LanguageId == langId)))
+                .ThenInclude(a => a.Language)
+            .Include(p => p.Media.Where(m => m.IsPrimary))
+            .ToListAsync();
+
+        // Step 3: Sort by Priority DESC, then Distance ASC
+        var sortedPois = pois
+            .OrderByDescending(p => p.Priority)
+            .ThenBy(p => distanceMap.GetValueOrDefault(p.Id))
+            .ToList();
+
+        // Step 4: Build the queue — one audio per POI (prefer IsDefault, then first available)
+        var queue = new List<AudioQueueItemDto>();
+        var order = 1;
+
+        foreach (var p in sortedPois)
+        {
+            var translation = p.Translations
+                .OrderBy(t => t.LanguageId)
+                .FirstOrDefault();
+
+            // Pick the default audio, or fall back to the first available
+            var audio = p.AudioNarrations.FirstOrDefault(a => a.IsDefault)
+                        ?? p.AudioNarrations.FirstOrDefault();
+
+            // Skip POIs with no audio and no narration text
+            if (audio == null && string.IsNullOrEmpty(translation?.NarrationText))
+                continue;
+
+            queue.Add(new AudioQueueItemDto
+            {
+                Order = order++,
+                POIId = p.Id,
+                POIName = translation?.Name ?? "",
+                CategoryName = p.Category?.Translations
+                    .OrderBy(t => t.LanguageId).Select(t => t.Name).FirstOrDefault() ?? "",
+                CategoryIcon = p.Category?.Icon ?? "",
+                CategoryColor = p.Category?.Color ?? "",
+                PrimaryImageUrl = p.Media.FirstOrDefault(m => m.IsPrimary)?.FilePath,
+                DistanceMeters = distanceMap.GetValueOrDefault(p.Id),
+                Priority = p.Priority,
+                Latitude = p.Latitude,
+                Longitude = p.Longitude,
+                Audio = audio != null ? new AudioDto
+                {
+                    Id = audio.Id,
+                    POIId = audio.POIId,
+                    LanguageId = audio.LanguageId,
+                    LanguageName = audio.Language?.Name ?? "",
+                    FlagEmoji = audio.Language?.FlagEmoji ?? "",
+                    FilePath = audio.FilePath,
+                    VoiceType = audio.VoiceType.ToString(),
+                    VoiceName = audio.VoiceName,
+                    Duration = audio.Duration,
+                    FileSize = audio.FileSize,
+                    IsDefault = audio.IsDefault
+                } : null,
+                ShortDescription = translation?.ShortDescription,
+                NarrationText = translation?.NarrationText
+            });
+        }
+
+        var response = new AudioQueueResponse
+        {
+            Queue = queue,
+            TotalDurationSeconds = queue.Where(q => q.Audio != null).Sum(q => q.Audio!.Duration),
+            POICount = queue.Count
+        };
+
+        _logger.LogDebug(
+            "Audio queue at ({Lat},{Lng}) radius={Radius}m → {Count} items, {Duration}s total",
+            lat, lng, radiusMeters, queue.Count, response.TotalDurationSeconds);
+
+        return ApiResponse<AudioQueueResponse>.Ok(response);
+    }
 
     private static POIDetailDto MapToDetail(POI p) => new()
     {

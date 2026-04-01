@@ -178,6 +178,34 @@ public class POIsController(IPOIService poiService, IUserService userSvc) : Base
         int id,
         [FromQuery] int? langId = null)
         => ApiResult(await poiService.GetPublicDetailAsync(id, langId));
+
+    /// <summary>
+    /// Returns an ordered audio playback queue based on the user's GPS position.
+    /// When multiple POIs are within range, their narrations are queued sequentially
+    /// (sorted by Priority DESC, then Distance ASC) instead of playing simultaneously.
+    /// The mobile app should play items in the returned order.
+    ///
+    /// Query params:
+    ///   lat          — latitude   (required)
+    ///   lng          — longitude  (required)
+    ///   radiusMeters — search radius in meters, default 500, max 5000
+    ///   langId       — if supplied, selects audio for that language only
+    /// </summary>
+    [HttpGet("audio-queue")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAudioQueue(
+        [FromQuery] double lat,
+        [FromQuery] double lng,
+        [FromQuery] int radiusMeters = 500,
+        [FromQuery] int? langId = null)
+    {
+        if (lat < -90 || lat > 90)
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "lat must be between -90 and 90"));
+        if (lng < -180 || lng > 180)
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "lng must be between -180 and 180"));
+
+        return ApiResult(await poiService.GetAudioQueueAsync(lat, lng, radiusMeters, langId));
+    }
 }
 
 // ================================

@@ -499,3 +499,56 @@ public class VisitInput
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 }
+
+// ============ Audio Queue (Sequential Playback) ============
+
+/// <summary>
+/// Response for the audio queue endpoint. When a user is near multiple POIs,
+/// the mobile app should play audio narrations sequentially in this order
+/// rather than simultaneously.
+/// </summary>
+public class AudioQueueResponse
+{
+    /// <summary>Ordered list of audio items to play sequentially.</summary>
+    public List<AudioQueueItemDto> Queue { get; set; } = [];
+    /// <summary>Total estimated playback duration in seconds for the entire queue.</summary>
+    public int TotalDurationSeconds { get; set; }
+    /// <summary>Number of POIs included in the queue.</summary>
+    public int POICount { get; set; }
+}
+
+/// <summary>
+/// A single item in the audio playback queue. Represents one POI's narration
+/// with ordering metadata so the mobile app knows when to play it.
+/// </summary>
+public class AudioQueueItemDto
+{
+    /// <summary>Position in the playback queue (1-based).</summary>
+    public int Order { get; set; }
+    /// <summary>POI identifier.</summary>
+    public int POIId { get; set; }
+    /// <summary>Localized POI name.</summary>
+    public string POIName { get; set; } = string.Empty;
+    /// <summary>Category name for display.</summary>
+    public string CategoryName { get; set; } = string.Empty;
+    /// <summary>Category icon identifier.</summary>
+    public string CategoryIcon { get; set; } = string.Empty;
+    /// <summary>Category color hex.</summary>
+    public string CategoryColor { get; set; } = string.Empty;
+    /// <summary>POI primary image URL.</summary>
+    public string? PrimaryImageUrl { get; set; }
+    /// <summary>Distance in meters from user's position to this POI.</summary>
+    public double DistanceMeters { get; set; }
+    /// <summary>POI geofence priority. Higher = played earlier in queue.</summary>
+    public int Priority { get; set; }
+    /// <summary>Latitude of the POI.</summary>
+    public double Latitude { get; set; }
+    /// <summary>Longitude of the POI.</summary>
+    public double Longitude { get; set; }
+    /// <summary>The selected audio narration for this POI.</summary>
+    public AudioDto? Audio { get; set; }
+    /// <summary>Short description text (fallback if no audio available).</summary>
+    public string? ShortDescription { get; set; }
+    /// <summary>Narration text for display while audio plays.</summary>
+    public string? NarrationText { get; set; }
+}

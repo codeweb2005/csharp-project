@@ -52,6 +52,19 @@ public interface IPOIService
     /// Only returns active POIs. Used by mobile tourist flow.
     /// </summary>
     Task<ApiResponse<POIDetailDto>> GetPublicDetailAsync(int id, int? langId);
+
+    /// <summary>
+    /// Returns an ordered audio playback queue for a user's current position.
+    /// When multiple POIs are within the search radius, their narrations are
+    /// ordered by Priority (descending) then Distance (ascending) so the mobile
+    /// app can play them sequentially instead of simultaneously.
+    /// Each POI contributes at most one audio track (the default one for the language).
+    /// </summary>
+    /// <param name="lat">Requester latitude (-90 to 90)</param>
+    /// <param name="lng">Requester longitude (-180 to 180)</param>
+    /// <param name="radiusMeters">Search radius in meters (max 5000)</param>
+    /// <param name="langId">If provided, selects audio for this language only</param>
+    Task<ApiResponse<AudioQueueResponse>> GetAudioQueueAsync(double lat, double lng, int radiusMeters, int? langId);
 }
 
 // ============ Category Service ============
