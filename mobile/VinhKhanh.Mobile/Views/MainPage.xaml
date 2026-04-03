@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    MainPage.xaml — Nearby POI list with GPS tracking status and NowPlayingBar.
+
+    Layout:
+      ┌──────────────────────────────────────────┐
+      │  Status pill (GPS on/off)                 │
+      │  ─────────────────────────────────────── │
+      │  CollectionView: POI rows                 │
+      │    [{icon}] {name}              {dist}m   │
+      │             {category}                    │
+      │  ─────────────────────────────────────── │
+      │  ▐ NowPlayingBar (visible when IsPlaying) │
+      │  │  ♫ {POI name}   ⏸ Pause  ⏹ Stop     │
+      └──────────────────────────────────────────┘
+
+    Data binding:
+      BindingContext = MainViewModel (set in code-behind)
+      CollectionView.ItemsSource → NearbyPois
+      ActivityIndicator          → IsBusy
+      StatusLabel                → StatusText
+      NowPlayingBar visibility   → IsPlaying (BoolToObject converter)
+-->
+<ContentPage
+    x:Class="VinhKhanh.Mobile.Views.MainPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:VinhKhanh.Mobile.ViewModels"
+    xmlns:models="clr-namespace:VinhKhanh.Mobile.Models"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    Title="Vinh Khanh Food Tour"
+    BackgroundColor="#0F172A">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <!-- Converts bool IsPlaying to Visible/Collapsed for the NowPlayingBar -->
+            <toolkit:InvertedBoolConverter x:Key="InvertBool" />
+            <toolkit:BoolToObjectConverter x:Key="BoolToVisible" TrueObject="True" FalseObject="False" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ── Header / Status bar ────────────────────────────────────────────── -->
+        <Grid Grid.Row="0" Padding="16,12" ColumnDefinitions="*,Auto"
+              BackgroundColor="#1E293B">
+
+            <Label Grid.Column="0"
+                   Text="🍜 Vinh Khanh Food Tour"
+                   FontSize="20" FontAttributes="Bold"
+                   TextColor="#F1F5F9"
+                   VerticalOptions="Center" />
+
+            <!-- GPS status pill -->
+            <Frame Grid.Column="1"
+                   BackgroundColor="#0F172A"
+                   BorderColor="#334155"
+                   CornerRadius="12"
+                   Padding="10,4"
+                   VerticalOptions="Center">
+                <Label Text="{Binding StatusText}"
+                       FontSize="12"
+                       TextColor="#94A3B8" />
+            </Frame>
+        </Grid>
+
+        <!-- ── POI List ───────────────────────────────────────────────────────── -->
+        <Grid Grid.Row="1">
+
+            <!-- Loading indicator -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="#6366F1"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center" />
+
+            <!-- Error state -->
+            <Label Text="{Binding ErrorMessage}"
+                   IsVisible="{Binding ErrorMessage, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"
+                   TextColor="#F87171"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"
+                   Margin="24" />
+
+            <!-- POI list -->
+            <CollectionView
+                ItemsSource="{Binding NearbyPois}"
+                SelectionMode="Single"
+                SelectionChanged="OnPoiSelected"
+                IsVisible="{Binding IsBusy, Converter={StaticResource InvertBool}}"
+                Margin="0,4">
+
+                <!-- Empty state -->
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="8">
+                        <Label Text="📍" FontSize="48" HorizontalOptions="Center" />
+                        <Label Text="No nearby POIs found"
+                               TextColor="#64748B"
+                               HorizontalOptions="Center" />
+                        <Label Text="Walk closer to Vinh Khanh street"
+                               TextColor="#475569"
+                               FontSize="12"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:PoiLocal">
+                        <!--
+                            Each row: icon pill + name + distance chip + category label.
+                        -->
+                        <Frame Margin="12,4" Padding="14,12"
+                               BackgroundColor="#1E293B"
+                               BorderColor="#334155"
+                               CornerRadius="12">
+                            <Grid ColumnDefinitions="48,*,Auto" ColumnSpacing="12">
+
+                                <!-- Category icon circle -->
+                                <Frame Grid.Column="0"
+                                       BackgroundColor="#312E81"
+                                       CornerRadius="24"
+                                       WidthRequest="44" HeightRequest="44"
+                                       Padding="0"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center">
+                                    <Label Text="{Binding CategoryIcon}"
+                                           FontSize="22"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Frame>
+
+                                <!-- Name + category -->
+                                <VerticalStackLayout Grid.Column="1" Spacing="2"
+                                                     VerticalOptions="Center">
+                                    <Label Text="{Binding Name}"
+                                           FontAttributes="Bold"
+                                           FontSize="15"
+                                           TextColor="#F1F5F9" />
+                                    <Label Text="{Binding CategoryLabel}"
+                                           FontSize="12"
+                                           TextColor="#64748B" />
+                                </VerticalStackLayout>
+
+                                <!-- Distance badge -->
+                                <Frame Grid.Column="2"
+                                       BackgroundColor="#1E3A5F"
+                                       CornerRadius="8"
+                                       Padding="8,4"
+                                       VerticalOptions="Center">
+                                    <Label Text="{Binding DistanceDisplay}"
+                                           TextColor="#60A5FA"
+                                           FontSize="12"
+                                           FontAttributes="Bold" />
+                                </Frame>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <!-- ── Now Playing Bar ────────────────────────────────────────────────── -->
+        <!--
+            Visible only when INarrationPlayer.IsPlaying == true.
+            Shows the current POI name + Pause and Stop buttons.
+            Slides in from the bottom with a subtle drop shadow.
+        -->
+        <Grid Grid.Row="2"
+              IsVisible="{Binding IsPlaying}"
+              BackgroundColor="#312E81"
+              Padding="16,10">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+
+                <!-- Music note icon -->
+                <Label Grid.Column="0"
+                       Text="♫"
+                       FontSize="20"
+                       TextColor="#A5B4FC"
+                       VerticalOptions="Center" />
+
+                <!-- POI name -->
+                <Label Grid.Column="1"
+                       Text="{Binding NowPlayingName}"
+                       FontAttributes="Bold"
+                       TextColor="#E0E7FF"
+                       FontSize="14"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation" />
+
+                <!-- Pause button -->
+                <Button Grid.Column="2"
+                        Text="⏸"
+                        Command="{Binding PauseNarrationCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="#A5B4FC"
+                        FontSize="18"
+                        Padding="8,4"
+                        WidthRequest="44" />
+
+                <!-- Stop button -->
+                <Button Grid.Column="3"
+                        Text="⏹"
+                        Command="{Binding StopNarrationCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="#F87171"
+                        FontSize="18"
+                        Padding="8,4"
+                        WidthRequest="44" />
+            </Grid>
+
+            <!--
+                Hidden MediaElement — attached to the visual tree to satisfy the
+                CommunityToolkit requirement. Height=0 makes it invisible.
+                Code-behind calls NarrationPlayer.SetMediaElement() after load.
+            -->
+            <toolkit:MediaElement
+                x:Name="NarrationMediaElement"
+                Grid.Row="1"
+                HeightRequest="0"
+                ShouldAutoPlay="False"
+                ShouldShowPlaybackControls="False" />
+        </Grid>
+
+    </Grid>
+</ContentPage>

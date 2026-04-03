@@ -1,0 +1,210 @@
+.cats-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.cats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cats-count {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.cats-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.cats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    flex: 1;
+}
+
+.cat-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    border: 2px solid transparent;
+}
+
+.cat-card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-2px);
+}
+
+.cat-card.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.cat-card-accent {
+    height: 4px;
+}
+
+.cat-card-body {
+    padding: 20px;
+    text-align: center;
+}
+
+.cat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.cat-names {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 12px;
+}
+
+.cat-name-vi {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.cat-name-en {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.cat-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.cat-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.08);
+}
+
+.cat-poi-count {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.cat-card-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.cat-card:hover .cat-card-actions {
+    opacity: 1;
+}
+
+/* Edit Panel */
+.cat-edit-panel {
+    width: 340px;
+    flex-shrink: 0;
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow);
+    padding: 24px;
+    position: sticky;
+    top: 90px;
+}
+
+.cat-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.cat-edit-header h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.cat-edit-preview {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.cat-edit-icon {
+    font-size: 3.5rem;
+    display: inline-block;
+    background: var(--content-bg);
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-xl);
+    line-height: 80px;
+}
+
+.cat-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.cat-color-input {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.cat-color-picker {
+    width: 40px;
+    height: 38px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    padding: 2px;
+}
+
+.cat-edit-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 6px 0;
+}
+
+.cat-edit-section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.cat-edit-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+    .cats-layout {
+        flex-direction: column;
+    }
+
+    .cats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .cat-edit-panel {
+        width: 100%;
+        position: static;
+    }
+}

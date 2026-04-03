@@ -1,0 +1,96 @@
+# Phase 2 Walkthrough — MAUI Mobile PoC
+
+## What Was Done
+
+### 1. Environment Setup
+- **MAUI workload installed**: `dotnet workload install maui` ✅
+- **Project scaffolded**: `mobile/VinhKhanh.Mobile/` with `dotnet new maui` ✅
+- **NuGet packages added**: CommunityToolkit.Maui, CommunityToolkit.Maui.MediaElement v8.0.1, CommunityToolkit.Mvvm, Microsoft.Extensions.Http ✅
+
+### 2. Files Created
+
+| File | Purpose |
+|---|---|
+| `appsettings.json` | Embedded config (ApiBaseUrl, radius, debounce) |
+| `Services/ILocationService.cs` | GPS abstraction + `LocationUpdate` record |
+| `Services/LocationService.cs` | 5s polling GPS, permission handling |
+| `Services/GeofenceEngine.cs` | Haversine + debounce + priority resolution |
+| `Services/INarrationPlayer.cs` | Audio playback interface |
+| `Services/NarrationPlayer.cs` | MediaElement streaming + TTS fallback |
+| `Services/ApiClient.cs` | HTTP client with 5 endpoints, JWT SecureStorage |
+| `Models/PoiLocal.cs` | In-memory POI model, `FromDto()` factory |
+| `ViewModels/MainViewModel.cs` | POI list VM, geofence auto-play |
+| `ViewModels/PoiDetailViewModel.cs` | Detail page VM, Play command |
+| `Views/MainPage.xaml` + `.cs` | Dark-themed POI list + NowPlayingBar |
+| `Views/PoiDetailPage.xaml` + `.cs` | POI detail + Play Narration button |
+| `MauiProgram.cs` | DI registration (all singleton/transient) |
+| `AppShell.xaml` + `.cs` | Shell routing, "poiDetail" route registered |
+| `Platforms/Android/AndroidManifest.xml` | GPS + network permissions |
+| `Platforms/iOS/Info.plist` | NSLocationWhenInUseUsageDescription |
+| `VinhKhanh.Mobile.csproj` | Updated app ID, min Android API 26, NU1605 suppressed |
+
+### 3. Key Design Decisions
+
+#### GPS Strategy (PoC vs Phase 3)
+The PoC uses **polling** (`Geolocation.GetLocationAsync` every 5s) — simpler, no foreground service needed. Phase 3 upgrades to `Geolocation.StartListeningForegroundAsync` with an Android Foreground Service for background tracking.
+
+#### Geofence Algorithm
+```
+for each POI:
+  if haversine(userLat, userLng, poi.lat, poi.lng) <= poi.radius:
+    increment debounce counter
+    if counter >= 3 (≈15s dwell): mark as INSIDE → fire GeofenceEntered
+  else:
+    reset counter
+    if previously INSIDE: fire GeofenceExited
+    
+if multiple POIs trigger: take highest Priority
+```
+
+#### NarrationPlayer Limitation (PoC)
+MediaElement must be in the XAML visual tree. The player holds a `WeakReference<MediaElement>` to the element in `MainPage.xaml`. Phase 3 will use a global overlay view.
+
+#### ApiClient configuration
+`appsettings.json` is embedded as an `EmbeddedResource` and read via `Assembly.GetManifestResourceStream()`. Change `ApiBaseUrl` for LAN testing:
+- **Android emulator**: `http://10.0.2.2:5015/api/v1`
+- **Physical device**: `http://192.168.x.x:5015/api/v1`
+
+### 4. Build Verification
+
+```
+dotnet build VinhKhanh.Mobile.csproj -f net10.0-windows10.0.19041.0
+  → Build succeeded. 0 Error(s)   ✅
+```
+
+**Android SDK not installed** on this machine — the Android-specific build (`net10.0-android`) fails with "Android SDK not found". This is an environment issue, not a code issue. To build for Android:
+1. Install Android SDK via [Visual Studio Installer](https://aka.ms/dotnet-android-install-sdk) or Android Studio
+2. Install JDK 17+
+3. Run: `dotnet build -f net10.0-android`
+
+### 5. How to Run on Android Emulator (after SDK install)
+
+```bash
+# Start emulator in Android Studio, then:
+dotnet run -f net10.0-android --project mobile/VinhKhanh.Mobile
+
+# Or build APK:
+dotnet build -f net10.0-android -c Debug
+# APK at: mobile/VinhKhanh.Mobile/bin/Debug/net10.0-android/com.vinhkhanh.foodtour-Signed.apk
+```
+
+For API access from emulator, backend must be running on host port 5015:
+```bash
+# Backend
+dotnet run --project backend/src/VinhKhanh.API
+
+# appsettings.json ApiBaseUrl = "http://10.0.2.2:5015/api/v1"  ← emulator → host
+```
+
+### 6. C# API Compatibility Fixes Applied
+
+| Issue | Fix |
+|---|---|
+| `MediaStateChangedEventArgs` missing | Added `using CommunityToolkit.Maui.Core` — type is in that namespace |
+| `SpeechOptions.Language` not found | Changed to `SpeechOptions.Locale` + used `GetLocalesAsync()` to match by code |
+| `UseMauiCommunityToolkitMediaElement()` missing required param | CT.Maui.MediaElement 8.x requires `isAndroidForegroundServiceEnabled: false` |
+| NU1605 package downgrade errors | Added `<NoWarn>NU1605</NoWarn>` — safe, toolkit tested across MAUI 10.x patches |

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    AppShell.xaml — Application shell navigation structure.
+
+    Shell provides:
+      - Tab bar (bottom navigation for Phase 3: Nearby + Language)
+      - Route registration for GoToAsync("poiDetail") from MainPage
+      - Flyout navigation (disabled for PoC — single-tab app)
+
+    Routes registered:
+      "poiDetail"  →  PoiDetailPage (receives poi query parameter)
+-->
+<Shell
+    x:Class="VinhKhanh.Mobile.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:VinhKhanh.Mobile.Views"
+    Shell.FlyoutBehavior="Disabled"
+    Title="Vinh Khanh Food Tour"
+    BackgroundColor="#1E293B"
+    ForegroundColor="#F1F5F9"
+    TabBarBackgroundColor="#1E293B"
+    TabBarForegroundColor="#6366F1"
+    TabBarUnselectedColor="#64748B">
+
+    <!--
+        Main tab — Nearby POI list.
+        Phase 3 will add a Language tab and a Map tab here.
+    -->
+    <TabBar>
+        <ShellContent
+            Title="Nearby"
+            ContentTemplate="{DataTemplate views:MainPage}"
+            Route="main" />
+        <ShellContent
+            Title="Map"
+            ContentTemplate="{DataTemplate views:MapPage}"
+            Route="map" />
+        <ShellContent
+            Title="Offline"
+            ContentTemplate="{DataTemplate views:OfflinePage}"
+            Route="offline" />
+        <ShellContent
+            Title="Profile"
+            ContentTemplate="{DataTemplate views:ProfilePage}"
+            Route="profile" />
+    </TabBar>
+
+</Shell>

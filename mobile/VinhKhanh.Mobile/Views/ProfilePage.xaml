@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="VinhKhanh.Mobile.Views.ProfilePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    Title="Profile"
+    BackgroundColor="#0F172A">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:IsStringNotNullOrEmptyConverter x:Key="StringNotEmptyConverter" />
+            <toolkit:InvertedBoolConverter x:Key="InvertBool" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <ScrollView Padding="20">
+        <VerticalStackLayout Spacing="20">
+
+            <Label Text="Account"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="#F1F5F9" />
+
+            <Label Text="{Binding UserSummary}"
+                   TextColor="#94A3B8"
+                   FontSize="14" />
+
+            <Button Text="Sign in"
+                    Command="{Binding OpenLoginCommand}"
+                    IsVisible="{Binding IsSignedIn, Converter={StaticResource InvertBool}}"
+                    BackgroundColor="#6366F1"
+                    TextColor="White"
+                    CornerRadius="12"
+                    HeightRequest="44" />
+
+            <Label Text="Profile details"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#E2E8F0"
+                   IsVisible="{Binding IsSignedIn}" />
+
+            <Entry Placeholder="Full name"
+                   Text="{Binding FullNameEdit}"
+                   TextColor="#F1F5F9"
+                   PlaceholderColor="#64748B"
+                   BackgroundColor="#1E293B"
+                   IsVisible="{Binding IsSignedIn}" />
+
+            <Entry Placeholder="Phone (optional)"
+                   Text="{Binding PhoneEdit}"
+                   Keyboard="Telephone"
+                   TextColor="#F1F5F9"
+                   PlaceholderColor="#64748B"
+                   BackgroundColor="#1E293B"
+                   IsVisible="{Binding IsSignedIn}" />
+
+            <Label Text="{Binding ProfileError}"
+                   TextColor="#F87171"
+                   FontSize="13"
+                   IsVisible="{Binding ProfileError, Converter={StaticResource StringNotEmptyConverter}}" />
+
+            <Label Text="{Binding ProfileMessage}"
+                   TextColor="#86EFAC"
+                   FontSize="13"
+                   IsVisible="{Binding ProfileMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+            <Button Text="Save profile"
+                    Command="{Binding SaveProfileCommand}"
+                    IsVisible="{Binding IsSignedIn}"
+                    BackgroundColor="#312E81"
+                    TextColor="#E0E7FF"
+                    CornerRadius="12"
+                    HeightRequest="44" />
+
+            <Button Text="Sign out"
+                    Command="{Binding LogoutCommand}"
+                    IsVisible="{Binding IsSignedIn}"
+                    BackgroundColor="Transparent"
+                    BorderColor="#475569"
+                    TextColor="#F87171"
+                    HeightRequest="44" />
+
+            <Label Text="Tour language"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#E2E8F0"
+                   Margin="0,8,0,0" />
+
+            <Label Text="{Binding SelectedLanguageLabel}"
+                   TextColor="#94A3B8"
+                   FontSize="13" />
+
+            <Picker Title="Select language"
+                    ItemsSource="{Binding Languages}"
+                    ItemDisplayBinding="{Binding DisplayLabel}"
+                    SelectedItem="{Binding SelectedLanguage}"
+                    TextColor="#F1F5F9"
+                    TitleColor="#64748B"
+                    BackgroundColor="#1E293B" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="#6366F1" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

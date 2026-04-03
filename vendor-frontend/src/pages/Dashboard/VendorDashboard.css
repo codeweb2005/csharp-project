@@ -1,0 +1,257 @@
+/* ============================================================
+   VendorDashboard — Styles
+   ============================================================ */
+
+/* ── Layout ──────────────────────────────────────────────── */
+
+.vendor-dash {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Fade-in animation for the whole page */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.35s ease both;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+
+.vendor-dash-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.vendor-dash-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary, #1e293b);
+    margin: 0;
+}
+
+.vendor-dash-subtitle {
+    color: var(--text-secondary, #64748b);
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+}
+
+/* ── Stat Cards grid ─────────────────────────────────────── */
+
+.vendor-dash-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.vendor-stat-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    border: 1px solid rgba(0,0,0,.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.vendor-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,.10);
+}
+
+/* Colour theming per card */
+.vendor-stat-card--indigo .vendor-stat-icon { background:#eef2ff; color:#6366f1; }
+.vendor-stat-card--emerald .vendor-stat-icon { background:#d1fae5; color:#10b981; }
+.vendor-stat-card--amber .vendor-stat-icon  { background:#fef3c7; color:#f59e0b; }
+.vendor-stat-card--violet .vendor-stat-icon { background:#ede9fe; color:#7c3aed; }
+
+.vendor-stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.vendor-stat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.vendor-stat-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #64748b);
+    font-weight: 500;
+    letter-spacing: .01em;
+}
+
+.vendor-stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-primary, #1e293b);
+    line-height: 1;
+}
+
+.vendor-stat-change {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.vendor-stat-change.positive { color: #10b981; }
+.vendor-stat-change.negative { color: #ef4444; }
+
+/* ── Bottom section (Language stats + Peak hours) ─────────── */
+
+.vendor-dash-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .vendor-dash-bottom { grid-template-columns: 1fr; }
+}
+
+/* Generic card used by both bottom sections */
+.card.vendor-dash-section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    border: 1px solid rgba(0,0,0,.06);
+}
+
+.vendor-dash-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: var(--text-secondary, #64748b);
+}
+
+.vendor-dash-section-header h2 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    margin: 0;
+}
+
+/* ── Language list ───────────────────────────────────────── */
+
+.vendor-lang-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vendor-lang-item {
+    display: grid;
+    grid-template-columns: 24px 80px 1fr 40px 40px;
+    align-items: center;
+    gap: 8px;
+}
+
+.vendor-lang-flag { font-size: 1.1rem; }
+.vendor-lang-name { font-size: 0.85rem; font-weight: 500; color: var(--text-primary, #1e293b); }
+
+.vendor-lang-bar-wrap {
+    background: #f1f5f9;
+    border-radius: 999px;
+    height: 7px;
+    overflow: hidden;
+}
+
+.vendor-lang-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 999px;
+    transition: width 0.5s ease;
+}
+
+.vendor-lang-pct  { font-size: 0.78rem; font-weight: 600; color: #6366f1; text-align: right; }
+.vendor-lang-count{ font-size: 0.72rem; color: var(--text-secondary, #64748b); }
+
+/* ── Peak hour highlight ─────────────────────────────────── */
+
+.vendor-peak-highlight {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.vendor-peak-time {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-primary, #1e293b);
+}
+
+.vendor-peak-visits {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #64748b);
+    font-weight: 500;
+}
+
+/* ── Hourly bar chart ────────────────────────────────────── */
+
+.vendor-hourly-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 80px;
+    margin-top: 8px;
+}
+
+.vendor-hour-bar {
+    flex: 1;
+    background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 3px 3px 0 0;
+    transition: height 0.5s ease;
+    cursor: default;
+    opacity: 0.7;
+}
+
+.vendor-hour-bar:hover { opacity: 1; }
+
+.vendor-hourly-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 0.65rem;
+    color: var(--text-secondary, #9ca3af);
+}
+
+/* ── Loading / Error ─────────────────────────────────────── */
+
+.vendor-dash-loading,
+.vendor-dash-error {
+    padding: 48px 32px;
+    text-align: center;
+    color: var(--text-secondary, #64748b);
+    font-size: 1rem;
+}
+
+.vendor-dash-error { color: #ef4444; }
+
+.vendor-dash-empty {
+    color: var(--text-secondary, #9ca3af);
+    font-size: 0.85rem;
+    padding: 8px 0;
+}

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="VinhKhanh.Mobile.Views.OfflinePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:services="clr-namespace:VinhKhanh.Mobile.Services"
+    Title="Offline"
+    BackgroundColor="#0F172A">
+
+    <ScrollView Padding="16">
+        <VerticalStackLayout Spacing="16">
+
+            <Label Text="Offline packages"
+                   FontSize="22"
+                   FontAttributes="Bold"
+                   TextColor="#F1F5F9" />
+
+            <Label Text="Download a package (ZIP with manifest + audio) built in the admin panel. Nearby and map use cached POIs when you have no network; sync when online to refresh after admins rebuild."
+                   TextColor="#64748B"
+                   FontSize="13" />
+
+            <Label Text="{Binding InstalledInfo}"
+                   TextColor="#94A3B8"
+                   FontSize="13" />
+
+            <Button Text="Refresh catalog"
+                    Command="{Binding LoadCommand}"
+                    BackgroundColor="#312E81"
+                    TextColor="#E0E7FF"
+                    CornerRadius="10"
+                    HeightRequest="44" />
+
+            <Button Text="Sync installed package"
+                    Command="{Binding SyncNowCommand}"
+                    BackgroundColor="#6366F1"
+                    TextColor="White"
+                    CornerRadius="10"
+                    HeightRequest="44" />
+
+            <Button Text="Remove offline data"
+                    Command="{Binding RemoveCommand}"
+                    BackgroundColor="Transparent"
+                    BorderColor="#475569"
+                    TextColor="#F87171"
+                    HeightRequest="44" />
+
+            <ProgressBar Progress="{Binding DownloadProgress}"
+                         HeightRequest="6"
+                         BackgroundColor="#334155"
+                         ProgressColor="#818CF8" />
+
+            <Label Text="{Binding StatusMessage}"
+                   TextColor="#CBD5E1"
+                   FontSize="13" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="#6366F1" />
+
+            <Label Text="Available packages"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#E2E8F0"
+                   Margin="0,8,0,0" />
+
+            <CollectionView ItemsSource="{Binding Packages}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="No catalog entries — refresh when online."
+                           TextColor="#64748B"
+                           HorizontalOptions="Center"
+                           Margin="0,24" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="services:OfflinePackageCatalogItemDto">
+                        <Frame Margin="0,6"
+                               Padding="14"
+                               BackgroundColor="#1E293B"
+                               BorderColor="#334155"
+                               CornerRadius="12">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                <Label Grid.Row="0" Grid.Column="0"
+                                       Text="{Binding Name}"
+                                       FontAttributes="Bold"
+                                       TextColor="#F1F5F9" />
+                                <Label Grid.Row="1" Grid.Column="0"
+                                       Text="{Binding LanguageName}"
+                                       FontSize="12"
+                                       TextColor="#64748B" />
+                                <Label Grid.Row="2" Grid.Column="0"
+                                       Text="{Binding SizeLabel}"
+                                       FontSize="12"
+                                       TextColor="#94A3B8" />
+                                <Button Grid.Row="0" Grid.RowSpan="3" Grid.Column="1"
+                                        Text="Download"
+                                        VerticalOptions="Center"
+                                        Padding="12,8"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DownloadCommand}"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="#6366F1"
+                                        TextColor="White"
+                                        CornerRadius="8" />
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="VinhKhanh.Mobile.Views.LoginPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    Title="Sign in"
+    BackgroundColor="#0F172A">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:IsStringNotNullOrEmptyConverter x:Key="StringNotEmptyConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <ScrollView Padding="24">
+        <VerticalStackLayout Spacing="16" VerticalOptions="Center">
+
+            <Label Text="Sign in"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="#F1F5F9" />
+
+            <Entry Placeholder="Email"
+                   Text="{Binding Email}"
+                   Keyboard="Email"
+                   TextColor="#F1F5F9"
+                   PlaceholderColor="#64748B" />
+
+            <Entry Placeholder="Password"
+                   Text="{Binding Password}"
+                   IsPassword="True"
+                   TextColor="#F1F5F9"
+                   PlaceholderColor="#64748B" />
+
+            <Label Text="{Binding ErrorMessage}"
+                   TextColor="#F87171"
+                   FontSize="13"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+            <Label Text="{Binding InfoMessage}"
+                   TextColor="#86EFAC"
+                   FontSize="13"
+                   IsVisible="{Binding InfoMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+            <Button Text="Sign in"
+                    Command="{Binding LoginCommand}"
+                    BackgroundColor="#6366F1"
+                    TextColor="White"
+                    CornerRadius="12"
+                    HeightRequest="48" />
+
+            <Button Text="Create account"
+                    Command="{Binding GoRegisterCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="#93C5FD" />
+
+            <Button Text="Forgot password"
+                    Command="{Binding ForgotPasswordCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="#64748B"
+                    FontSize="13" />
+
+            <Button Text="Reset password with code"
+                    Command="{Binding GoResetPasswordCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="#475569"
+                    FontSize="13" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="#6366F1" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

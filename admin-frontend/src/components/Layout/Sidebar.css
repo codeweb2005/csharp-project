@@ -1,0 +1,75 @@
+/* ============================================================================
+   Sidebar — Azure Culinary Hub
+   Frosted glass navigation with pill-shaped active states
+   ============================================================================ */
+
+/* Ant Design Sider overrides */
+.sidebar-antd {
+    background: var(--surface-container-low) !important;
+    border-right: none !important;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+}
+
+.sidebar-antd .ant-layout-sider-children {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Logo Area */
+.sidebar-logo-antd {
+    border-bottom: none !important;
+    /* Use tonal transition instead of border */
+    background: var(--surface-container-lowest);
+    margin-bottom: 4px;
+}
+
+.sidebar-logo-antd .ant-typography-title {
+    font-family: var(--font-headline) !important;
+    letter-spacing: -0.03em;
+    color: var(--primary) !important;
+}
+
+/* Navigation Menu — pill-shaped active states */
+.sidebar-antd .ant-menu {
+    background: transparent !important;
+    padding: 8px 12px;
+    font-family: var(--font-body);
+}
+
+.sidebar-antd .ant-menu-item {
+    border-radius: var(--radius-lg) !important;
+    margin: 2px 0 !important;
+    padding-left: 16px !important;
+    height: 44px;
+    line-height: 44px;
+    font-weight: 500;
+    color: var(--on-surface-variant) !important;
+    transition: var(--transition);
+}
+
+.sidebar-antd .ant-menu-item:hover {
+    background: var(--surface-container) !important;
+    color: var(--primary) !important;
+    transform: translateX(2px);
+}
+
+/* Active state: pill with primary-fixed background */
+.sidebar-antd .ant-menu-item-selected {
+    background: var(--primary-fixed) !important;
+    color: var(--primary) !important;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 36, 106, 0.08);
+}
+
+.sidebar-antd .ant-menu-item-selected::after {
+    display: none !important; /* Remove default indicator line */
+}
+
+/* Footer */
+.sidebar-footer-antd {
+    background: var(--surface-container-lowest) !important;
+    border-top: none !important;
+    /* Use tonal shift instead of border */
+}

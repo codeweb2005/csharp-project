@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="VinhKhanh.Mobile.Views.RegisterPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    Title="Create account"
+    BackgroundColor="#0F172A">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:IsStringNotNullOrEmptyConverter x:Key="StringNotEmptyConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <ScrollView Padding="24">
+        <VerticalStackLayout Spacing="14">
+
+            <Label Text="Create account"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="#F1F5F9" />
+
+            <Entry Placeholder="Username (min 3 characters)"
+                   Text="{Binding Username}"
+                   TextColor="#F1F5F9"
+                   PlaceholderColor="#64748B" />
+
+            <Entry Placeholder="Email"
+                   Text="{Binding Email}"
+                   Keyboard="Email"
+                   TextColor="#F1F5F9"
+                   PlaceholderColor="#64748B" />
+
+            <Entry Placeholder="Password (min 8 characters)"
+                   Text="{Binding Password}"
+                   IsPassword="True"
+                   TextColor="#F1F5F9"
+                   PlaceholderColor="#64748B" />
+
+            <Entry Placeholder="Full name (optional)"
+                   Text="{Binding FullName}"
+                   TextColor="#F1F5F9"
+                   PlaceholderColor="#64748B" />
+
+            <Label Text="{Binding ErrorMessage}"
+                   TextColor="#F87171"
+                   FontSize="13"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+            <Button Text="Register"
+                    Command="{Binding RegisterCommand}"
+                    BackgroundColor="#6366F1"
+                    TextColor="White"
+                    CornerRadius="12"
+                    HeightRequest="48" />
+
+            <Button Text="Back"
+                    Command="{Binding GoBackCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="#64748B" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="#6366F1" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
