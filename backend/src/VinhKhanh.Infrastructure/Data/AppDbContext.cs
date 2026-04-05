@@ -107,11 +107,12 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Language).WithMany().HasForeignKey(x => x.LanguageId);
         });
 
-        // Menu
+        // Menu — table/column names match Database/002_CreateTables.sql (POIMenuItems, ImageUrl)
         mb.Entity<POIMenuItem>(e =>
         {
+            e.ToTable("POIMenuItems");
             e.Property(x => x.Price).HasColumnType("decimal(10,0)");
-            e.Property(x => x.ImagePath).HasMaxLength(500);
+            e.Property(x => x.ImagePath).HasColumnName("ImageUrl").HasMaxLength(500);
             e.HasOne(x => x.POI).WithMany(p => p.MenuItems).HasForeignKey(x => x.POIId);
         });
 
