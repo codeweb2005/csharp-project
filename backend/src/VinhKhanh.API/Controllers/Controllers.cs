@@ -308,25 +308,37 @@ public class AudioController(IAudioService svc, IFileStorageService fileStorage,
 
     /// <summary>
     /// Stream or redirect audio content.
-    /// - S3 provider: returns HTTP 302 Redirect to a presigned S3 URL (60-min expiry).
-    ///   The mobile client follows the redirect and streams directly from S3 — zero proxying.
-    /// - Local provider: streams the file as audio/mpeg through the API server.
+    /// - S3 provider (default): returns HTTP 302 redirect to a presigned S3 URL.
+    /// - S3 provider with ?proxy=1: API downloads from S3 and streams audio/mpeg directly.
+    ///   This mode is useful for clients that fail to play redirected media URLs.
+    /// - Local provider: always streams audio/mpeg through the API server.
     /// </summary>
     [HttpGet("{id}/stream")]
     [AllowAnonymous]
-    public async Task<IActionResult> Stream(int id)
+    public async Task<IActionResult> Stream(int id, [FromQuery] string? proxy = null)
     {
+        var useProxy = string.Equals(proxy, "1", StringComparison.OrdinalIgnoreCase)
+                       || string.Equals(proxy, "true", StringComparison.OrdinalIgnoreCase);
+
         if (fileStorage.IsCloudStorage)
         {
             var key = await svc.GetFileKeyAsync(id);
             if (key == null) return NotFound();
-            var url = fileStorage.GetSignedUrl(key);
-            return Redirect(url);
+
+            if (!useProxy)
+            {
+                var url = fileStorage.GetSignedUrl(key);
+                return Redirect(url);
+            }
+
+            var cloudStream = await fileStorage.GetFileAsync(key);
+            if (cloudStream == null) return NotFound();
+            return File(cloudStream, "audio/mpeg", enableRangeProcessing: true);
         }
 
         var localStream = await svc.GetStreamAsync(id);
         if (localStream == null) return NotFound();
-        return File(localStream, "audio/mpeg");
+        return File(localStream, "audio/mpeg", enableRangeProcessing: true);
     }
 
     [HttpDelete("{id}")]
