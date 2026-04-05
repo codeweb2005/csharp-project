@@ -84,17 +84,22 @@ public partial class MapPage : ContentPage
         var items = _vm.NearbyPois
             .Select(p => new
             {
-                id = p.Id,
-                name = p.Name,
-                latitude = p.Latitude,
-                longitude = p.Longitude
+                id             = p.Id,
+                name           = p.Name,
+                address        = p.Address,
+                latitude       = p.Latitude,
+                longitude      = p.Longitude,
+                geofenceRadius = p.GeofenceRadiusMeters,
+                categoryIcon   = p.CategoryIcon,
+                categoryName   = p.CategoryName,
+                distanceMeters = p.DistanceMeters
             })
             .ToList();
 
         var json = JsonSerializer.Serialize(items);
-        var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+        var b64  = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
 
-        var loc = _location.LastKnownLocation;
+        var loc  = _location.LastKnownLocation;
         var uLat = loc is null ? "null" : loc.Latitude.ToString(CultureInfo.InvariantCulture);
         var uLng = loc is null ? "null" : loc.Longitude.ToString(CultureInfo.InvariantCulture);
 
@@ -102,7 +107,8 @@ public partial class MapPage : ContentPage
 
         try
         {
-            await MainThread.InvokeOnMainThreadAsync(async () => await TourMapWebView.EvaluateJavaScriptAsync(js));
+            await MainThread.InvokeOnMainThreadAsync(
+                async () => await TourMapWebView.EvaluateJavaScriptAsync(js));
         }
         catch
         {

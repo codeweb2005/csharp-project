@@ -268,6 +268,52 @@ public class ApiClient
         await RestoreSessionAsync();
     }
 
+    /// <summary>
+    /// Upload a batch of visit events to the server analytics endpoint.
+    /// Called by MainViewModel when connectivity is available.
+    /// Requires a valid JWT session (tourists must be logged in for analytics).
+    /// Anonymous visits (no JWT) are silently ignored by the server — no error is returned.
+    /// </summary>
+    public async Task<(bool Ok, string? Error)> UploadVisitsAsync(IReadOnlyList<VisitEntry> visits)
+    {
+        if (visits.Count == 0) return (true, null);
+
+        try
+        {
+            await EnsureAuthHeaderAsync();
+
+            // Map to the server's VisitBatchRequest shape
+            var payload = new
+            {
+                visits = visits.Select(v => new
+                {
+                    poiId           = v.PoiId,
+                    languageId      = v.LanguageId,
+                    triggerType     = v.TriggerType,
+                    narrationPlayed = v.NarrationPlayed,
+                    listenDuration  = v.ListenDuration,
+                    visitedAt       = v.VisitedAt,
+                    latitude        = v.Latitude,
+                    longitude       = v.Longitude
+                }).ToList()
+            };
+
+            var res  = await _http.PostAsJsonAsync($"{_baseUrl}/sync/visits", payload, JsonWrite);
+            var body = await res.Content.ReadFromJsonAsync<ApiEnvelope<int>>(JsonRead);
+
+            if (!res.IsSuccessStatusCode || body?.Success != true)
+                return (false, body?.Error?.Message ?? $"Upload failed ({(int)res.StatusCode}).");
+
+            _logger?.LogInformation("Visit batch uploaded: {Count} entries accepted", body.Data);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "UploadVisitsAsync failed");
+            return (false, ex.Message);
+        }
+    }
+
     public async Task<List<OfflinePackageCatalogItemDto>> GetOfflineCatalogAsync()
     {
         try
@@ -318,6 +364,48 @@ public class ApiClient
         {
             _logger?.LogWarning(ex, "DownloadOfflinePackageToFileAsync failed");
             return (false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// T-09: Fetch delta POI changes since <paramref name="since"/> UTC ISO-8601 string.
+    /// Maps to GET /api/v1/sync/delta?since={since}&amp;langId={langId}.
+    /// Returns null on failure (caller should retry later).
+    /// </summary>
+    public async Task<DeltaSyncResponse?> GetDeltaAsync(string since, int langId, CancellationToken ct = default)
+    {
+        try
+        {
+            var sinceEncoded = Uri.EscapeDataString(since);
+            var url = $"{_baseUrl}/sync/delta?since={sinceEncoded}&langId={langId}";
+
+            var res = await _http.GetFromJsonAsync<ApiEnvelope<DeltaSyncResponse>>(url, JsonRead, ct);
+            return res?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "GetDeltaAsync failed");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// T-13: Fetch full public POI detail including description, highlights, media, and menu items.
+    /// Maps to GET /api/v1/pois/{id}/public?langId={langId}.
+    /// Returns null if the POI is not found or an error occurs.
+    /// </summary>
+    public async Task<PoiPublicDetailResponse?> GetPoiPublicDetailAsync(int poiId, int langId)
+    {
+        try
+        {
+            var url = $"{_baseUrl}/pois/{poiId}/public?langId={langId}";
+            var res = await _http.GetFromJsonAsync<ApiEnvelope<PoiPublicDetailResponse>>(url, JsonRead);
+            return res?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "GetPoiPublicDetailAsync failed for POI {PoiId}", poiId);
+            return null;
         }
     }
 }

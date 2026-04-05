@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:services="clr-namespace:VinhKhanh.Mobile.Services"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     Title="Offline"
     BackgroundColor="#0F172A">
 
@@ -22,6 +23,39 @@
             <Label Text="{Binding InstalledInfo}"
                    TextColor="#94A3B8"
                    FontSize="13" />
+
+            <!-- T-09.3: Last sync time label -->
+            <Label Text="{Binding LastSyncText}"
+                   TextColor="#64748B"
+                   FontSize="12"
+                   FontAttributes="Italic" />
+
+            <!-- T-15: Update available banner (hidden when up to date) -->
+            <Frame BackgroundColor="#451A03"
+                   BorderColor="#F59E0B"
+                   CornerRadius="10"
+                   Padding="14,10"
+                   IsVisible="{Binding UpdateBannerText,
+                       Converter={toolkit:IsStringNotNullOrEmptyConverter}}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Grid.Column="0"
+                           Text="{Binding UpdateBannerText}"
+                           TextColor="#FCD34D"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="Update now"
+                            Command="{Binding SyncNowCommand}"
+                            BackgroundColor="#D97706"
+                            TextColor="White"
+                            FontSize="12"
+                            FontAttributes="Bold"
+                            Padding="10,6"
+                            CornerRadius="8"
+                            HeightRequest="36" />
+                </Grid>
+            </Frame>
 
             <Button Text="Refresh catalog"
                     Command="{Binding LoadCommand}"

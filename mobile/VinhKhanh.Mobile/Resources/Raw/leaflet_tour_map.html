@@ -1,92 +1,229 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Vinh Khanh Food Tour Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
-    html, body, #map { height: 100%; margin: 0; padding: 0; background: #0f172a; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; background: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #map { height: 100%; width: 100%; }
+
+    /* Custom pin SVG */
     .vk-pin { background: transparent !important; border: none !important; }
+
+    /* Bottom sheet popup — slides up from bottom */
+    #bottom-sheet {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #1e293b;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 16px 20px 32px;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1000;
+      box-shadow: 0 -4px 32px rgba(0,0,0,0.4);
+    }
+    #bottom-sheet.open { transform: translateY(0); }
+
+    /* Sheet handle */
+    .sheet-handle {
+      width: 40px; height: 4px;
+      background: #475569;
+      border-radius: 2px;
+      margin: 0 auto 14px;
+    }
+
+    .sheet-category { font-size: 13px; color: #6366f1; font-weight: 600; margin-bottom: 4px; }
+    .sheet-name     { font-size: 18px; color: #f1f5f9; font-weight: 700; margin-bottom: 4px; }
+    .sheet-address  { font-size: 13px; color: #94a3b8; margin-bottom: 8px; }
+    .sheet-distance { font-size: 12px; color: #64748b; margin-bottom: 16px; }
+
+    .sheet-btn {
+      display: block; width: 100%;
+      padding: 14px;
+      background: #6366f1;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      text-align: center;
+      letter-spacing: 0.3px;
+    }
+    .sheet-btn:active { opacity: 0.85; }
+
+    .sheet-close {
+      position: absolute; top: 14px; right: 16px;
+      background: #334155; border: none;
+      color: #94a3b8; font-size: 18px;
+      width: 32px; height: 32px;
+      border-radius: 50%; cursor: pointer;
+      line-height: 32px; text-align: center;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <script>
-    /* Same stack as admin MapPicker / POIMiniMap: Leaflet 1.9.4 + OpenStreetMap tiles (no API key). */
-    (function () {
-      var map = null;
-      var markersLayer = null;
-      var userLayer = null;
 
-      function makeIcon() {
-        var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="28" height="38">' +
-          '<path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="#6366f1" stroke="white" stroke-width="1.2"/>' +
-          '<circle cx="12" cy="12" r="4.5" fill="white"/></svg>';
-        return L.divIcon({
-          html: svg,
-          className: 'vk-pin',
-          iconSize: [28, 38],
-          iconAnchor: [14, 38],
-          popupAnchor: [0, -36]
+  <!-- Bottom sheet for POI detail on pin tap -->
+  <div id="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" id="close-btn">✕</button>
+    <div class="sheet-category" id="sh-category"></div>
+    <div class="sheet-name"     id="sh-name"></div>
+    <div class="sheet-address"  id="sh-address"></div>
+    <div class="sheet-distance" id="sh-distance"></div>
+    <button class="sheet-btn"   id="sh-detail-btn">📍 View Details &amp; Play Narration</button>
+  </div>
+
+  <script>
+  (function () {
+    /* ── State ───────────────────────────────────────────────── */
+    var map = null;
+    var markersLayer  = null;
+    var circleLayer   = null;
+    var userLayer     = null;
+    var currentPoiId  = null;
+
+    /* ── Cat colours for pins ────────────────────────────────── */
+    var catColors = {
+      default: '#6366f1',
+      phở:     '#f59e0b',
+      bún:     '#10b981',
+      cơm:     '#3b82f6',
+      bánh:    '#ec4899',
+    };
+
+    function pinColor(cat) {
+      if (!cat) return catColors.default;
+      var lo = cat.toLowerCase();
+      for (var k in catColors) {
+        if (lo.indexOf(k) !== -1) return catColors[k];
+      }
+      return catColors.default;
+    }
+
+    function makeIcon(color, emoji) {
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 40" width="30" height="40">'
+        + '<path d="M15 0C6.7 0 0 6.7 0 15c0 11 15 25 15 25s15-14 15-25C30 6.7 23.3 0 15 0z" fill="' + color + '" stroke="rgba(255,255,255,.55)" stroke-width="1.4"/>'
+        + '<text x="15" y="20" font-size="11" text-anchor="middle" dominant-baseline="central" font-family="-apple-system,sans-serif">' + (emoji || '📍') + '</text>'
+        + '</svg>';
+      return L.divIcon({
+        html: svg, className: 'vk-pin',
+        iconSize: [30, 40], iconAnchor: [15, 40], popupAnchor: [0, -42]
+      });
+    }
+
+    /* ── Map init ─────────────────────────────────────────────── */
+    function ensureMap() {
+      if (map) return;
+      map = L.map('map', { zoomControl: true, attributionControl: true });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19
+      }).addTo(map);
+      markersLayer = L.featureGroup().addTo(map);
+      circleLayer  = L.layerGroup().addTo(map);
+      userLayer    = L.layerGroup().addTo(map);
+      map.setView([10.7553, 106.7017], 15);
+
+      /* close sheet on map click */
+      map.on('click', closeSheet);
+    }
+
+    /* ── Bottom-sheet ─────────────────────────────────────────── */
+    var allPoisCache = [];
+
+    function openSheet(poi) {
+      currentPoiId = poi.id;
+      document.getElementById('sh-category').textContent = (poi.categoryIcon || '') + ' ' + (poi.categoryName || '');
+      document.getElementById('sh-name').textContent     = poi.name || '';
+      document.getElementById('sh-address').textContent  = poi.address || '';
+      var dm = poi.distanceMeters;
+      document.getElementById('sh-distance').textContent = dm != null
+        ? (dm < 1000 ? Math.round(dm) + ' m away' : (dm / 1000).toFixed(1) + ' km away')
+        : '';
+      document.getElementById('bottom-sheet').classList.add('open');
+    }
+
+    function closeSheet() {
+      document.getElementById('bottom-sheet').classList.remove('open');
+      currentPoiId = null;
+    }
+
+    document.getElementById('close-btn').addEventListener('click', closeSheet);
+    document.getElementById('sh-detail-btn').addEventListener('click', function () {
+      if (currentPoiId != null) {
+        window.location.href = 'poi://' + currentPoiId;
+      }
+    });
+
+    /* ── Main setData ─────────────────────────────────────────── */
+    function setDataFromBase64(b64, uLat, uLng) {
+      var bin = atob(b64);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      setData(JSON.parse(new TextDecoder().decode(bytes)), uLat, uLng);
+    }
+
+    function setData(pois, uLat, uLng) {
+      ensureMap();
+      markersLayer.clearLayers();
+      circleLayer.clearLayers();
+      userLayer.clearLayers();
+      allPoisCache = pois || [];
+
+      var bounds = [];
+
+      (allPoisCache).forEach(function (p) {
+        var lat = p.latitude, lng = p.longitude;
+        if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return;
+
+        var color = pinColor(p.categoryName);
+
+        /* Geofence circle */
+        if (p.geofenceRadius && p.geofenceRadius > 0) {
+          L.circle([lat, lng], {
+            radius: p.geofenceRadius,
+            color: color, opacity: 0.55,
+            fillColor: color, fillOpacity: 0.08,
+            weight: 1.5
+          }).addTo(circleLayer);
+        }
+
+        /* Pin marker */
+        var m = L.marker([lat, lng], { icon: makeIcon(color, p.categoryIcon), title: p.name || '' });
+        m.on('click', function (e) {
+          L.DomEvent.stopPropagation(e);
+          openSheet(p);
         });
+        markersLayer.addLayer(m);
+        bounds.push([lat, lng]);
+      });
+
+      /* User dot */
+      if (uLat != null && uLng != null && !isNaN(uLat) && !isNaN(uLng)) {
+        L.circleMarker([uLat, uLng], {
+          radius: 9, color: '#a5b4fc', weight: 2.5,
+          fillColor: '#6366f1', fillOpacity: 1
+        }).addTo(userLayer);
+        bounds.push([uLat, uLng]);
       }
 
-      function ensureMap() {
-        if (map) return;
-        map = L.map('map', { zoomControl: true, attributionControl: true });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-          maxZoom: 19
-        }).addTo(map);
-        markersLayer = L.layerGroup().addTo(map);
-        userLayer = L.layerGroup().addTo(map);
+      if (bounds.length) {
+        map.fitBounds(bounds, { padding: [36, 36], maxZoom: 17 });
+      } else {
         map.setView([10.7553, 106.7017], 15);
       }
+    }
 
-      function setDataFromBase64(b64, uLat, uLng) {
-        var bin = atob(b64);
-        var bytes = new Uint8Array(bin.length);
-        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        var text = new TextDecoder().decode(bytes);
-        setData(JSON.parse(text), uLat, uLng);
-      }
-
-      function setData(pois, uLat, uLng) {
-        ensureMap();
-        markersLayer.clearLayers();
-        userLayer.clearLayers();
-        var bounds = [];
-        (pois || []).forEach(function (p) {
-          var lat = p.latitude;
-          var lng = p.longitude;
-          if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return;
-          var m = L.marker([lat, lng], { icon: makeIcon(), title: p.name || '' });
-          m.on('click', function () {
-            window.location.href = 'poi://' + p.id;
-          });
-          markersLayer.addLayer(m);
-          bounds.push([lat, lng]);
-        });
-        if (uLat != null && uLng != null && !isNaN(uLat) && !isNaN(uLng)) {
-          L.circleMarker([uLat, uLng], {
-            radius: 8,
-            color: '#a5b4fc',
-            weight: 2,
-            fillColor: '#6366f1',
-            fillOpacity: 0.95
-          }).addTo(userLayer);
-          bounds.push([uLat, uLng]);
-        }
-        if (bounds.length) {
-          map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 });
-        } else {
-          map.setView([10.7553, 106.7017], 15);
-        }
-      }
-
-      window.vkTourMap = { setData: setData, setDataFromBase64: setDataFromBase64 };
-    })();
+    /* ── Public API ───────────────────────────────────────────── */
+    window.vkTourMap = { setData: setData, setDataFromBase64: setDataFromBase64 };
+  })();
   </script>
 </body>
 </html>

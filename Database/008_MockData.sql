@@ -10,37 +10,37 @@ USE `VinhKhanhFoodTour`;
 -- 1. CHỦ QUÁN (Vendors) MỚI TƯƠNG ỨNG VỚI CÁC QUÁN CHUẨN BỊ THÊM
 -- ============================================================================
 
-INSERT INTO `Users`
-    (`Username`, `Email`, `PasswordHash`, `FullName`, `Phone`, `Role`, `PreferredLanguageId`, `IsActive`, `EmailConfirmed`)
+INSERT IGNORE INTO `Users`
+    (`Username`, `Email`, `PasswordHash`, `FullName`, `PhoneNumber`, `Role`, `PreferredLanguageId`, `IsActive`, `EmailConfirmed`)
 VALUES
-    ('octhao_owner', 'octhao@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Trần Thảo', '0901234567', 1, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('ocvu_owner', 'ocvu@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Nguyễn Thái Vũ', '0902345678', 1, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('chilli_owner', 'chilli@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'David Trần', '0903456789', 1, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('otxiem_owner', 'otxiem@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Lê Khắc Xiêm', '0904567890', 1, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('langquan_owner', 'langquan@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Phạm Quỳnh', '0905678901', 1, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('sushiko_owner', 'sushiko@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Michiko Le', '0906789012', 1, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('bunca_owner', 'bunca@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Lâm Văn Điền', '0907890123', 1, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP());
+    ('octhao_owner', 'octhao@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Trần Thảo', '0901234567', 1, 1, 1, 1),
+    ('ocvu_owner', 'ocvu@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Nguyễn Thái Vũ', '0902345678', 1, 1, 1, 1),
+    ('chilli_owner', 'chilli@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'David Trần', '0903456789', 1, 1, 1, 1),
+    ('otxiem_owner', 'otxiem@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Lê Khắc Xiêm', '0904567890', 1, 1, 1, 1),
+    ('langquan_owner', 'langquan@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Phạm Quỳnh', '0905678901', 1, 1, 1, 1),
+    ('sushiko_owner', 'sushiko@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Michiko Le', '0906789012', 1, 1, 1, 1),
+    ('bunca_owner', 'bunca@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Lâm Văn Điền', '0907890123', 1, 1, 1, 1);
 
 -- ============================================================================
 -- 2. KHÁCH HÀNG (Customers) MỚI KHAI THÁC REVIEW VÀ LƯỢT NGHE
 -- ============================================================================
 
-INSERT INTO `Users`
+INSERT IGNORE INTO `Users`
     (`Username`, `Email`, `PasswordHash`, `FullName`, `Role`, `PreferredLanguageId`, `IsActive`, `EmailConfirmed`)
 VALUES
-    ('alice_traveler', 'alice@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Alice Henderson', 0, 2, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('bob_walker', 'bob@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Bob Odenkirk', 0, 2, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('john_smith', 'john@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'John Smith', 0, 2, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('emma_watson', 'emma@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Emma Watson', 0, 2, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('michael_scott', 'michael@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Michael Scott', 0, 2, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('jessica_davis', 'jessica@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Jessica Davis', 0, 2, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('david_miller', 'david@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'David Miller', 0, 2, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('sarah_wilson', 'sarah@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Sarah Wilson', 0, 2, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('nam_phong', 'namphong@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Hoàng Nam Phong', 0, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('gia_han', 'giahan@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Vũ Gia Hân', 0, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('tuan_anh', 'tuananh@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Phạm Tuấn Anh', 0, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('hai_duong', 'haiduong@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Trần Hải Dương', 0, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    ('quang_vinh', 'quangvinh@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Lê Quang Vinh', 0, 1, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP());
+    ('alice_traveler', 'alice@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Alice Henderson', 0, 2, 1, 1),
+    ('bob_walker', 'bob@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Bob Odenkirk', 0, 2, 1, 1),
+    ('john_smith', 'john@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'John Smith', 0, 2, 1, 1),
+    ('emma_watson', 'emma@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Emma Watson', 0, 2, 1, 1),
+    ('michael_scott', 'michael@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Michael Scott', 0, 2, 1, 1),
+    ('jessica_davis', 'jessica@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Jessica Davis', 0, 2, 1, 1),
+    ('david_miller', 'david@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'David Miller', 0, 2, 1, 1),
+    ('sarah_wilson', 'sarah@mock.com', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Sarah Wilson', 0, 2, 1, 1),
+    ('nam_phong', 'namphong@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Hoàng Nam Phong', 0, 1, 1, 1),
+    ('gia_han', 'giahan@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Vũ Gia Hân', 0, 1, 1, 1),
+    ('tuan_anh', 'tuananh@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Phạm Tuấn Anh', 0, 1, 1, 1),
+    ('hai_duong', 'haiduong@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Trần Hải Dương', 0, 1, 1, 1),
+    ('quang_vinh', 'quangvinh@mock.vn', '$2a$12$LJ3EqPVBFVGkr1Hbt8h3ruYq10mlWzWT33kADmQ/sQ7MfCE0r.mYO', 'Lê Quang Vinh', 0, 1, 1, 1);
 
 -- ============================================================================
 -- 3. ĐIỂM ĂN UỐNG P2 (POIs) LẤY THEO DỮ LIỆU CÓ THẬT
@@ -49,24 +49,24 @@ VALUES
 
 -- Phân Loại tham khảo: (1: Quán ăn, 2: Hải sản & Ốc, 3: Quán nhậu, 4: Đồ uống, 5: Tráng miệng, 6: Lẩu, 7: Nướng)
 
-INSERT INTO `POIs`
+INSERT IGNORE INTO `POIs`
     (`Id`, `VendorId`, `CategoryId`, `Latitude`, `Longitude`,
-     `GeofenceRadiusMeters`, `Address`, `Phone`,
+     `GeofenceRadiusMeters`, `Address`, `PhoneNumber`,
      `PriceRangeMin`, `PriceRangeMax`, `Rating`, `TotalVisits`, `IsActive`, `IsFeatured`)
 VALUES
-    (11, (SELECT Id FROM Users WHERE Username='octhao_owner'), 2, 10.7538500, 106.6932500, 25, '383 Vĩnh Khánh, P.8, Quận 4, TP.HCM', '0901234567', 40000, 180000, 4.60, 4200, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (12, (SELECT Id FROM Users WHERE Username='ocvu_owner'), 2, 10.7540200, 106.6935200, 30, '37 Vĩnh Khánh, P.8, Quận 4, TP.HCM', '0902345678', 35000, 150000, 4.40, 3120, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (13, (SELECT Id FROM Users WHERE Username='chilli_owner'), 6, 10.7531100, 106.6922100, 35, '232 Vĩnh Khánh, Quận 4, TP.HCM', '0903456789', 150000, 300000, 4.50, 5600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (14, (SELECT Id FROM Users WHERE Username='otxiem_owner'), 1, 10.7545000, 106.6942000, 25, '568 Vĩnh Khánh, P.10, Quận 4, TP.HCM', '0904567890', 50000, 250000, 4.70, 890, 1, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (15, (SELECT Id FROM Users WHERE Username='langquan_owner'), 7, 10.7543200, 106.6938900, 30, '531 Vĩnh Khánh, P.10, Quận 4, TP.HCM', '0905678901', 50000, 200000, 4.30, 2100, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (16, (SELECT Id FROM Users WHERE Username='sushiko_owner'), 1, 10.7536700, 106.6929800, 20, '122 Vĩnh Khánh, P.10, Quận 4, TP.HCM', '0906789012', 30000, 150000, 4.80, 1800, 1, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (17, (SELECT Id FROM Users WHERE Username='bunca_owner'), 1, 10.7535400, 106.6925500, 20, '320/79 Vĩnh Khánh, Quận 4, TP.HCM', '0907890123', 35000, 55000, 4.40, 3400, 1, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP());
+    (11, (SELECT Id FROM Users WHERE Username='octhao_owner'), 2, 10.7538500, 106.6932500, 25, '383 Vĩnh Khánh, P.8, Quận 4, TP.HCM', '0901234567', 40000, 180000, 4.60, 4200, 1, 1),
+    (12, (SELECT Id FROM Users WHERE Username='ocvu_owner'), 2, 10.7540200, 106.6935200, 30, '37 Vĩnh Khánh, P.8, Quận 4, TP.HCM', '0902345678', 35000, 150000, 4.40, 3120, 1, 1),
+    (13, (SELECT Id FROM Users WHERE Username='chilli_owner'), 6, 10.7531100, 106.6922100, 35, '232 Vĩnh Khánh, Quận 4, TP.HCM', '0903456789', 150000, 300000, 4.50, 5600, 1, 1),
+    (14, (SELECT Id FROM Users WHERE Username='otxiem_owner'), 1, 10.7545000, 106.6942000, 25, '568 Vĩnh Khánh, P.10, Quận 4, TP.HCM', '0904567890', 50000, 250000, 4.70, 890, 1, 0),
+    (15, (SELECT Id FROM Users WHERE Username='langquan_owner'), 7, 10.7543200, 106.6938900, 30, '531 Vĩnh Khánh, P.10, Quận 4, TP.HCM', '0905678901', 50000, 200000, 4.30, 2100, 1, 1),
+    (16, (SELECT Id FROM Users WHERE Username='sushiko_owner'), 1, 10.7536700, 106.6929800, 20, '122 Vĩnh Khánh, P.10, Quận 4, TP.HCM', '0906789012', 30000, 150000, 4.80, 1800, 1, 0),
+    (17, (SELECT Id FROM Users WHERE Username='bunca_owner'), 1, 10.7535400, 106.6925500, 20, '320/79 Vĩnh Khánh, Quận 4, TP.HCM', '0907890123', 35000, 55000, 4.40, 3400, 1, 0);
 
 -- ============================================================================
 -- 4. BẢN DỊCH NGÔN NGỮ POIs (VI & EN)
 -- ============================================================================
 
-INSERT INTO `POITranslations`
+INSERT IGNORE INTO `POITranslations`
     (`POIId`, `LanguageId`, `Name`, `ShortDescription`, `FullDescription`, `NarrationText`, `Highlights`)
 VALUES
     -- 11. Ốc Thảo
@@ -103,61 +103,49 @@ VALUES
 -- Cho phép Frontend render ra Grid Ảnh Tuyệt Đẹp
 -- ============================================================================
 
-INSERT INTO `POIMedia`
+INSERT IGNORE INTO `POIMedia`
     (`POIId`, `MediaType`, `FileUrl`, `FileName`, `FileSize`, `MimeType`, `Width`, `Height`, `SortOrder`, `IsPrimary`)
 VALUES
-    -- Các quán cũ (ID 1-10)
-    (1, 0, 'https://placehold.co/800x600/C85A17/FFF?text=Oc+Dao+Front', 'oc-dao-front.jpg', 154000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (1, 0, 'https://placehold.co/600x400/FF8C00/FFF?text=Oc+Dao+Food', 'oc-dao-food.jpg', 114000, 'image/jpeg', 600, 400, 2, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (2, 0, 'https://placehold.co/800x600/2E8B57/FFF?text=Oc+Ba+Hien', 'oc-ba-hien-main.jpg', 184000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (3, 0, 'https://placehold.co/800x600/B22222/FFF?text=Long+Uong+40', 'long-uong-main.jpg', 144000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (4, 0, 'https://placehold.co/800x600/8B0000/FFF?text=Oc+Oanh', 'oc-oanh-main.jpg', 124000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (5, 0, 'https://placehold.co/800x600/4169E1/FFF?text=Hai+San+Nam+Sao', 'namsao-main.jpg', 174000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (6, 0, 'https://placehold.co/800x600/FFD700/000?text=Bun+Rieu+Co+Ba', 'bun-rieu-main.jpg', 127000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (7, 0, 'https://placehold.co/800x600/8B4513/FFF?text=Lau+De', 'lau-de-main.jpg', 137000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (8, 0, 'https://placehold.co/800x600/A52A2A/FFF?text=Nuong+Ngoi', 'nuong-ngoi-main.jpg', 167000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (9, 0, 'https://placehold.co/800x600/DDA0DD/FFF?text=Che+Ba+Tu', 'che-batu-main.jpg', 157000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (10, 0, 'https://placehold.co/800x600/00CED1/FFF?text=Tra+Sua+Vinh+Khanh', 'tra-sua-main.jpg', 147000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    
-    -- Các quán mới (ID 11-17)
-    (11, 0, 'https://placehold.co/800x600/008080/FFF?text=Oc+Thao', 'oc-thao-ext.jpg', 189000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (11, 0, 'https://placehold.co/600x400/20B2AA/FFF?text=Oc+Thao+Snails', 'oc-thao-snails.jpg', 89000, 'image/jpeg', 600, 400, 2, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (12, 0, 'https://placehold.co/800x600/4682B4/FFF?text=Oc+Vu', 'oc-vu-front.jpg', 169000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (13, 0, 'https://placehold.co/800x600/DC143C/FFF?text=Chilli+BBQ', 'chilli-bbq.jpg', 219000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (13, 0, 'https://placehold.co/600x400/FF6347/FFF?text=Spicy+Beef', 'chilli-beef.jpg', 119000, 'image/jpeg', 600, 400, 2, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (14, 0, 'https://placehold.co/800x600/32CD32/FFF?text=Ot+Xiem+Quan', 'otxiem-front.jpg', 199000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (15, 0, 'https://placehold.co/800x600/800000/FFF?text=Lang+Quan', 'langquan-main.jpg', 149000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (16, 0, 'https://placehold.co/800x600/1E90FF/FFF?text=Sushi+KO', 'sushiko-sashimi.jpg', 179000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (17, 0, 'https://placehold.co/800x600/FFD700/000?text=Bun+Ca+Chau+Doc', 'bun-ca-hot.jpg', 159000, 'image/jpeg', 800, 600, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP());
+    (1, 0, 'https://placehold.co/800x600/C85A17/FFF?text=Oc+Dao+Front', 'oc-dao-front.jpg', 154000, 'image/jpeg', 800, 600, 1, 1),
+    (1, 0, 'https://placehold.co/600x400/FF8C00/FFF?text=Oc+Dao+Food', 'oc-dao-food.jpg', 114000, 'image/jpeg', 600, 400, 2, 0),
+    (2, 0, 'https://placehold.co/800x600/2E8B57/FFF?text=Oc+Ba+Hien', 'oc-ba-hien-main.jpg', 184000, 'image/jpeg', 800, 600, 1, 1),
+    (3, 0, 'https://placehold.co/800x600/B22222/FFF?text=Long+Uong+40', 'long-uong-main.jpg', 144000, 'image/jpeg', 800, 600, 1, 1),
+    (4, 0, 'https://placehold.co/800x600/8B0000/FFF?text=Oc+Oanh', 'oc-oanh-main.jpg', 124000, 'image/jpeg', 800, 600, 1, 1),
+    (5, 0, 'https://placehold.co/800x600/4169E1/FFF?text=Hai+San+Nam+Sao', 'namsao-main.jpg', 174000, 'image/jpeg', 800, 600, 1, 1),
+    (6, 0, 'https://placehold.co/800x600/FFD700/000?text=Bun+Rieu+Co+Ba', 'bun-rieu-main.jpg', 127000, 'image/jpeg', 800, 600, 1, 1),
+    (7, 0, 'https://placehold.co/800x600/8B4513/FFF?text=Lau+De', 'lau-de-main.jpg', 137000, 'image/jpeg', 800, 600, 1, 1),
+    (8, 0, 'https://placehold.co/800x600/A52A2A/FFF?text=Nuong+Ngoi', 'nuong-ngoi-main.jpg', 167000, 'image/jpeg', 800, 600, 1, 1),
+    (9, 0, 'https://placehold.co/800x600/DDA0DD/FFF?text=Che+Ba+Tu', 'che-batu-main.jpg', 157000, 'image/jpeg', 800, 600, 1, 1),
+    (10, 0, 'https://placehold.co/800x600/00CED1/FFF?text=Tra+Sua+Vinh+Khanh', 'tra-sua-main.jpg', 147000, 'image/jpeg', 800, 600, 1, 1),
+    (11, 0, 'https://placehold.co/800x600/008080/FFF?text=Oc+Thao', 'oc-thao-ext.jpg', 189000, 'image/jpeg', 800, 600, 1, 1),
+    (11, 0, 'https://placehold.co/600x400/20B2AA/FFF?text=Oc+Thao+Snails', 'oc-thao-snails.jpg', 89000, 'image/jpeg', 600, 400, 2, 0),
+    (12, 0, 'https://placehold.co/800x600/4682B4/FFF?text=Oc+Vu', 'oc-vu-front.jpg', 169000, 'image/jpeg', 800, 600, 1, 1),
+    (13, 0, 'https://placehold.co/800x600/DC143C/FFF?text=Chilli+BBQ', 'chilli-bbq.jpg', 219000, 'image/jpeg', 800, 600, 1, 1),
+    (13, 0, 'https://placehold.co/600x400/FF6347/FFF?text=Spicy+Beef', 'chilli-beef.jpg', 119000, 'image/jpeg', 600, 400, 2, 0),
+    (14, 0, 'https://placehold.co/800x600/32CD32/FFF?text=Ot+Xiem+Quan', 'otxiem-front.jpg', 199000, 'image/jpeg', 800, 600, 1, 1),
+    (15, 0, 'https://placehold.co/800x600/800000/FFF?text=Lang+Quan', 'langquan-main.jpg', 149000, 'image/jpeg', 800, 600, 1, 1),
+    (16, 0, 'https://placehold.co/800x600/1E90FF/FFF?text=Sushi+KO', 'sushiko-sashimi.jpg', 179000, 'image/jpeg', 800, 600, 1, 1),
+    (17, 0, 'https://placehold.co/800x600/FFD700/000?text=Bun+Ca+Chau+Doc', 'bun-ca-hot.jpg', 159000, 'image/jpeg', 800, 600, 1, 1);
 
 -- ============================================================================
 -- 6. MENU & BẢN DỊCH MENU CHI TIẾT
 -- ============================================================================
 
-INSERT INTO `POIMenuItems` (`Id`, `POIId`, `Price`, `IsAvailable`, `IsSignature`, `SortOrder`, `ImageUrl`, `CreatedAt`, `UpdatedAt`) VALUES
-    -- Ốc Thảo (11)
-    (11, 11, 80000, 1, 1, 1, 'https://placehold.co/200x200/CCC/000?text=Food', UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (12, 11, 70000, 1, 1, 2, 'https://placehold.co/200x200/CCC/000?text=Food', UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (13, 11, 120000, 1, 0, 3, 'https://placehold.co/200x200/CCC/000?text=Food', UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    
-    -- Ốc Vũ (12)
-    (14, 12, 35000, 1, 1, 1, NULL, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (15, 12, 50000, 1, 0, 2, NULL, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    
-    -- Chilli Lẩu Nướng (13)
-    (16, 13, 145000, 1, 1, 1, 'https://placehold.co/200x200/F00/FFF?text=Beef', UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (17, 13, 189000, 1, 1, 2, 'https://placehold.co/200x200/FA8/FFF?text=Hotpot', UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (18, 13, 220000, 1, 0, 3, NULL, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    
-    -- Sushi KO (16)
-    (19, 16, 85000, 1, 1, 1, 'https://placehold.co/200x200/008/FFF?text=Salmon', UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (20, 16, 45000, 1, 0, 2, NULL, UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    
-    -- Bún cá (17)
-    (21, 17, 45000, 1, 1, 1, 'https://placehold.co/200x200/FD0/000?text=Noodle', UTC_TIMESTAMP(), UTC_TIMESTAMP()),
-    (22, 17, 10000, 1, 0, 2, NULL, UTC_TIMESTAMP(), UTC_TIMESTAMP());
+INSERT IGNORE INTO `POIMenuItems` (`Id`, `POIId`, `Price`, `IsAvailable`, `IsSignature`, `SortOrder`, `ImageUrl`) VALUES
+    (11, 11, 80000, 1, 1, 1, 'https://placehold.co/200x200/CCC/000?text=Food'),
+    (12, 11, 70000, 1, 1, 2, 'https://placehold.co/200x200/CCC/000?text=Food'),
+    (13, 11, 120000, 1, 0, 3, 'https://placehold.co/200x200/CCC/000?text=Food'),
+    (14, 12, 35000, 1, 1, 1, NULL),
+    (15, 12, 50000, 1, 0, 2, NULL),
+    (16, 13, 145000, 1, 1, 1, 'https://placehold.co/200x200/F00/FFF?text=Beef'),
+    (17, 13, 189000, 1, 1, 2, 'https://placehold.co/200x200/FA8/FFF?text=Hotpot'),
+    (18, 13, 220000, 1, 0, 3, NULL),
+    (19, 16, 85000, 1, 1, 1, 'https://placehold.co/200x200/008/FFF?text=Salmon'),
+    (20, 16, 45000, 1, 0, 2, NULL),
+    (21, 17, 45000, 1, 1, 1, 'https://placehold.co/200x200/FD0/000?text=Noodle'),
+    (22, 17, 10000, 1, 0, 2, NULL);
 
-INSERT INTO `MenuItemTranslations` (`MenuItemId`, `LanguageId`, `Name`, `Description`) VALUES
+INSERT IGNORE INTO `MenuItemTranslations` (`MenuItemId`, `LanguageId`, `Name`, `Description`) VALUES
     -- Ốc Thảo (11, 12, 13)
     (11, 1, 'Ốc móng tay xào rau muống', 'Đậm vị miền Nam với mỡ hành tóp mỡ.'),
     (11, 2, 'Razor clams with morning glory', 'Rich southern flavor with pork rinds.'),
@@ -201,7 +189,7 @@ INSERT INTO `MenuItemTranslations` (`MenuItemId`, `LanguageId`, `Name`, `Descrip
 -- Phân phát 50 lượt ghé thăm ngẫu nhiên ở 30 ngày qua (TriggerType: 0=Geofence, 1=Exit, 2=Manual, 3=List)
 -- Vì MySQL không có FOR loop ngoài thủ tục, ta insert hàng loạt tĩnh nhưng phân bổ thời gian dùng hàm DATE_SUB()
 
-INSERT INTO `VisitHistory` (`UserId`, `POIId`, `VisitedAt`, `TriggerType`, `NarrationPlayed`, `DurationListened`, `IsSynced`) VALUES
+INSERT IGNORE INTO `VisitHistory` (`UserId`, `POIId`, `VisitedAt`, `TriggerType`, `NarrationPlayed`, `DurationListened`, `IsSynced`) VALUES
 -- 10 ngày gần nhất
 ((SELECT Id FROM Users WHERE Username='alice_traveler'), 1, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY), 0, 1, 45, 1),
 ((SELECT Id FROM Users WHERE Username='bob_walker'), 11, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY), 2, 1, 30, 1),

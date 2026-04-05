@@ -45,6 +45,23 @@
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
+		<!-- ── Android Release Signing (Phase 4.4.1) ─────────────────────────────
+		     For local builds: create a file Platforms/Android/signing.props with:
+		         AndroidKeyStore=true
+		         AndroidSigningKeyStore=$(MSBuildThisFileDirectory)vinhkhanh.keystore
+		         AndroidSigningKeyAlias=vinhkhanh
+		         AndroidSigningKeyPass=YOUR_KEY_PASSWORD
+		         AndroidSigningStorePass=YOUR_STORE_PASSWORD
+		     For CI/CD: set the above as environment variables injected by GitHub Actions.
+		     The keystore file should be stored in GitHub Secrets as a base64 string.
+		     Reference: https://learn.microsoft.com/dotnet/maui/android/deployment/
+		-->
+		<AndroidKeyStore      Condition="'$(ANDROID_KEYSTORE)' != ''">true</AndroidKeyStore>
+		<AndroidSigningKeyStore    Condition="'$(ANDROID_KEYSTORE_PATH)' != ''">$(ANDROID_KEYSTORE_PATH)</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias    Condition="'$(ANDROID_KEY_ALIAS)' != ''">$(ANDROID_KEY_ALIAS)</AndroidSigningKeyAlias>
+		<AndroidSigningKeyPass     Condition="'$(ANDROID_KEY_PASS)' != ''">$(ANDROID_KEY_PASS)</AndroidSigningKeyPass>
+		<AndroidSigningStorePass   Condition="'$(ANDROID_STORE_PASS)' != ''">$(ANDROID_STORE_PASS)</AndroidSigningStorePass>
+
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 		<WindowsPackageType>None</WindowsPackageType>
 

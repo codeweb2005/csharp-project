@@ -9,7 +9,7 @@ USE `VinhKhanhFoodTour`;
 -- 1. NGÔN NGỮ
 -- ============================================================================
 
-INSERT INTO `Languages` (`Id`, `Code`, `Name`, `NativeName`, `TtsCode`, `SortOrder`) VALUES
+INSERT IGNORE INTO `Languages` (`Id`, `Code`, `Name`, `NativeName`, `TtsCode`, `SortOrder`) VALUES
     (1, 'vi', 'Vietnamese', 'Tiếng Việt',  'vi-VN', 1),
     (2, 'en', 'English',    'English',      'en-US', 2),
     (3, 'zh', 'Chinese',    '中文',          'zh-CN', 3),
@@ -20,7 +20,7 @@ INSERT INTO `Languages` (`Id`, `Code`, `Name`, `NativeName`, `TtsCode`, `SortOrd
 -- 2. ADMIN MẶC ĐỊNH
 -- ============================================================================
 
-INSERT INTO `Users`
+INSERT IGNORE INTO `Users`
     (`Username`, `Email`, `PasswordHash`, `FullName`, `Role`, `PreferredLanguageId`, `IsActive`, `EmailConfirmed`)
 VALUES
     ('admin', 'admin@vinhkhanh.app',
@@ -31,7 +31,7 @@ VALUES
 -- 3. CHỦ QUÁN MẪU (Vendors)
 -- ============================================================================
 
-INSERT INTO `Users`
+INSERT IGNORE INTO `Users`
     (`Username`, `Email`, `PasswordHash`, `FullName`, `PhoneNumber`, `Role`, `PreferredLanguageId`, `IsActive`, `EmailConfirmed`)
 VALUES
     ('ocdao_owner', 'ocdao@gmail.com',
@@ -48,7 +48,7 @@ VALUES
 -- 4. KHÁCH HÀNG MẪU (Customers)
 -- ============================================================================
 
-INSERT INTO `Users`
+INSERT IGNORE INTO `Users`
     (`Username`, `Email`, `PasswordHash`, `FullName`, `Role`, `PreferredLanguageId`, `IsActive`, `EmailConfirmed`)
 VALUES
     ('tourist_hana', 'hana@test.com',
@@ -65,7 +65,7 @@ VALUES
 -- 5. DANH MỤC (Categories)
 -- ============================================================================
 
-INSERT INTO `Categories` (`Id`, `Icon`, `Color`, `SortOrder`) VALUES
+INSERT IGNORE INTO `Categories` (`Id`, `Icon`, `Color`, `SortOrder`) VALUES
     (1, '🍜', '#FF6B35', 1),
     (2, '🦪', '#2EC4B6', 2),
     (3, '🍻', '#E71D36', 3),
@@ -74,7 +74,7 @@ INSERT INTO `Categories` (`Id`, `Icon`, `Color`, `SortOrder`) VALUES
     (6, '🍲', '#6A4C93', 6),
     (7, '🔥', '#F25C54', 7);
 
-INSERT INTO `CategoryTranslations` (`CategoryId`, `LanguageId`, `Name`, `Description`) VALUES
+INSERT IGNORE INTO `CategoryTranslations` (`CategoryId`, `LanguageId`, `Name`, `Description`) VALUES
     -- Tiếng Việt
     (1, 1, 'Quán ăn',         'Các quán ăn đường phố và nhà hàng'),
     (2, 1, 'Hải sản & Ốc',    'Quán ốc, hải sản tươi sống'),
@@ -120,7 +120,7 @@ INSERT INTO `CategoryTranslations` (`CategoryId`, `LanguageId`, `Name`, `Descrip
 -- 6. ĐIỂM ĂN UỐNG (POIs) — 10 quán trên Vĩnh Khánh
 -- ============================================================================
 
-INSERT INTO `POIs`
+INSERT IGNORE INTO `POIs`
     (`Id`, `VendorId`, `CategoryId`, `Latitude`, `Longitude`,
      `GeofenceRadiusMeters`, `Address`, `PhoneNumber`,
      `PriceRangeMin`, `PriceRangeMax`, `Rating`, `IsActive`, `IsFeatured`)
@@ -140,7 +140,7 @@ VALUES
 -- 7. NỘI DUNG THUYẾT MINH (POITranslations) — VI + EN
 -- ============================================================================
 
-INSERT INTO `POITranslations`
+INSERT IGNORE INTO `POITranslations`
     (`POIId`, `LanguageId`, `Name`, `ShortDescription`, `FullDescription`, `NarrationText`, `Highlights`)
 VALUES
     -- POI 1: Ốc Đào
@@ -267,7 +267,7 @@ VALUES
 -- 8. THỰC ĐƠN — Quán Ốc Đào
 -- ============================================================================
 
-INSERT INTO `POIMenuItems`
+INSERT IGNORE INTO `POIMenuItems`
     (`Id`, `POIId`, `Price`, `IsAvailable`, `IsSignature`, `SortOrder`)
 VALUES
     (1,  1, 85000,  1, 1, 1),
@@ -281,7 +281,7 @@ VALUES
     (9,  1, 150000, 1, 0, 9),
     (10, 1, 80000,  1, 0, 10);
 
-INSERT INTO `MenuItemTranslations` (`MenuItemId`, `LanguageId`, `Name`, `Description`) VALUES
+INSERT IGNORE INTO `MenuItemTranslations` (`MenuItemId`, `LanguageId`, `Name`, `Description`) VALUES
     (1,  1, 'Ốc hương nướng mỡ hành',     'Ốc hương tươi nướng với mỡ hành phi thơm'),
     (2,  1, 'Ốc len xào dừa',              'Ốc len xào với nước cốt dừa béo ngậy'),
     (3,  1, 'Sò điệp nướng phô mai',       'Sò điệp tươi nướng phô mai tan chảy'),
@@ -307,7 +307,7 @@ INSERT INTO `MenuItemTranslations` (`MenuItemId`, `LanguageId`, `Name`, `Descrip
 -- 9. CÀI ĐẶT USER
 -- ============================================================================
 
-INSERT INTO `UserSettings`
+INSERT IGNORE INTO `UserSettings`
     (`UserId`, `PreferredLanguageId`, `NarrationMode`, `AutoPlayEnabled`,
      `CooldownMinutes`, `GeofenceSensitivity`, `Volume`, `PlaybackSpeed`)
 VALUES
@@ -319,7 +319,7 @@ VALUES
 -- 10. AUDIO MẪU (metadata)
 -- ============================================================================
 
-INSERT INTO `AudioNarrations`
+INSERT IGNORE INTO `AudioNarrations`
     (`POIId`, `LanguageId`, `FileUrl`, `FileName`, `FileSize`,
      `DurationSeconds`, `MimeType`, `VoiceType`, `VoiceName`, `IsDefault`, `IsActive`)
 VALUES
@@ -337,7 +337,7 @@ VALUES
 -- 11. GÓI OFFLINE
 -- ============================================================================
 
-INSERT INTO `OfflinePackages`
+INSERT IGNORE INTO `OfflinePackages`
     (`LanguageId`, `Name`, `Description`, `Version`,
      `TotalSizeBytes`, `POICount`, `AudioCount`, `ImageCount`, `DownloadUrl`, `Checksum`)
 VALUES
@@ -348,7 +348,7 @@ VALUES
 -- 12. LỊCH SỬ GHÉ THĂM MẪU
 -- ============================================================================
 
-INSERT INTO `VisitHistory`
+INSERT IGNORE INTO `VisitHistory`
     (`UserId`, `POIId`, `VisitedAt`, `TriggerType`, `NarrationPlayed`,
      `NarrationType`, `AudioNarrationId`, `DurationListened`,
      `UserLatitude`, `UserLongitude`, `DeviceInfo`, `IsSynced`)

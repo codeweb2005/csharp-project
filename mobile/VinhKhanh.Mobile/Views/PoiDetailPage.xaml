@@ -1,20 +1,30 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-    PoiDetailPage.xaml — Point of Interest detail view.
+    PoiDetailPage.xaml — Point of Interest full detail view (T-13).
 
-    Displays full info about a single POI with a "▶ Play Narration" button.
-    The POI is passed via Shell navigation query parameter (poi → PoiDetailViewModel.Poi).
+    Shows full info loaded from GET /pois/{id}/public:
+      - Hero image (primary media)
+      - Category icon + name + distance
+      - Full description + highlights
+      - Price range
+      - Audio narration player
+      - Menu items CollectionView (with price + signature badge)
 
     Layout:
       ┌──────────────────────────────────┐
-      │ ← Back     [icon] {Name}         │
-      │ ─────────────────────────────── │
-      │ 📍 {Category}   📏 {Distance}m   │
-      │ 🏠 {Address}                     │
-      │ 💰 {PriceRange}                  │
-      │ ─────────────────────────────── │
-      │ ▶ Play Narration                 │
-      │  (status message while loading)  │
+      │  [Hero Image]                    │
+      │  ─────────────────────────────── │
+      │  [icon]  {Name}                  │
+      │          {Category} · {Distance} │
+      │  ─────────────────────────────── │
+      │  📝 Description                  │
+      │  ✨ Highlights                   │
+      │  💰 Price Range                  │
+      │  ─────────────────────────────── │
+      │  🎙️ Audio Narration ▶ Play      │
+      │  ─────────────────────────────── │
+      │  🍜 Menu                         │
+      │    [Name]   [Price] [★ Signature]│
       └──────────────────────────────────┘
 -->
 <ContentPage
@@ -22,123 +32,241 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:vm="clr-namespace:VinhKhanh.Mobile.ViewModels"
+    xmlns:services="clr-namespace:VinhKhanh.Mobile.Services"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     Title="{Binding Poi.Name, FallbackValue='Detail'}"
     BackgroundColor="#0F172A">
 
     <ContentPage.Resources>
-        <Style TargetType="Label" x:Key="InfoLabel">
-            <Setter Property="TextColor" Value="#94A3B8" />
-            <Setter Property="FontSize" Value="14" />
-        </Style>
+        <ResourceDictionary>
+            <Style TargetType="Label" x:Key="SectionHeader">
+                <Setter Property="TextColor" Value="#6366F1" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="FontSize" Value="13" />
+            </Style>
+            <Style TargetType="Label" x:Key="InfoLabel">
+                <Setter Property="TextColor" Value="#94A3B8" />
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+        </ResourceDictionary>
     </ContentPage.Resources>
 
     <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="16">
+        <VerticalStackLayout Padding="0" Spacing="0">
 
-            <!-- Hero card: icon + name -->
-            <Frame BackgroundColor="#1E293B" BorderColor="#334155"
-                   CornerRadius="16" Padding="20">
-                <VerticalStackLayout Spacing="8">
+            <!-- ── Hero image ────────────────────────────────────────────── -->
+            <!-- Show hero image when we have one from the detail API -->
+            <Image Source="{Binding PrimaryImageUrl}"
+                   HeightRequest="200"
+                   Aspect="AspectFill"
+                   IsVisible="{Binding PrimaryImageUrl, Converter={toolkit:IsStringNotNullOrEmptyConverter}}" />
 
-                    <!-- Category icon circle -->
-                    <Frame BackgroundColor="#312E81" CornerRadius="36"
-                           WidthRequest="72" HeightRequest="72"
-                           HorizontalOptions="Center" Padding="0">
-                        <Label Text="{Binding Poi.CategoryIcon}"
-                               FontSize="36"
+            <VerticalStackLayout Padding="20" Spacing="16">
+
+                <!-- ── Hero card: icon + name ─────────────────────────────── -->
+                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
+                       CornerRadius="16" Padding="20">
+                    <VerticalStackLayout Spacing="8">
+
+                        <!-- Category icon circle -->
+                        <Frame BackgroundColor="#312E81" CornerRadius="36"
+                               WidthRequest="72" HeightRequest="72"
+                               HorizontalOptions="Center" Padding="0">
+                            <Label Text="{Binding Poi.CategoryIcon}"
+                                   FontSize="36"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Frame>
+
+                        <!-- POI Name -->
+                        <Label Text="{Binding Poi.Name}"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="#F1F5F9"
                                HorizontalOptions="Center"
-                               VerticalOptions="Center" />
-                    </Frame>
+                               HorizontalTextAlignment="Center" />
 
-                    <!-- POI Name -->
-                    <Label Text="{Binding Poi.Name}"
-                           FontSize="22"
-                           FontAttributes="Bold"
-                           TextColor="#F1F5F9"
-                           HorizontalOptions="Center"
-                           HorizontalTextAlignment="Center" />
+                        <!-- Category + Distance row -->
+                        <HorizontalStackLayout HorizontalOptions="Center" Spacing="16">
+                            <Label Text="{Binding Poi.CategoryLabel}"
+                                   Style="{StaticResource InfoLabel}" />
+                            <Label Text="{Binding Poi.DistanceDisplay, StringFormat='📏 {0}'}"
+                                   Style="{StaticResource InfoLabel}" />
+                        </HorizontalStackLayout>
 
-                    <!-- Category + Distance row -->
-                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="16">
-                        <Label Text="{Binding Poi.CategoryLabel}"
-                               Style="{StaticResource InfoLabel}" />
-                        <Label Text="{Binding Poi.DistanceDisplay, StringFormat='📏 {0}'}"
-                               Style="{StaticResource InfoLabel}" />
-                    </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Frame>
 
-                </VerticalStackLayout>
-            </Frame>
+                <!-- ── Loading indicator for detail ─────────────────────── -->
+                <ActivityIndicator IsRunning="{Binding IsLoadingDetail}"
+                                   IsVisible="{Binding IsLoadingDetail}"
+                                   Color="#6366F1"
+                                   HorizontalOptions="Center" />
 
-            <!-- Info card: address -->
-            <Frame BackgroundColor="#1E293B" BorderColor="#334155"
-                   CornerRadius="12" Padding="16">
-                <VerticalStackLayout Spacing="8">
+                <!-- ── Address card ───────────────────────────────────────── -->
+                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
+                       CornerRadius="12" Padding="16">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="📍 Address" Style="{StaticResource SectionHeader}" />
+                        <Label Text="{Binding Poi.Address}"
+                               TextColor="#CBD5E1"
+                               FontSize="14" />
+                        <!-- Price range (T-13) -->
+                        <Label IsVisible="{Binding PriceRange, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"
+                               TextColor="#34D399"
+                               FontSize="14"
+                               FontAttributes="Bold">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="💰 " />
+                                    <Span Text="{Binding PriceRange}" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                    </VerticalStackLayout>
+                </Frame>
 
-                    <Label Text="📍 Address"
-                           TextColor="#6366F1"
-                           FontAttributes="Bold"
-                           FontSize="13" />
-                    <Label Text="{Binding Poi.Address}"
-                           TextColor="#CBD5E1"
-                           FontSize="14" />
+                <!-- ── Description card (T-13) ────────────────────────────── -->
+                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
+                       CornerRadius="12" Padding="16"
+                       IsVisible="{Binding Description, Converter={toolkit:IsStringNotNullOrEmptyConverter}}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="📝 About" Style="{StaticResource SectionHeader}" />
+                        <Label Text="{Binding Description}"
+                               TextColor="#CBD5E1"
+                               FontSize="14"
+                               LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Frame>
 
-                </VerticalStackLayout>
-            </Frame>
+                <!-- ── Highlights card (T-13) ─────────────────────────────── -->
+                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
+                       CornerRadius="12" Padding="16"
+                       IsVisible="{Binding Highlights, Converter={toolkit:IsStringNotNullOrEmptyConverter}}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="✨ Highlights" Style="{StaticResource SectionHeader}" />
+                        <Label Text="{Binding Highlights}"
+                               TextColor="#A5B4FC"
+                               FontSize="14"
+                               LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Frame>
 
-            <!-- Play Narration card -->
-            <Frame BackgroundColor="#1E293B" BorderColor="#334155"
-                   CornerRadius="12" Padding="16">
-                <VerticalStackLayout Spacing="12">
+                <!-- ── Play Narration card ────────────────────────────────── -->
+                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
+                       CornerRadius="12" Padding="16">
+                    <VerticalStackLayout Spacing="12">
 
-                    <Label Text="🎙️ Audio Narration"
-                           TextColor="#6366F1"
-                           FontAttributes="Bold"
-                           FontSize="13" />
+                        <Label Text="🎙️ Audio Narration"
+                               Style="{StaticResource SectionHeader}" />
 
-                    <!-- Status message (loading/error feedback) -->
-                    <Label Text="{Binding StatusMessage}"
-                           TextColor="#94A3B8"
-                           FontSize="12"
-                           IsVisible="{Binding StatusMessage,
-                               Converter={toolkit:IsStringNotNullOrEmptyConverter}}" />
+                        <!-- Status message (loading/error feedback) -->
+                        <Label Text="{Binding StatusMessage}"
+                               TextColor="#94A3B8"
+                               FontSize="12"
+                               IsVisible="{Binding StatusMessage,
+                                   Converter={toolkit:IsStringNotNullOrEmptyConverter}}" />
 
-                    <!-- Play button — disabled while playing -->
-                    <Button Text="▶  Play Narration"
-                            Command="{Binding PlayNarrationCommand}"
-                            BackgroundColor="#6366F1"
-                            TextColor="White"
-                            FontAttributes="Bold"
-                            FontSize="16"
-                            CornerRadius="12"
-                            HeightRequest="52">
-                        <Button.Triggers>
-                            <DataTrigger TargetType="Button"
-                                         Binding="{Binding IsPlaying}"
-                                         Value="True">
-                                <Setter Property="Text" Value="♫  Playing…" />
-                                <Setter Property="BackgroundColor" Value="#312E81" />
-                            </DataTrigger>
-                        </Button.Triggers>
-                    </Button>
+                        <!-- Play button — disabled while playing -->
+                        <Button Text="▶  Play Narration"
+                                Command="{Binding PlayNarrationCommand}"
+                                BackgroundColor="#6366F1"
+                                TextColor="White"
+                                FontAttributes="Bold"
+                                FontSize="16"
+                                CornerRadius="12"
+                                HeightRequest="52">
+                            <Button.Triggers>
+                                <DataTrigger TargetType="Button"
+                                             Binding="{Binding IsPlaying}"
+                                             Value="True">
+                                    <Setter Property="Text" Value="♫  Playing…" />
+                                    <Setter Property="BackgroundColor" Value="#312E81" />
+                                </DataTrigger>
+                            </Button.Triggers>
+                        </Button>
 
-                    <!-- TTS fallback notice: shown when there's no audio file -->
-                    <Label IsVisible="{Binding Poi.AudioUrl,
-                                Converter={toolkit:IsNullConverter}}"
-                           Text="ℹ️ No audio file — will use text-to-speech"
-                           TextColor="#475569"
-                           FontSize="11"
-                           HorizontalOptions="Center" />
-                </VerticalStackLayout>
-            </Frame>
+                        <!-- TTS fallback notice: shown when there's no audio file -->
+                        <Label IsVisible="{Binding Poi.AudioUrl,
+                                    Converter={toolkit:IsNullConverter}}"
+                               Text="ℹ️ No audio file — will use text-to-speech"
+                               TextColor="#475569"
+                               FontSize="11"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Frame>
 
-            <!-- Back button -->
-            <Button Text="← Back to nearby"
-                    Command="{Binding GoBackCommand}"
-                    BackgroundColor="Transparent"
-                    TextColor="#64748B"
-                    FontSize="14" />
+                <!-- ── Menu items (T-13) ─────────────────────────────────── -->
+                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
+                       CornerRadius="12" Padding="16"
+                       IsVisible="{Binding HasDetail}">
+                    <VerticalStackLayout Spacing="12">
 
+                        <Label Text="🍜 Menu" Style="{StaticResource SectionHeader}" />
+
+                        <CollectionView
+                            ItemsSource="{Binding MenuItems}"
+                            SelectionMode="None">
+                            <CollectionView.EmptyView>
+                                <Label Text="No menu items listed."
+                                       TextColor="#475569"
+                                       FontSize="13"
+                                       HorizontalOptions="Center"
+                                       Margin="0,8" />
+                            </CollectionView.EmptyView>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="services:PoiMenuItemDto">
+                                    <Grid ColumnDefinitions="*,Auto" Padding="0,8"
+                                          RowDefinitions="Auto,Auto">
+                                        <!-- Item name + signature badge -->
+                                        <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Spacing="6">
+                                            <Label Text="{Binding Name}"
+                                                   TextColor="#F1F5F9"
+                                                   FontAttributes="Bold"
+                                                   FontSize="14"
+                                                   VerticalOptions="Center" />
+                                            <!-- ★ Signature badge -->
+                                            <Frame BackgroundColor="#7C3AED"
+                                                   CornerRadius="6"
+                                                   Padding="5,2"
+                                                   IsVisible="{Binding IsSignature}">
+                                                <Label Text="★ Signature"
+                                                       TextColor="#DDD6FE"
+                                                       FontSize="10"
+                                                       FontAttributes="Bold" />
+                                            </Frame>
+                                        </HorizontalStackLayout>
+                                        <!-- Description -->
+                                        <Label Grid.Row="1" Grid.Column="0"
+                                               Text="{Binding Description}"
+                                               TextColor="#64748B"
+                                               FontSize="12"
+                                               IsVisible="{Binding Description,
+                                                   Converter={toolkit:IsStringNotNullOrEmptyConverter}}" />
+                                        <!-- Price -->
+                                        <Label Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+                                               Text="{Binding PriceLabel}"
+                                               TextColor="#34D399"
+                                               FontAttributes="Bold"
+                                               FontSize="13"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Back button -->
+                <Button Text="← Back to nearby"
+                        Command="{Binding GoBackCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="#64748B"
+                        FontSize="14"
+                        Margin="0,0,0,16" />
+
+            </VerticalStackLayout>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

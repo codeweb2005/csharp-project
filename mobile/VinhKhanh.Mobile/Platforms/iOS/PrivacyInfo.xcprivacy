@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    PrivacyInfo.xcprivacy — iOS 17+ Privacy Manifest (required for App Store submission)
+    https://developer.apple.com/documentation/bundleresources/privacy_manifest_files
+
+    Required from Spring 2024 onwards for all new App Store submissions.
+    Declares what data the app collects, why it uses certain Apple APIs,
+    and whether data is linked to user identity.
+-->
+<plist version="1.0">
+<dict>
+
+    <!--
+      NSPrivacyTracking
+      =====================
+      Set to true only if this app or third-party SDKs use data for tracking
+      (cross-app advertising, building user profiles for ads, etc.).
+      This app does NOT track users, so this is false.
+    -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+
+    <!--
+      NSPrivacyTrackingDomains
+      ========================
+      List domains used for tracking. Empty because tracking is false.
+    -->
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <!--
+      NSPrivacyCollectedDataTypes
+      ===========================
+      Describes all data categories collected by this app.
+      Each entry needs:
+        - NSPrivacyCollectedDataType (the category)
+        - NSPrivacyCollectedDataTypeLinked (linked to user identity?)
+        - NSPrivacyCollectedDataTypeTracking (used for tracking?)
+        - NSPrivacyCollectedDataTypePurposes (why)
+    -->
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+
+        <!-- Location data (precise) — GPS for geofencing / narration trigger -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypePreciseLocation</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <!-- App Functionality: trigger geofence narration when user is near a restaurant -->
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+
+        <!-- User content — visit history (which POIs were visited) -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <!-- Analytics: understand which restaurants are most popular -->
+                <string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+                <!-- App Functionality: personalise experience based on visit history -->
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+
+        <!-- Email address — collected during account registration/login -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeEmailAddress</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+
+    </array>
+
+    <!--
+      NSPrivacyAccessedAPITypes
+      =========================
+      Declares which "required reasons" APIs the app uses.
+      Every API in this list MUST have at least one reason code.
+      Apple rejects submissions where used APIs are not declared.
+
+      Reference: https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/describing_use_of_required_reason_api
+    -->
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+
+        <!-- File timestamp API — used by SQLite-net-pcl reading db file dates -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <!-- C617.1: show user-facing timestamps (last-modified of offline data) -->
+                <string>C617.1</string>
+            </array>
+        </dict>
+
+        <!-- System boot time — used implicitly by CommunityToolkit.Maui.MediaElement -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <!-- 35F9.1: measuring elapsed time for audio playback timer -->
+                <string>35F9.1</string>
+            </array>
+        </dict>
+
+        <!-- UserDefaults — used by MAUI.Essentials.Preferences (Preferences.Set/Get) -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <!-- CA92.1: access own defaults container only -->
+                <string>CA92.1</string>
+            </array>
+        </dict>
+
+        <!-- Disk space — used by MAUI offline package download to check free space -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <!-- E174.1: show user-visible disk space info on Offline tab -->
+                <string>E174.1</string>
+            </array>
+        </dict>
+
+    </array>
+
+</dict>
+</plist>

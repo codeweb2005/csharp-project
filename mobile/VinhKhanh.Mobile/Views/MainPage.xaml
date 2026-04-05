@@ -163,7 +163,7 @@
         <!--
             Visible only when INarrationPlayer.IsPlaying == true.
             Shows the current POI name + Pause and Stop buttons.
-            Slides in from the bottom with a subtle drop shadow.
+            T-12: Added ProgressBar progress indicator + time remaining label.
         -->
         <Grid Grid.Row="2"
               IsVisible="{Binding IsPlaying}"
@@ -171,6 +171,7 @@
               Padding="16,10">
 
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -214,6 +215,23 @@
                         WidthRequest="44" />
             </Grid>
 
+            <!-- T-12: Progress bar -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                <ProgressBar Grid.Column="0"
+                             Progress="{Binding PlaybackProgress}"
+                             ProgressColor="#818CF8"
+                             BackgroundColor="#4338CA"
+                             HeightRequest="4"
+                             VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="{Binding PlaybackTimeRemaining}"
+                       TextColor="#A5B4FC"
+                       FontSize="11"
+                       Margin="8,0,0,0"
+                       VerticalOptions="Center"
+                       MinimumWidthRequest="36" />
+            </Grid>
+
             <!--
                 Hidden MediaElement — attached to the visual tree to satisfy the
                 CommunityToolkit requirement. Height=0 makes it invisible.
@@ -221,7 +239,7 @@
             -->
             <toolkit:MediaElement
                 x:Name="NarrationMediaElement"
-                Grid.Row="1"
+                Grid.Row="2"
                 HeightRequest="0"
                 ShouldAutoPlay="False"
                 ShouldShowPlaybackControls="False" />

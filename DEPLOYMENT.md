@@ -1,98 +1,147 @@
-# 🍜 Hướng dẫn Triển khai — Vinh Khanh Food Tour
+# Vinh Khanh Food Tour — Deployment Guide
 
-> **Stack:** ASP.NET Core 10 (Clean Architecture) + React 19 / Vite + MySQL  
-> **Tác giả:** VinhKhanh Dev Team  
-> **Cập nhật lần cuối:** 2026-03-20
-
----
-
-## 📋 Mục lục
-
-1. [Yêu cầu hệ thống](#1-yêu-cầu-hệ-thống)
-2. [Cấu trúc dự án](#2-cấu-trúc-dự-án)
-3. [Cấu hình môi trường](#3-cấu-hình-môi-trường)
-4. [Triển khai Backend (ASP.NET Core)](#4-triển-khai-backend-aspnet-core)
-5. [Triển khai Frontend (React/Vite)](#5-triển-khai-frontend-reactvite)
-6. [Cài đặt MySQL](#6-cài-đặt-mysql)
-7. [Cấu hình Nginx (Reverse Proxy)](#7-cấu-hình-nginx-reverse-proxy)
-8. [Chạy với Docker](#8-chạy-với-docker)
-9. [Kiểm tra sau triển khai](#9-kiểm-tra-sau-triển-khai)
-10. [Xử lý sự cố thường gặp](#10-xử-lý-sự-cố-thường-gặp)
+> **Stack:** ASP.NET Core 10 · React 19 / Vite · .NET MAUI · MySQL 8  
+> **Last updated:** 2026-04-05
 
 ---
 
-## 1. Yêu cầu hệ thống
+## Table of Contents
 
-### Máy chủ (Server)
+1. [Prerequisites](#1-prerequisites)
+2. [Repository Structure](#2-repository-structure)
+3. [Environment Configuration](#3-environment-configuration)
+   - 3.1 [Backend — appsettings](#31-backend--appsettings)
+   - 3.2 [Frontend — .env files](#32-frontend--env-files)
+   - 3.3 [Mobile — appsettings.json](#33-mobile--appsettingsjson)
+4. [Database Setup](#4-database-setup)
+   - 4.1 [Local MySQL](#41-local-mysql)
+   - 4.2 [Amazon RDS (PowerShell)](#42-amazon-rds-powershell)
+5. [Backend Deployment](#5-backend-deployment)
+   - 5.1 [Run locally (dev)](#51-run-locally-dev)
+   - 5.2 [Docker (staging / prod)](#52-docker-staging--prod)
+6. [Frontend Deployment](#6-frontend-deployment)
+   - 6.1 [Admin Panel](#61-admin-panel-port-5173)
+   - 6.2 [Vendor Panel](#62-vendor-panel-port-5174)
+7. [Mobile App Deployment](#7-mobile-app-deployment)
+   - 7.1 [Android debug APK (staging)](#71-android-debug-apk-staging)
+   - 7.2 [Android release AAB (production)](#72-android-release-aab-production)
+8. [Full Stack Smoke Tests](#8-full-stack-smoke-tests)
+9. [Nginx (Self-hosted)](#9-nginx-self-hosted)
+10. [Troubleshooting](#10-troubleshooting)
 
-| Thành phần | Phiên bản tối thiểu | Ghi chú |
+---
+
+## 1. Prerequisites
+
+### Dev Machine (Windows + PowerShell)
+
+| Tool | Version | Notes |
 |---|---|---|
-| OS | Ubuntu 22.04 LTS | Khuyến nghị |
-| .NET Runtime | 10.0 | Chỉ runtime, không cần SDK |
-| Node.js | 20 LTS | Để build frontend |
-| MySQL | 8.0+ | |
-| Nginx | 1.24+ | Reverse proxy |
-| RAM | 2 GB | Tối thiểu |
-| Disk | 20 GB | Tối thiểu |
+| .NET SDK | 10.0 | [dotnet.microsoft.com](https://dotnet.microsoft.com/download) |
+| Node.js | 20 LTS | [nodejs.org](https://nodejs.org) |
+| Docker Desktop | latest | Required for Docker deployment |
+| MySQL CLI | 8.0+ | For running SQL scripts against RDS |
+| Android SDK | API 26+ | Required for MAUI Android builds |
 
-### Máy phát triển (Dev Machine — Windows)
+Verify tools are available:
 
-- .NET SDK 10.0
-- Node.js 20 LTS + npm
-- MySQL 8.0
-- Visual Studio 2022 / VS Code
+```powershell
+dotnet --version       # 10.0.x
+node --version         # v20.x
+docker --version
+mysql --version        # add to PATH if missing — see Section 4.2
+```
+
+### Server / Cloud
+
+| Component | Staging | Production |
+|---|---|---|
+| API host | Docker on any host | AWS ECS Fargate |
+| Database | Amazon RDS MySQL 8.0 | Amazon RDS MySQL 8.0, Multi-AZ |
+| File storage | Amazon S3 | Amazon S3 |
+| Frontend | `vite preview` / S3 static | AWS S3 + CloudFront |
+| TTS | Azure Cognitive Services | Azure Cognitive Services |
 
 ---
 
-## 2. Cấu trúc dự án
+## 2. Repository Structure
 
 ```
-csharp/
+/
+├── Dockerfile                        ← Backend image (built from repo root)
 ├── backend/
 │   ├── VinhKhanhFoodTour.slnx
 │   └── src/
-│       ├── VinhKhanh.API/           ← Entry point, Controllers, Middleware
-│       ├── VinhKhanh.Application/   ← Use cases, Services, DTOs
-│       ├── VinhKhanh.Domain/        ← Entities, Interfaces
-│       └── VinhKhanh.Infrastructure/← EF Core, Repositories, External services
-├── admin-frontend/                  ← React 19 + Vite admin panel
-│   ├── src/
-│   ├── package.json
-│   └── vite.config.js
-├── Database/                        ← SQL scripts
+│       ├── VinhKhanh.API/
+│       │   ├── appsettings.json      ← Non-secret defaults only
+│       │   └── appsettings.example.json ← Full template (no real values)
+│       ├── VinhKhanh.Application/
+│       ├── VinhKhanh.Domain/
+│       └── VinhKhanh.Infrastructure/
+├── admin-frontend/
+│   ├── .env.example                  ← Copy to .env or .env.production
+│   └── src/
+├── vendor-frontend/
+│   ├── .env.example                  ← Copy to .env or .env.production
+│   └── src/
+├── mobile/
+│   └── VinhKhanh.Mobile/
+│       └── appsettings.json          ← API base URL for mobile app
+├── Database/
 │   ├── 001_CreateDatabase.sql
 │   ├── 002_CreateTables.sql
 │   ├── 003_CreateIndexes.sql
 │   ├── 004_CreateStoredProcedures.sql
-│   └── 005_SeedData.sql
-└── DEPLOYMENT.md                    ← File này
+│   ├── 005_SeedData.sql
+│   ├── 006_AddPhase1Columns.sql
+│   ├── 007_ResetData.sql
+│   ├── 008_MockData.sql
+│   └── 009_PasswordResetColumns.sql  ← Latest migration
+└── DEPLOYMENT.md                     ← This file
 ```
 
 ---
 
-## 3. Cấu hình môi trường
+## 3. Environment Configuration
 
-### ⚠️ QUAN TRỌNG — Secrets không được commit lên Git
+### ⚠️ Golden Rule — Never commit secrets
 
-Tạo file `appsettings.Production.json` **trên máy chủ** (không commit):
+The following files **must never be committed** to Git:
+- `backend/src/VinhKhanh.API/appsettings.json` (if it contains real values)
+- `admin-frontend/.env` / `.env.production`
+- `vendor-frontend/.env` / `.env.production`
+
+Use the `.example` files as templates. All secrets are injected via environment variables at runtime.
+
+---
+
+### 3.1 Backend — appsettings
+
+The API reads config in this priority order (highest wins):
+1. **Environment variables** (Docker / ECS)
+2. `appsettings.Production.json` (server file, not committed)
+3. `appsettings.json` (committed — non-secret defaults only)
+
+**Template — create `appsettings.Production.json` on the server or inject as env vars:**
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Port=3306;Database=vinhkhanh_foodtour;Uid=vkapp;Pwd=<MẬT_KHẨU_MẠNH>;CharSet=utf8mb4;"
+    "DefaultConnection": "Server=<RDS_ENDPOINT>;Port=3306;Database=VinhKhanhFoodTour;Uid=<DB_USER>;Pwd=<DB_PASSWORD>;CharSet=utf8mb4;SslMode=Required;"
   },
   "Jwt": {
-    "Key": "<CHUỖI_BÍ_MẬT_ÍT_NHẤT_32_KÝ_TỰ>",
+    "Key": "<MIN_32_CHAR_RANDOM_SECRET>",
     "Issuer": "VinhKhanhFoodTour",
     "Audience": "VinhKhanhFoodTourAdmin",
     "ExpiryMinutes": 60,
     "RefreshExpiryDays": 7
   },
   "FileStorage": {
-    "BasePath": "/var/www/vinhkhanh/uploads",
-    "MaxFileSizeMB": 10,
-    "AllowedImageExtensions": [".jpg", ".jpeg", ".png", ".webp"],
-    "AllowedAudioExtensions": [".mp3", ".wav", ".ogg"]
+    "Provider": "s3",
+    "S3BucketName": "<S3_BUCKET_NAME>",
+    "S3Region": "<AWS_REGION>",
+    "AwsAccessKey": "<AWS_ACCESS_KEY_ID>",
+    "AwsSecretKey": "<AWS_SECRET_ACCESS_KEY>"
   },
   "AzureTTS": {
     "SubscriptionKey": "<AZURE_TTS_KEY>",
@@ -100,195 +149,482 @@ Tạo file `appsettings.Production.json` **trên máy chủ** (không commit):
     "DefaultVoiceVi": "vi-VN-HoaiMyNeural",
     "DefaultVoiceEn": "en-US-JennyNeural"
   },
-  "GoogleMaps": {
-    "ApiKey": "<GOOGLE_MAPS_API_KEY>"
+  "Email": {
+    "Provider": "ses"
   },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Warning",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  }
+  "CORS_ALLOWED_ORIGINS": "<FRONTEND_URL_1>,<FRONTEND_URL_2>"
 }
 ```
 
-### Biến môi trường Frontend
+**Environment variable equivalents** (used in Docker / ECS — double underscore = nesting):
 
-Tạo file `admin-frontend/.env.production`:
+| JSON path | Environment variable |
+|---|---|
+| `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` |
+| `Jwt:Key` | `Jwt__Key` |
+| `FileStorage:Provider` | `FileStorage__Provider` |
+| `FileStorage:S3BucketName` | `FileStorage__S3BucketName` |
+| `FileStorage:S3Region` | `FileStorage__S3Region` |
+| `FileStorage:AwsAccessKey` | `FileStorage__AwsAccessKey` |
+| `FileStorage:AwsSecretKey` | `FileStorage__AwsSecretKey` |
+| `AzureTTS:SubscriptionKey` | `AzureTTS__SubscriptionKey` |
+| `AzureTTS:Region` | `AzureTTS__Region` |
+| `CORS_ALLOWED_ORIGINS` | `CORS_ALLOWED_ORIGINS` |
+
+---
+
+### 3.2 Frontend — .env files
+
+Both frontends use the same two variables. Create the appropriate file per environment.
+
+**For local development** — copy `.env.example` to `.env`:
+
+```powershell
+Copy-Item admin-frontend/.env.example  admin-frontend/.env
+Copy-Item vendor-frontend/.env.example vendor-frontend/.env
+```
+
+**For staging** — create `.env.staging` (used with `vite build --mode staging`):
 
 ```env
-VITE_API_BASE_URL=https://api.vinhkhanh.com/api
-VITE_APP_TITLE=Vinh Khanh Food Tour Admin
+VITE_API_BASE_URL=http://<STAGING_API_HOST>:8080/api/v1
+VITE_GOOGLE_MAPS_API_KEY=<YOUR_GOOGLE_MAPS_KEY>
+```
+
+**For production** — create `.env.production` (used with `vite build`):
+
+```env
+VITE_API_BASE_URL=https://api.vinhkhanh.com/api/v1
+VITE_GOOGLE_MAPS_API_KEY=<YOUR_GOOGLE_MAPS_KEY>
+```
+
+> `VITE_GOOGLE_MAPS_API_KEY` is optional. If empty, the POI map picker falls back to manual lat/lng inputs.
+
+---
+
+### 3.3 Mobile — appsettings.json
+
+The mobile app reads `mobile/VinhKhanh.Mobile/appsettings.json` as an embedded resource at build time. Update this file before building to target the correct API:
+
+**Staging:**
+```json
+{
+  "ApiBaseUrl": "http://<STAGING_API_HOST>:8080/api/v1",
+  "DefaultLanguageId": 1
+}
+```
+
+**Production:**
+```json
+{
+  "ApiBaseUrl": "https://api.vinhkhanh.com/api/v1",
+  "DefaultLanguageId": 1
+}
+```
+
+> This file does not contain secrets — only the API URL. It is safe to commit with placeholder values.
+
+---
+
+## 4. Database Setup
+
+### 4.1 Local MySQL
+
+```powershell
+# Start MySQL and create a dedicated app user (never use root)
+mysql -u root -p
+```
+
+```sql
+CREATE DATABASE VinhKhanhFoodTour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'vkapp'@'localhost' IDENTIFIED BY '<STRONG_PASSWORD>';
+GRANT ALL PRIVILEGES ON VinhKhanhFoodTour.* TO 'vkapp'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+Run all migration scripts in order:
+
+```powershell
+$MYSQL  = "mysql"           # or full path: "C:/app/mysql-9.6.0-winx64/bin/mysql.exe"
+$HOST   = "localhost"
+$PORT   = "3306"
+$USER   = "vkapp"
+$PASS   = "<STRONG_PASSWORD>"
+$DB     = "VinhKhanhFoodTour"
+
+$scripts = @(
+    "Database/001_CreateDatabase.sql",
+    "Database/002_CreateTables.sql",
+    "Database/003_CreateIndexes.sql",
+    "Database/004_CreateStoredProcedures.sql",
+    "Database/005_SeedData.sql",
+    "Database/006_AddPhase1Columns.sql",
+    "Database/007_ResetData.sql",
+    "Database/008_MockData.sql",
+    "Database/009_PasswordResetColumns.sql"
+)
+
+foreach ($script in $scripts) {
+    Write-Host "Running $script ..." -ForegroundColor Cyan
+    & $MYSQL -h $HOST -P $PORT -u $USER -p$PASS $DB -e "source $script"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "FAILED at $script — stopping." -ForegroundColor Red
+        break
+    }
+    Write-Host "OK" -ForegroundColor Green
+}
 ```
 
 ---
 
-## 4. Triển khai Backend (ASP.NET Core)
+### 4.2 Amazon RDS (PowerShell)
 
-### 4.1. Build trên máy Dev (Windows)
+#### Prerequisites
 
-```powershell
-cd backend
-
-# Restore packages
-dotnet restore
-
-# Build Release
-dotnet publish src/VinhKhanh.API/VinhKhanh.API.csproj `
-  -c Release `
-  -r linux-x64 `
-  --self-contained false `
-  -o ./publish
-```
-
-> **Tip:** Thêm `-r linux-x64 --self-contained true` nếu máy chủ chưa cài .NET Runtime.
-
-### 4.2. Upload lên server
+Verify `mysql` CLI is on your PATH:
 
 ```powershell
-# Dùng SCP (Git Bash / WSL) hoặc FileZilla
-scp -r ./publish/* user@<SERVER_IP>:/var/www/vinhkhanh/api/
-scp backend/src/VinhKhanh.API/appsettings.Production.json `
-    user@<SERVER_IP>:/var/www/vinhkhanh/api/
+Get-Command mysql
 ```
 
-### 4.3. Cấu hình trên Server (Linux)
+If not found:
 
-```bash
-# Tạo thư mục
-sudo mkdir -p /var/www/vinhkhanh/api
-sudo mkdir -p /var/www/vinhkhanh/uploads
-
-# Cấp quyền
-sudo chown -R www-data:www-data /var/www/vinhkhanh
-
-# Test chạy thủ công
-cd /var/www/vinhkhanh/api
-ASPNETCORE_ENVIRONMENT=Production dotnet VinhKhanh.API.dll
+```powershell
+# Add MySQL bin directory to PATH for this session
+$env:PATH += ";C:\Program Files\MySQL\MySQL Server 8.0\bin"
+# or: $env:PATH += ";C:\app\mysql-9.6.0-winx64\bin"
 ```
 
-### 4.4. Tạo systemd service (tự khởi động)
+Alternatively, download MySQL Shell (lightweight, no server install): https://dev.mysql.com/downloads/shell
 
-```bash
-sudo nano /etc/systemd/system/vinhkhanh-api.service
+#### RDS Instance Configuration
+
+| Setting | Staging | Production |
+|---|---|---|
+| Engine | MySQL 8.0 | MySQL 8.0 |
+| Instance class | `db.t3.micro` | `db.t3.medium` |
+| Multi-AZ | No | Yes |
+| Storage | 20 GB GP3 | 20 GB GP3, auto-scale → 100 GB |
+| Parameter group | `character_set_server=utf8mb4` | same |
+| Security group | Port 3306, your IP only | Port 3306, ECS security group only |
+
+#### Run Migration Scripts
+
+```powershell
+$MYSQL   = "mysql"    # or full path to mysql.exe
+$HOST    = "<YOUR_RDS_ENDPOINT>.rds.amazonaws.com"
+$PORT    = "3306"
+$USER    = "<DB_USER>"
+$PASS    = "<DB_PASSWORD>"
+$SSL     = "--ssl-mode=REQUIRED"   # mandatory for RDS
+
+$scripts = @(
+    "Database/001_CreateDatabase.sql",
+    "Database/002_CreateTables.sql",
+    "Database/003_CreateIndexes.sql",
+    "Database/004_CreateStoredProcedures.sql",
+    "Database/005_SeedData.sql",
+    "Database/006_AddPhase1Columns.sql",
+    "Database/007_ResetData.sql",
+    "Database/008_MockData.sql",
+    "Database/009_PasswordResetColumns.sql"
+)
+
+foreach ($script in $scripts) {
+    Write-Host "Running $script ..." -ForegroundColor Cyan
+    & $MYSQL -h $HOST -P $PORT -u $USER -p$PASS $SSL -e "source $script"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "FAILED at $script — stopping." -ForegroundColor Red
+        break
+    }
+    Write-Host "OK" -ForegroundColor Green
+}
 ```
 
-```ini
-[Unit]
-Description=Vinh Khanh Food Tour API
-After=network.target mysql.service
+#### Verify Schema
 
-[Service]
-Type=notify
-WorkingDirectory=/var/www/vinhkhanh/api
-ExecStart=/usr/bin/dotnet /var/www/vinhkhanh/api/VinhKhanh.API.dll
-Restart=always
-RestartSec=10
-KillSignal=SIGINT
-SyslogIdentifier=vinhkhanh-api
-User=www-data
-Environment=ASPNETCORE_ENVIRONMENT=Production
-Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
-Environment=ASPNETCORE_URLS=http://localhost:5000
-
-[Install]
-WantedBy=multi-user.target
+```powershell
+& $MYSQL -h $HOST -P $PORT -u $USER -p$PASS $SSL `
+  -e "USE VinhKhanhFoodTour; SHOW TABLES;"
 ```
 
-```bash
-# Kích hoạt service
-sudo systemctl daemon-reload
-sudo systemctl enable vinhkhanh-api
-sudo systemctl start vinhkhanh-api
+Expected tables:
 
-# Kiểm tra trạng thái
-sudo systemctl status vinhkhanh-api
+```
+AudioNarrations     Categories          CategoryTranslations
+Languages           MenuItemTranslations OfflinePackages
+POIMedia            POIMenuItems        POIs
+POITranslations     RefreshTokens       SyncLogs
+SystemSettings      UserSettings        Users
+VisitHistory
+```
 
-# Xem logs
-sudo journalctl -u vinhkhanh-api -f
+> **Re-running scripts:** Scripts 001–009 are not fully idempotent.
+> If you need to reset: `DROP DATABASE VinhKhanhFoodTour;` then re-run from 001.
+
+---
+
+## 5. Backend Deployment
+
+### 5.1 Run Locally (dev)
+
+```powershell
+cd backend/src/VinhKhanh.API
+dotnet run
+# API available at: http://localhost:5015
+# Swagger UI:       http://localhost:5015/swagger
+```
+
+Ensure `appsettings.json` points to your local or RDS database before running.
+
+---
+
+### 5.2 Docker (staging / prod)
+
+The `Dockerfile` is at the **repo root** and must be built from there.
+
+#### Build the image
+
+```powershell
+docker build -t vinhkhanh-api:staging .
+```
+
+#### Run with environment variables (no secrets in image)
+
+Create a `.env.docker` file (do not commit this file):
+
+```env
+ConnectionStrings__DefaultConnection=Server=<RDS_ENDPOINT>;Port=3306;Database=VinhKhanhFoodTour;Uid=<DB_USER>;Pwd=<DB_PASSWORD>;CharSet=utf8mb4;SslMode=Required;
+Jwt__Key=<MIN_32_CHAR_RANDOM_SECRET>
+Jwt__Issuer=VinhKhanhFoodTour
+Jwt__Audience=VinhKhanhFoodTourAdmin
+FileStorage__Provider=s3
+FileStorage__S3BucketName=<S3_BUCKET_NAME>
+FileStorage__S3Region=<AWS_REGION>
+FileStorage__AwsAccessKey=<AWS_ACCESS_KEY_ID>
+FileStorage__AwsSecretKey=<AWS_SECRET_ACCESS_KEY>
+AzureTTS__SubscriptionKey=<AZURE_TTS_KEY>
+AzureTTS__Region=southeastasia
+CORS_ALLOWED_ORIGINS=http://<FRONTEND_HOST>:5173,http://<FRONTEND_HOST>:5174
+ASPNETCORE_ENVIRONMENT=Production
+```
+
+Then run:
+
+```powershell
+docker run -d `
+  --name vinhkhanh-api `
+  -p 8080:8080 `
+  --env-file .env.docker `
+  vinhkhanh-api:staging
+```
+
+#### Verify the container is healthy
+
+```powershell
+docker ps                              # STATUS should show (healthy) after ~30s
+curl http://localhost:8080/swagger     # Swagger UI should load
+```
+
+#### View logs
+
+```powershell
+docker logs vinhkhanh-api -f
+```
+
+#### Stop / remove
+
+```powershell
+docker stop vinhkhanh-api
+docker rm vinhkhanh-api
 ```
 
 ---
 
-## 5. Triển khai Frontend (React/Vite)
+## 6. Frontend Deployment
 
-### 5.1. Build trên máy Dev
+### 6.1 Admin Panel (port 5173)
 
 ```powershell
 cd admin-frontend
 
-# Cài dependencies
+# Install dependencies
 npm install
 
-# Build production
+# --- Option A: Local dev server ---
+npm run dev
+# → http://localhost:5173
+
+# --- Option B: Staging build + preview ---
+# Create .env.staging with VITE_API_BASE_URL pointing to staging API
+npm run build -- --mode staging
+npx vite preview --port 5173
+# → http://localhost:5173
+
+# --- Option C: Production build ---
+# Ensure .env.production exists with production API URL
 npm run build
 # Output: admin-frontend/dist/
+# Deploy dist/ to S3 static hosting or Nginx
 ```
 
-### 5.2. Upload lên server
+---
+
+### 6.2 Vendor Panel (port 5174)
 
 ```powershell
-scp -r ./dist/* user@<SERVER_IP>:/var/www/vinhkhanh/frontend/
-```
+cd vendor-frontend
 
-### 5.3. Cấu hình Nginx để serve static files
+npm install
 
-Xem phần **Cấu hình Nginx** bên dưới.
+# --- Option A: Local dev server ---
+npm run dev
+# → http://localhost:5174 (port set in package.json)
 
----
+# --- Option B: Staging build + preview ---
+npm run build -- --mode staging
+npx vite preview --port 5174
 
-## 6. Cài đặt MySQL
-
-### 6.1. Cài MySQL trên Ubuntu
-
-```bash
-sudo apt update
-sudo apt install -y mysql-server
-
-# Bảo mật cài đặt
-sudo mysql_secure_installation
-```
-
-### 6.2. Tạo database và user
-
-```sql
--- Đăng nhập với root
-sudo mysql -u root -p
-
--- Tạo database
-CREATE DATABASE vinhkhanh_foodtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Tạo user riêng (KHÔNG dùng root cho app)
-CREATE USER 'vkapp'@'localhost' IDENTIFIED BY '<MẬT_KHẨU_MẠNH>';
-GRANT ALL PRIVILEGES ON vinhkhanh_foodtour.* TO 'vkapp'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-### 6.3. Chạy scripts khởi tạo
-
-```bash
-cd /path/to/Database/
-
-mysql -u vkapp -p vinhkhanh_foodtour < 001_CreateDatabase.sql
-mysql -u vkapp -p vinhkhanh_foodtour < 002_CreateTables.sql
-mysql -u vkapp -p vinhkhanh_foodtour < 003_CreateIndexes.sql
-mysql -u vkapp -p vinhkhanh_foodtour < 004_CreateStoredProcedures.sql
-mysql -u vkapp -p vinhkhanh_foodtour < 005_SeedData.sql
+# --- Option C: Production build ---
+npm run build
+# Output: vendor-frontend/dist/
 ```
 
 ---
 
-## 7. Cấu hình Nginx (Reverse Proxy)
+## 7. Mobile App Deployment
 
-### 7.1. Cài Nginx
+### 7.1 Android Debug APK (staging)
+
+> Update `mobile/VinhKhanh.Mobile/appsettings.json` with the staging API URL **before** building.
+
+```powershell
+cd mobile/VinhKhanh.Mobile
+
+dotnet build -f net10.0-android -c Debug
+
+# APK output path:
+# bin/Debug/net10.0-android/com.vinhkhanh.foodtour-Signed.apk
+```
+
+Install on a connected device or emulator:
+
+```powershell
+adb install bin/Debug/net10.0-android/com.vinhkhanh.foodtour-Signed.apk
+```
+
+Or run directly on an attached device:
+
+```powershell
+dotnet run -f net10.0-android -c Debug
+```
+
+---
+
+### 7.2 Android Release AAB (production)
+
+> Update `mobile/VinhKhanh.Mobile/appsettings.json` with the production API URL before building.
+
+Generate a keystore (one-time setup):
+
+```powershell
+keytool -genkey -v `
+  -keystore vinhkhanh.keystore `
+  -alias vinhkhanh `
+  -keyalg RSA -keysize 2048 `
+  -validity 10000
+```
+
+Build signed release bundle:
+
+```powershell
+dotnet publish -f net10.0-android -c Release `
+  /p:AndroidKeyStore=True `
+  /p:AndroidSigningKeyStore=vinhkhanh.keystore `
+  /p:AndroidSigningKeyAlias=vinhkhanh `
+  /p:AndroidSigningKeyPass=<KEYSTORE_PASSWORD> `
+  /p:AndroidSigningStorePass=<KEYSTORE_PASSWORD>
+
+# Output: bin/Release/net10.0-android/publish/com.vinhkhanh.foodtour.aab
+# Upload .aab to Google Play Console
+```
+
+---
+
+## 8. Full Stack Smoke Tests
+
+Run these after each deployment to confirm all layers are working end-to-end.
+
+### Backend
+
+```powershell
+$BASE = "http://localhost:8080/api/v1"   # adjust port for your environment
+
+# 1. Public endpoint — no auth required
+Invoke-RestMethod "$BASE/languages"
+# Expected: success=true, data=[5 languages]
+
+# 2. Auth — login as admin
+$login = Invoke-RestMethod -Method POST "$BASE/auth/login" `
+  -ContentType "application/json" `
+  -Body '{"email":"admin@vinhkhanh.app","password":"<ADMIN_PASSWORD>"}'
+$token = $login.data.accessToken
+# Expected: success=true, role=Admin
+
+# 3. POI list — EF Core + pagination
+Invoke-RestMethod "$BASE/pois?page=1&size=5" `
+  -Headers @{ Authorization = "Bearer $token" }
+# Expected: success=true, data.pagination.totalItems >= 1
+
+# 4. Nearby POIs — ST_Distance_Sphere spatial query
+Invoke-RestMethod "$BASE/pois/nearby?lat=10.7538&lng=106.6932&radiusMeters=500"
+# Expected: success=true, data=[array of nearby POIs]
+
+# 5. Dashboard stats — vendor-scoped JOIN query
+Invoke-RestMethod "$BASE/dashboard/stats" `
+  -Headers @{ Authorization = "Bearer $token" }
+# Expected: success=true, data.activePOIs > 0
+```
+
+### Admin Frontend (port 5173)
+
+```
+[ ] Login with admin@vinhkhanh.app → full sidebar visible (Users, Settings, etc.)
+[ ] POI list loads with data and pagination
+[ ] Create POI → map picker opens, form submits successfully
+[ ] Upload audio file → streams or redirects to S3 correctly
+[ ] Dashboard charts render with visit data
+```
+
+### Vendor Frontend (port 5174)
+
+```
+[ ] Login with a Vendor account → scoped sidebar (no Users, Settings, Offline Packages)
+[ ] POI list shows only this vendor's POI
+[ ] Analytics scoped to own shop data only
+[ ] Cannot delete or feature POIs (buttons hidden)
+```
+
+### Mobile App
+
+```
+[ ] App launches → GPS permission prompt appears
+[ ] Language picker screen loads (calls GET /languages)
+[ ] Nearby POIs appear on the map
+[ ] Tap a POI → detail screen opens with name, description
+[ ] Press Play → narration audio plays
+[ ] Walk into geofence radius → audio auto-plays (GeofenceEntered event)
+```
+
+---
+
+## 9. Nginx (Self-hosted)
+
+Use this when hosting the frontends and API on a Linux server instead of AWS.
 
 ```bash
 sudo apt install -y nginx
-```
-
-### 7.2. Tạo config site
-
-```bash
 sudo nano /etc/nginx/sites-available/vinhkhanh
 ```
 
@@ -300,7 +636,7 @@ server {
     return 301 https://$host$request_uri;
 }
 
-# Admin Frontend (React SPA)
+# Admin Frontend — React SPA
 server {
     listen 443 ssl http2;
     server_name vinhkhanh.com www.vinhkhanh.com;
@@ -308,22 +644,41 @@ server {
     ssl_certificate     /etc/letsencrypt/live/vinhkhanh.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/vinhkhanh.com/privkey.pem;
 
-    root /var/www/vinhkhanh/frontend;
+    root /var/www/vinhkhanh/admin;
     index index.html;
 
-    # SPA routing — trả về index.html cho mọi route
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ /index.html;   # required for React Router
     }
 
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|webp|svg|ico|woff2)$ {
+    location ~* \.(js|css|png|jpg|webp|svg|ico|woff2)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
 
     gzip on;
     gzip_types text/css application/javascript image/svg+xml;
+}
+
+# Vendor Frontend
+server {
+    listen 443 ssl http2;
+    server_name vendor.vinhkhanh.com;
+
+    ssl_certificate     /etc/letsencrypt/live/vendor.vinhkhanh.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/vendor.vinhkhanh.com/privkey.pem;
+
+    root /var/www/vinhkhanh/vendor;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|webp|svg|ico|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
 }
 
 # Backend API
@@ -335,7 +690,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/api.vinhkhanh.com/privkey.pem;
 
     location / {
-        proxy_pass         http://localhost:5000;
+        proxy_pass         http://localhost:8080;
         proxy_http_version 1.1;
         proxy_set_header   Upgrade $http_upgrade;
         proxy_set_header   Connection keep-alive;
@@ -346,214 +701,101 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # Uploads (static files từ wwwroot)
-    location /uploads/ {
-        alias /var/www/vinhkhanh/uploads/;
-        expires 30d;
-        add_header Cache-Control "public";
-    }
-
-    client_max_body_size 15M;  # Phải >= MaxFileSizeMB trong appsettings
+    client_max_body_size 15M;   # must be >= FileStorage:MaxFileSizeMB
 }
 ```
 
 ```bash
-# Kích hoạt site
 sudo ln -s /etc/nginx/sites-available/vinhkhanh /etc/nginx/sites-enabled/
-
-# Kiểm tra cú pháp
 sudo nginx -t
-
-# Reload
 sudo systemctl reload nginx
-```
 
-### 7.3. Cài SSL với Let's Encrypt
-
-```bash
+# SSL via Let's Encrypt
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d vinhkhanh.com -d www.vinhkhanh.com -d api.vinhkhanh.com
+sudo certbot --nginx -d vinhkhanh.com -d www.vinhkhanh.com \
+             -d vendor.vinhkhanh.com -d api.vinhkhanh.com
 ```
 
 ---
 
-## 8. Chạy với Docker (Tuỳ chọn)
+## 10. Troubleshooting
 
-### 8.1. Dockerfile — Backend
+### ❌ RDS connection timeout
 
-Tạo file `backend/Dockerfile`:
+The RDS Security Group is not allowing your IP on port 3306.
 
-```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-WORKDIR /app
-EXPOSE 80
-
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /src
-COPY ["src/VinhKhanh.API/VinhKhanh.API.csproj", "VinhKhanh.API/"]
-COPY ["src/VinhKhanh.Application/VinhKhanh.Application.csproj", "VinhKhanh.Application/"]
-COPY ["src/VinhKhanh.Domain/VinhKhanh.Domain.csproj", "VinhKhanh.Domain/"]
-COPY ["src/VinhKhanh.Infrastructure/VinhKhanh.Infrastructure.csproj", "VinhKhanh.Infrastructure/"]
-RUN dotnet restore "VinhKhanh.API/VinhKhanh.API.csproj"
-COPY src/ .
-RUN dotnet publish "VinhKhanh.API/VinhKhanh.API.csproj" -c Release -o /app/publish
-
-FROM base AS final
-WORKDIR /app
-COPY --from=build /app/publish .
-ENV ASPNETCORE_ENVIRONMENT=Production
-ENTRYPOINT ["dotnet", "VinhKhanh.API.dll"]
+```
+AWS Console → RDS → your instance → Security → Security Groups
+→ Edit inbound rules → Add: MySQL/Aurora, port 3306, Source: My IP
 ```
 
-### 8.2. Dockerfile — Frontend
+### ❌ `SslMode` error connecting to RDS
 
-Tạo file `admin-frontend/Dockerfile`:
+Ensure the connection string includes `SslMode=Required` and the MySQL CLI uses `--ssl-mode=REQUIRED`. RDS enforces SSL by default.
 
-```dockerfile
-FROM node:20-alpine AS build
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+### ❌ `mysql` is not recognized in PowerShell
 
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+```powershell
+$env:PATH += ";C:\Program Files\MySQL\MySQL Server 8.0\bin"
+# or the path where your mysql.exe is installed
 ```
 
-### 8.3. docker-compose.yml
+### ❌ API returns INTERNAL_ERROR on POI endpoints
 
-```yaml
-version: '3.9'
+Check the API logs for `Unknown column` errors. This means the DB schema does not match the entity model. Confirm all 9 migration scripts ran successfully and in order.
 
-services:
-  db:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: vinhkhanh_foodtour
-      MYSQL_USER: vkapp
-      MYSQL_PASSWORD: vkpass
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./Database:/docker-entrypoint-initdb.d
-    ports:
-      - "3306:3306"
-
-  api:
-    build: ./backend
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Server=db;Port=3306;Database=vinhkhanh_foodtour;Uid=vkapp;Pwd=vkpass;CharSet=utf8mb4;"
-      Jwt__Key: "<JWT_SECRET>"
-    ports:
-      - "5000:80"
-    depends_on:
-      - db
-    volumes:
-      - uploads:/app/wwwroot/uploads
-
-  frontend:
-    build: ./admin-frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - api
-
-volumes:
-  mysql_data:
-  uploads:
+```powershell
+docker logs vinhkhanh-api 2>&1 | Select-String "Unknown column"
 ```
 
-```bash
-# Chạy toàn bộ stack
-docker compose up -d
+### ❌ Frontend shows blank page after build
 
-# Xem logs
-docker compose logs -f api
+React Router requires a catch-all fallback. With Nginx: confirm `try_files $uri $uri/ /index.html` is present. With `vite preview`: it handles this automatically.
+
+### ❌ CORS error in browser
+
+The frontend's origin is not in the allowed list. Set `CORS_ALLOWED_ORIGINS` to include the frontend URL when starting the API:
+
+```env
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174
 ```
+
+For Docker:
+
+```powershell
+docker run ... -e CORS_ALLOWED_ORIGINS="http://<HOST>:5173,http://<HOST>:5174" ...
+```
+
+### ❌ 413 Request Entity Too Large
+
+Increase `client_max_body_size` in Nginx to match or exceed `FileStorage:MaxFileSizeMB` in `appsettings.json` (default: 10 MB → use `client_max_body_size 15M`).
+
+### ❌ JWT invalid / 401 on all requests
+
+- Confirm `Jwt__Key` env var is set and matches across all instances.
+- `ClockSkew` is set to `TimeSpan.Zero` in `Program.cs` — server and client clocks must be in sync.
+- Tokens expire after 60 minutes by default. The frontend auto-refreshes on 401.
+
+### ❌ Audio/image upload succeeds but file is not accessible
+
+Confirm `FileStorage__Provider=s3` is set. With the local provider, files go to `wwwroot/uploads/` inside the container and are lost when the container restarts. Use S3 for any persistent environment.
+
+### ❌ Mobile app cannot reach the API
+
+1. Confirm `mobile/VinhKhanh.Mobile/appsettings.json` has the correct `ApiBaseUrl`.
+2. The API must be accessible from the device network — `localhost` will not work on a physical device.
+3. If testing on the same machine, use the host IP (`ipconfig` → IPv4 address).
 
 ---
 
-## 9. Kiểm tra sau triển khai
+## Reference
 
-### Checklist ✅
-
-```bash
-# 1. API health check
-curl https://api.vinhkhanh.com/swagger
-
-# 2. Đăng nhập admin
-curl -X POST https://api.vinhkhanh.com/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"<password>"}'
-
-# 3. Kiểm tra upload files
-curl -F "file=@test.jpg" https://api.vinhkhanh.com/api/media/upload \
-  -H "Authorization: Bearer <TOKEN>"
-
-# 4. Backend service đang chạy
-sudo systemctl is-active vinhkhanh-api
-
-# 5. MySQL đang chạy
-sudo systemctl is-active mysql
-
-# 6. Nginx đang chạy
-sudo systemctl is-active nginx
-```
-
-### CORS — Cập nhật production origins
-
-Sau khi có domain thật, cập nhật `Program.cs`:
-
-```csharp
-.WithOrigins(
-    "https://vinhkhanh.com",
-    "https://www.vinhkhanh.com"
-)
-```
-
----
-
-## 10. Xử lý sự cố thường gặp
-
-### ❌ API không kết nối được MySQL
-
-```bash
-# Kiểm tra MySQL đang chạy
-sudo systemctl status mysql
-
-# Test kết nối
-mysql -u vkapp -p -h localhost vinhkhanh_foodtour
-
-# Xem logs API
-sudo journalctl -u vinhkhanh-api --since "10 min ago"
-```
-
-### ❌ Frontend hiển thị trang trắng (SPA routing)
-
-Kiểm tra Nginx có `try_files $uri $uri/ /index.html` chưa — đây là bắt buộc với React Router.
-
-### ❌ Upload file lỗi 413 Request Entity Too Large
-
-Tăng `client_max_body_size` trong Nginx config lên lớn hơn `MaxFileSizeMB` trong `appsettings.json`.
-
-### ❌ JWT Invalid Token
-
-- Kiểm tra `Jwt:Key` trong `appsettings.Production.json` có khớp giữa môi trường dev và prod không.
-- Đảm bảo `ClockSkew = TimeSpan.Zero` — server và client phải cùng múi giờ.
-
-### ❌ CORS error trên browser
-
-Thêm domain production vào `WithOrigins(...)` trong `Program.cs` và redeploy.
-
----
-
-## 📞 Liên hệ & Tài liệu thêm
-
-- **Swagger UI** (dev): `http://localhost:5000/swagger`
-- **MySQL docs**: <https://dev.mysql.com/doc/>
-- **.NET deployment**: <https://learn.microsoft.com/aspnet/core/host-and-deploy/linux-nginx>
-- **Certbot SSL**: <https://certbot.eff.org/instructions>
+| Resource | URL |
+|---|---|
+| Swagger UI (local dev) | `http://localhost:5015/swagger` |
+| Swagger UI (Docker) | `http://localhost:8080/swagger` |
+| .NET deployment docs | https://learn.microsoft.com/aspnet/core/host-and-deploy |
+| MySQL 8.0 docs | https://dev.mysql.com/doc/refman/8.0/en/ |
+| Vite env variables | https://vitejs.dev/guide/env-and-mode |
+| MAUI Android deployment | https://learn.microsoft.com/dotnet/maui/android/deployment |
+| AWS RDS MySQL | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_MySQL.html |

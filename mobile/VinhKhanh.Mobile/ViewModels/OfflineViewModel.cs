@@ -10,10 +10,14 @@ public partial class OfflineViewModel(ApiClient api, OfflinePackageSyncService s
 {
     public ObservableCollection<OfflinePackageCatalogItemDto> Packages { get; } = [];
 
-    [ObservableProperty] private string _statusMessage = string.Empty;
-    [ObservableProperty] private string _installedInfo = "No offline package installed.";
-    [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private string _statusMessage   = string.Empty;
+    [ObservableProperty] private string _installedInfo   = "No offline package installed.";
+    [ObservableProperty] private bool   _isBusy;
     [ObservableProperty] private double _downloadProgress;
+    [ObservableProperty] private string _lastSyncText    = "Last sync: never";
+
+    /// <summary>T-15: Non-empty when a newer offline package is available on the server.</summary>
+    [ObservableProperty] private string _updateBannerText = string.Empty;
 
     [RelayCommand]
     public async Task LoadAsync()
@@ -36,6 +40,18 @@ public partial class OfflineViewModel(ApiClient api, OfflinePackageSyncService s
             StatusMessage = Packages.Count == 0
                 ? "No packages available. An admin must create and build an offline package."
                 : $"{Packages.Count} package(s) available.";
+
+            // T-15: Check for update in the background (non-blocking)
+            _ = Task.Run(async () =>
+            {
+                var info = await sync.CheckForUpdateAsync();
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    UpdateBannerText = info is null
+                        ? string.Empty
+                        : $"⬆️ Update available: {info.PackageName} v{info.NewVersionLabel} ({info.SizeLabel})";
+                });
+            });
         }
         finally
         {
@@ -50,6 +66,21 @@ public partial class OfflineViewModel(ApiClient api, OfflinePackageSyncService s
         InstalledInfo = id is null
             ? "No offline package installed."
             : $"Installed: package #{id}\nChecksum: {sum ?? "—"}";
+
+        // T-09.3: Update last sync label
+        var lastSync = sync.GetLastSyncTime();
+        if (lastSync is null)
+        {
+            LastSyncText = "Last sync: never";
+        }
+        else
+        {
+            var ago = DateTime.UtcNow - lastSync.Value;
+            LastSyncText = ago.TotalMinutes < 1   ? "Last sync: just now"
+                         : ago.TotalHours   < 1   ? $"Last sync: {(int)ago.TotalMinutes}m ago"
+                         : ago.TotalDays    < 1   ? $"Last sync: {(int)ago.TotalHours}h ago"
+                         : $"Last sync: {lastSync.Value.ToLocalTime():dd/MM HH:mm}";
+        }
     }
 
     [RelayCommand]

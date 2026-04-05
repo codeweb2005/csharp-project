@@ -5,7 +5,20 @@
                  android:roundIcon="@mipmap/appicon_round"
                  android:supportsRtl="true"
                  android:usesCleartextTraffic="true"
-                 android:label="Vinh Khanh Food Tour" />
+                 android:label="Vinh Khanh Food Tour">
+
+        <!--
+          GpsTrackerService — the foreground service that keeps GPS alive in the background.
+          foregroundServiceType="location" is required on Android 10+ for location-type services.
+          exported="false" prevents other apps from binding to this service.
+        -->
+        <service
+            android:name="vinhkhanh.mobile.platforms.android.GpsTrackerService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+    </application>
 
     <!-- Network access for API calls and audio streaming -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -21,7 +34,29 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <!--
-      Declare that GPS is required for the core app feature.
+      Background location (Android 10+ / API 29+).
+      Required for GPS tracking when the screen is off.
+      Must be requested separately at runtime AFTER fine location is granted.
+      Google Play requires a Play Store disclosure when this permission is declared.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!--
+      Foreground service permissions.
+      FOREGROUND_SERVICE          → Required on Android 9+ (API 28+).
+      FOREGROUND_SERVICE_LOCATION → Required on Android 14+ (API 34+) for location-type foreground services.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!--
+      POST_NOTIFICATIONS — Required on Android 13+ (API 33+) to show any notification,
+      including the persistent GPS foreground service notification.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+      Declare that GPS hardware is required.
       The Play Store will filter out GPS-less devices.
     -->
     <uses-feature android:name="android.hardware.location.gps" android:required="true" />

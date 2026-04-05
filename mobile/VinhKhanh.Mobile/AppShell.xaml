@@ -24,8 +24,12 @@
     TabBarUnselectedColor="#64748B">
 
     <!--
-        Main tab — Nearby POI list.
-        Phase 3 will add a Language tab and a Map tab here.
+        Tab navigation:
+          main    → Nearby POI list (GPS + geofence auto-play)
+          map     → Interactive map with POI pins
+          offline → Offline package download & sync
+          profile → Login / account preferences
+          settings→ GPS, geofence, audio & sync settings (T-06)
     -->
     <TabBar>
         <ShellContent
@@ -44,6 +48,10 @@
             Title="Profile"
             ContentTemplate="{DataTemplate views:ProfilePage}"
             Route="profile" />
+        <ShellContent
+            Title="Settings"
+            ContentTemplate="{DataTemplate views:SettingsPage}"
+            Route="settings" />
     </TabBar>
 
 </Shell>

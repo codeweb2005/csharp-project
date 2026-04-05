@@ -28,9 +28,34 @@
 	</array>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
-	<!-- iOS 14+ requires this key; without it the GPS permission dialog won't show -->
+
+	<!-- ══ Location permissions ══════════════════════════════════════════ -->
+
+	<!-- iOS 14+ requires this key; without it the WhenInUse permission dialog won't show -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Vinh Khanh Food Tour uses your location to detect when you are near a restaurant and automatically play its audio narration.</string>
-</dict>
 
+	<!--
+	  Required for background location (AllowsBackgroundLocationUpdates = true).
+	  iOS requires BOTH keys when requesting Always authorization.
+	  The app requests Always so GPS continues when the screen is locked while touring.
+	-->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Vinh Khanh Food Tour needs background location access to automatically play audio narrations as you walk past restaurants, even when your screen is off.</string>
+
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>To provide automatic audio narrations while you tour Vinh Khanh food street, the app tracks your location continuously in the background.</string>
+
+	<!--
+	  UIBackgroundModes → location:
+	  Declares that this app uses background location services.
+	  Required for CLLocationManager.AllowsBackgroundLocationUpdates = true to work.
+	  Without this key, iOS will throw an exception at runtime when setting that property.
+	-->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+
+</dict>
 </plist>

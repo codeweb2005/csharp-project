@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace VinhKhanh.Mobile.Services;
 
@@ -14,10 +15,11 @@ public sealed class OfflinePackageSyncService(ApiClient api, OfflineCacheStore c
         PropertyNameCaseInsensitive = true
     };
 
-    public const string PrefPackageId = "vk_offline_package_id";
-    public const string PrefChecksum = "vk_offline_package_checksum";
-    public const string PrefRoot = "vk_offline_extract_root";
+    public const string PrefPackageId  = "vk_offline_package_id";
+    public const string PrefChecksum   = "vk_offline_package_checksum";
+    public const string PrefRoot       = "vk_offline_extract_root";
     public const string PrefLanguageId = "vk_offline_language_id";
+    public const string PrefLastSync   = "last_sync_time";  // T-09
 
     public int? GetInstalledPackageId()
     {
@@ -29,6 +31,62 @@ public sealed class OfflinePackageSyncService(ApiClient api, OfflineCacheStore c
     {
         var s = Preferences.Default.Get(PrefChecksum, string.Empty);
         return string.IsNullOrEmpty(s) ? null : s;
+    }
+
+    /// <summary>T-09: Get the UTC time of the last successful delta sync.</summary>
+    public DateTime? GetLastSyncTime()
+    {
+        var raw = Preferences.Default.Get(PrefLastSync, string.Empty);
+        if (string.IsNullOrEmpty(raw)) return null;
+        return DateTime.TryParse(raw, null, DateTimeStyles.RoundtripKind, out var dt) ? dt : null;
+    }
+
+    /// <summary>T-09.1: Fetch delta changes from the server and upsert into local cache.</summary>
+    /// <param name="langId">Preferred language for translations.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<(bool Ok, string? Error)> SyncDeltaAsync(int langId, CancellationToken ct = default)
+    {
+        try
+        {
+            var since    = GetLastSyncTime();
+            var sinceStr = since?.ToString("o") ?? DateTime.UtcNow.AddDays(-30).ToString("o"); // default: last 30 days
+
+            var result = await api.GetDeltaAsync(sinceStr, langId, ct);
+            if (result is null)
+                return (false, "Delta sync returned no data.");
+
+            // Upsert POI changes into local cache
+            if (result.Pois?.Count > 0)
+            {
+                var poisLocal = result.Pois.Select(d => new VinhKhanh.Mobile.Models.PoiLocal
+                {
+                    Id                  = d.Id,
+                    Name                = d.Name,
+                    Address             = d.Address ?? string.Empty,
+                    Latitude            = d.Latitude,
+                    Longitude           = d.Longitude,
+                    GeofenceRadiusMeters = d.GeofenceRadius,
+                    Priority            = d.Priority,
+                    CategoryIcon        = d.CategoryIcon ?? "🍜",
+                    CategoryName        = d.CategoryName ?? string.Empty,
+                    AudioUrl            = d.AudioUrl,
+                    NarrationText       = d.NarrationText,
+                    LangCode            = d.LangCode ?? "vi"
+                }).ToList();
+
+                await cache.UpsertFromOnlinePoisAsync(poisLocal, langId);
+                logger?.LogInformation("Delta sync: upserted {Count} POI(s)", poisLocal.Count);
+            }
+
+            // Record sync time
+            Preferences.Default.Set(PrefLastSync, DateTime.UtcNow.ToString("o"));
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "SyncDeltaAsync failed");
+            return (false, ex.Message);
+        }
     }
 
     public static void ClearInstallPreferences()
@@ -120,4 +178,52 @@ public sealed class OfflinePackageSyncService(ApiClient api, OfflineCacheStore c
             return (false, ex.Message);
         }
     }
+
+    /// <summary>
+    /// T-15: Compare the installed package checksum against the server catalog.
+    /// Returns an <see cref="UpdateAvailableInfo"/> when a newer version is available,
+    /// null when the package is current or no package is installed.
+    /// </summary>
+    public async Task<UpdateAvailableInfo?> CheckForUpdateAsync()
+    {
+        var installedId  = GetInstalledPackageId();
+        var installedSum = GetInstalledChecksum();
+        if (installedId is null) return null;  // nothing installed, nothing to update
+
+        try
+        {
+            var catalog = await api.GetOfflineCatalogAsync();
+            var remote  = catalog.FirstOrDefault(p => p.Id == installedId.Value);
+            if (remote is null || string.IsNullOrEmpty(remote.Checksum)) return null;
+
+            if (string.Equals(remote.Checksum, installedSum, StringComparison.OrdinalIgnoreCase))
+                return null;  // checksums match → up to date
+
+            return new UpdateAvailableInfo
+            {
+                PackageId      = remote.Id,
+                PackageName    = remote.Name,
+                NewChecksum    = remote.Checksum,
+                LanguageId     = remote.LanguageId,
+                NewVersionLabel = remote.Version,
+                SizeLabel      = remote.SizeLabel
+            };
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "CheckForUpdateAsync failed");
+            return null;
+        }
+    }
+}
+
+/// <summary>T-15: Describes an available update for an installed offline package.</summary>
+public sealed class UpdateAvailableInfo
+{
+    public int    PackageId       { get; init; }
+    public string PackageName     { get; init; } = string.Empty;
+    public string NewChecksum     { get; init; } = string.Empty;
+    public int    LanguageId      { get; init; }
+    public string NewVersionLabel { get; init; } = string.Empty;
+    public string SizeLabel       { get; init; } = string.Empty;
 }

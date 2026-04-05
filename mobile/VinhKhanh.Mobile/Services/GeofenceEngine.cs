@@ -41,10 +41,18 @@ public class GeofenceEngine
     /// </summary>
     public int DebounceCount { get; set; } = 3;
 
+    /// <summary>
+    /// Minimum time before the same POI can trigger GeofenceEntered again.
+    /// Prevents replaying narration when the tourist stands still inside a geofence.
+    /// Default: 5 minutes. Set to TimeSpan.Zero to disable cooldown.
+    /// </summary>
+    public TimeSpan CooldownDuration { get; set; } = TimeSpan.FromMinutes(5);
+
     // ── State ──────────────────────────────────────────────────────────────────
     private List<PoiLocal> _pois = [];
-    private readonly Dictionary<int, GeofenceState> _states  = [];   // POI ID → state
-    private readonly Dictionary<int, int>           _debounce = [];  // POI ID → in-range reading count
+    private readonly Dictionary<int, GeofenceState> _states    = [];   // POI ID → state
+    private readonly Dictionary<int, int>           _debounce  = [];   // POI ID → in-range reading count
+    private readonly Dictionary<int, DateTime>      _cooldownUntil = []; // POI ID → cooldown expiry (UTC)
 
     // Track which POI is currently "active" so we fire GeofenceExited correctly
     private PoiLocal? _activePoi;
@@ -68,6 +76,8 @@ public class GeofenceEngine
     /// <summary>
     /// Replace the POI watch list. Called after fetching nearby POIs from the API.
     /// Resets all debounce counts and states for new/changed POIs.
+    /// Cooldown timers are preserved across list refreshes (intentional —
+    /// we do not want to replay audio just because the list was refreshed).
     /// </summary>
     public void LoadPOIs(IEnumerable<PoiLocal> pois)
     {
@@ -79,6 +89,7 @@ public class GeofenceEngine
         {
             _states.Remove(id);
             _debounce.Remove(id);
+            _cooldownUntil.Remove(id);
         }
 
         // Init state for newly added POIs
@@ -86,7 +97,26 @@ public class GeofenceEngine
         {
             _states.TryAdd(poi.Id, GeofenceState.Unknown);
             _debounce.TryAdd(poi.Id, 0);
+            // Do NOT reset _cooldownUntil — preserve existing cooldowns
         }
+    }
+
+    /// <summary>
+    /// Apply cooldown to a POI after its narration finishes.
+    /// Called from MainViewModel when PlaybackCompleted fires.
+    /// </summary>
+    public void SetCooldown(int poiId)
+    {
+        if (CooldownDuration <= TimeSpan.Zero) return;
+        _cooldownUntil[poiId] = DateTime.UtcNow + CooldownDuration;
+    }
+
+    /// <summary>
+    /// Reset cooldown for a POI — e.g. when user taps "Play Again" manually.
+    /// </summary>
+    public void ResetCooldown(int poiId)
+    {
+        _cooldownUntil.Remove(poiId);
     }
 
     // ── Private ────────────────────────────────────────────────────────────────
@@ -111,10 +141,19 @@ public class GeofenceEngine
                 _debounce[poi.Id]++;
 
                 // Only fire GeofenceEntered once per entry (after debounce threshold)
+                // AND only when not in cooldown (prevents replay when standing still).
                 if (_debounce[poi.Id] == DebounceCount && prev != GeofenceState.Inside)
                 {
                     _states[poi.Id] = GeofenceState.Inside;
-                    newEntries.Add(poi);
+
+                    // Check cooldown before queuing as a triggerable entry
+                    var now = DateTime.UtcNow;
+                    var cooldown = _cooldownUntil.GetValueOrDefault(poi.Id, DateTime.MinValue);
+                    if (now >= cooldown)
+                        newEntries.Add(poi);
+                    else
+                        Console.WriteLine(
+                            $"[GeofenceEngine] {poi.Name} in cooldown for {(cooldown - now).TotalSeconds:F0}s more.");
                 }
             }
             else

@@ -1,3 +1,4 @@
+using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core.Primitives;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Maui.Core;
@@ -32,6 +33,10 @@ public class NarrationPlayer : INarrationPlayer
     private CancellationTokenSource? _ttsCts;   // cancels in-flight TTS
     private bool _isTtsPlaying;
 
+    // T-10: track last TTS text/lang for MediaFailed fallback
+    private string? _lastTtsText;
+    private string  _lastLangCode = "vi";
+
     public bool IsPlaying { get; private set; }
     public string? CurrentPoiName { get; private set; }
 
@@ -61,6 +66,10 @@ public class NarrationPlayer : INarrationPlayer
         Stop();   // Always stop whatever is playing before starting new narration
 
         CurrentPoiName = poiName;
+
+        // T-10: cache for MediaFailed fallback
+        _lastTtsText  = ttsText;
+        _lastLangCode = langCode;
 
         if (audioUrl is not null)
         {
@@ -123,11 +132,18 @@ public class NarrationPlayer : INarrationPlayer
         if (_mediaRef?.TryGetTarget(out var element) != true)
         {
             Console.WriteLine("[NarrationPlayer] MediaElement not set — cannot play audio.");
+            // T-10: fallback to TTS when MediaElement not available
+            if (_lastTtsText is not null)
+                return PlayTtsAsync(_lastTtsText, _lastLangCode);
             return Task.CompletedTask;
         }
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            // T-10: subscribe to MediaFailed before setting source
+            element.MediaFailed -= OnMediaFailed;  // remove old subscription first
+            element.MediaFailed += OnMediaFailed;
+
             if (TryGetLocalFilePath(url, out var localPath))
                 element.Source = MediaSource.FromFile(localPath);
             else
@@ -137,6 +153,31 @@ public class NarrationPlayer : INarrationPlayer
 
         SetIsPlaying(true);
         return Task.CompletedTask;
+    }
+
+    /// <summary>T-10: MediaElement failed to load/play — auto-fallback to TTS.</summary>
+    private void OnMediaFailed(object? sender, MediaFailedEventArgs e)
+    {
+        Console.WriteLine($"[NarrationPlayer] Media failed: {e.ErrorMessage}. Falling back to TTS.");
+
+        // Unsubscribe to prevent repeat callbacks
+        if (sender is MediaElement el)
+            el.MediaFailed -= OnMediaFailed;
+
+        SetIsPlaying(false);
+
+        // Show toast and fallback asynchronously
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            try
+            {
+                await Toast.Make("Audio unavailable, using TTS").Show();
+            }
+            catch { /* Toast may fail on some platforms */ }
+
+            if (_lastTtsText is not null)
+                await PlayTtsAsync(_lastTtsText, _lastLangCode);
+        });
     }
 
     private static bool TryGetLocalFilePath(string url, out string path)
@@ -176,10 +217,17 @@ public class NarrationPlayer : INarrationPlayer
         {
             // SpeechOptions in MAUI uses Locale (not Language).
             // Locale is optional — when null the device default voice is used.
-            // We try to match the requested lang code; if unavailable the OS picks a fallback.
             var locales = await TextToSpeech.GetLocalesAsync();
-            var locale  = locales.FirstOrDefault(l => l.Language.StartsWith(langCode,
-                              StringComparison.OrdinalIgnoreCase));
+
+            // T-10.2: Try preferred locale first, then system default
+            var locale  = locales.FirstOrDefault(l =>
+                l.Language.StartsWith(langCode, StringComparison.OrdinalIgnoreCase));
+
+            if (locale is null)
+            {
+                Console.WriteLine($"[NarrationPlayer] TTS locale '{langCode}' not found — using system default.");
+                // locale = null → MAUI uses system default automatically
+            }
 
             await TextToSpeech.SpeakAsync(text, new SpeechOptions
             {
@@ -198,6 +246,13 @@ public class NarrationPlayer : INarrationPlayer
         {
             // Stopped manually — no event fired
             _isTtsPlaying = false;
+        }
+        catch (Exception ex)
+        {
+            // T-10.2: TTS also failed — log and clean up gracefully
+            Console.WriteLine($"[NarrationPlayer] TTS error: {ex.Message}");
+            _isTtsPlaying = false;
+            SetIsPlaying(false);
         }
     }
 

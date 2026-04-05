@@ -27,12 +27,14 @@ namespace VinhKhanh.Mobile.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     // ── Dependencies ───────────────────────────────────────────────────────────
-    private readonly ILocationService  _location;
-    private readonly GeofenceEngine    _geofence;
-    private readonly ApiClient         _api;
-    private readonly INarrationPlayer  _player;
-    private readonly MobileAppSettings _settings;
-    private readonly OfflineCacheStore _offlineCache;
+    private readonly ILocationService       _location;
+    private readonly GeofenceEngine         _geofence;
+    private readonly ApiClient              _api;
+    private readonly INarrationPlayer       _player;
+    private readonly MobileAppSettings      _settings;
+    private readonly OfflineCacheStore      _offlineCache;
+    private readonly VisitQueueStore        _visitQueue;
+    private readonly LocalNotificationService _notification;
 
     // ── Observable state ───────────────────────────────────────────────────────
 
@@ -54,30 +56,45 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Error message shown when loading fails.</summary>
     [ObservableProperty] private string _errorMessage = string.Empty;
 
+    // T-12: NowPlayingBar progress
+    /// <summary>Playback progress 0.0–1.0 for ProgressBar binding.</summary>
+    [ObservableProperty] private double _playbackProgress;
+
+    /// <summary>Remaining time string e.g. "1:23" for the NowPlayingBar.</summary>
+    [ObservableProperty] private string _playbackTimeRemaining = string.Empty;
+
     // ── Config ─────────────────────────────────────────────────────────────────
     private readonly int _defaultRadius;  // metres
     private          int _langId = 1;     // from Preferences; Profile tab updates via WeakReferenceMessenger
+    private PoiLocal?   _activeNarrationPoi; // POI whose narration is currently playing (for cooldown)
+    private DateTime    _narrationStartTime; // UTC timestamp when narration started (for listen duration)
+    private bool        _autoPlay = true;    // from Preferences (T-06 settings)
 
     public MainViewModel(ILocationService location, GeofenceEngine geofence,
                          ApiClient api, INarrationPlayer player, MobileAppSettings settings,
-                         OfflineCacheStore offlineCache)
+                         OfflineCacheStore offlineCache, VisitQueueStore visitQueue,
+                         LocalNotificationService notification)
     {
-        _location = location;
-        _geofence = geofence;
-        _api      = api;
-        _player   = player;
-        _settings = settings;
+        _location     = location;
+        _geofence     = geofence;
+        _api          = api;
+        _player       = player;
+        _settings     = settings;
         _offlineCache = offlineCache;
+        _visitQueue   = visitQueue;
+        _notification = notification;
 
         _defaultRadius = settings.DefaultRadiusMeters;
-        _geofence.DebounceCount = settings.DebounceReadings;
+        _geofence.DebounceCount    = settings.DebounceReadings;
+        _geofence.CooldownDuration = TimeSpan.FromMinutes(settings.GeofenceCooldownMinutes);
 
         // Wire geofence events
         _geofence.GeofenceEntered += OnGeofenceEntered;
         _geofence.GeofenceExited  += OnGeofenceExited;
 
-        // Wire player events for NowPlayingBar
+        // Wire player events for NowPlayingBar and cooldown tracking
         _player.IsPlayingChanged  += OnPlayerIsPlayingChanged;
+        _player.PlaybackCompleted += OnPlaybackCompleted;
 
         // Profile tab updates preferred language, so refresh nearby POIs.
         WeakReferenceMessenger.Default.Register<ValueChangedMessage<int>>(
@@ -86,6 +103,25 @@ public partial class MainViewModel : ObservableObject
             {
                 _langId = message.Value;
                 MainThread.BeginInvokeOnMainThread(async () => await RefreshPoisAsync());
+            });
+
+        // SettingsViewModel publishes this when user changes any setting
+        WeakReferenceMessenger.Default.Register<ValueChangedMessage<string>>(
+            this,
+            (_, message) =>
+            {
+                if (message.Value == "settings_changed")
+                {
+                    // Geofence engine already updated by SettingsViewModel directly.
+                    // Reload auto-play preference.
+                    _autoPlay = Preferences.Default.Get("setting_auto_play", true);
+                }
+                // delta_sync trigger (from SettingsPage SyncNow button)
+                else if (message.Value == "delta_sync")
+                {
+                    if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+                        _ = FlushVisitQueueAsync();
+                }
             });
     }
 
@@ -106,7 +142,11 @@ public partial class MainViewModel : ObservableObject
             // Restore JWT session if one exists from a previous run
             await _api.RestoreSessionAsync();
 
-            _langId = Preferences.Default.Get("preferred_language_id", 1);
+            _langId   = Preferences.Default.Get("preferred_language_id", 1);
+            _autoPlay = Preferences.Default.Get("setting_auto_play", true);
+
+            // Request notification permission (Android 13+ / iOS)
+            await _notification.RequestPermissionAsync();
 
             // Start GPS
             await _location.StartTrackingAsync();
@@ -143,6 +183,9 @@ public partial class MainViewModel : ObservableObject
             pois = await _api.GetNearbyPoisAsync(lat, lng, _defaultRadius, _langId);
             if (pois.Count > 0)
                 await _offlineCache.UpsertFromOnlinePoisAsync(pois, _langId);
+
+            // Flush pending visit events while we have a connection
+            _ = FlushVisitQueueAsync();
         }
         else
         {
@@ -180,11 +223,47 @@ public partial class MainViewModel : ObservableObject
     {
         Console.WriteLine($"[MainViewModel] GeofenceEntered: {poi.Name}");
 
+        // Enqueue a visit event immediately (regardless of foreground/background)
+        _visitQueue.Enqueue(
+            poiId:           poi.Id,
+            languageId:      _langId,
+            triggerType:     "geofence",
+            narrationPlayed: true,
+            lat:             _location.LastKnownLocation?.Latitude,
+            lng:             _location.LastKnownLocation?.Longitude);
+
         // Auto-play must happen on the main thread (MediaElement requirement)
         MainThread.BeginInvokeOnMainThread(async () =>
         {
-            await _player.PlayAsync(poi.AudioUrl, poi.NarrationText, poi.LangCode ?? "vi");
-            NowPlayingName = poi.Name;
+            _activeNarrationPoi = poi;
+            _narrationStartTime = DateTime.UtcNow;
+
+            // T-11: Send background notification if app is not in foreground
+            // Check auto-play setting (T-06)
+            if (!_autoPlay)
+            {
+                // Auto-play disabled: notify regardless of foreground/background
+                await _notification.SendGeofenceNotificationAsync(poi.Name);
+                NowPlayingName = poi.Name;
+                return;
+            }
+
+            // Auto-play is ON — check if app is in foreground
+            // MAUI doesn't expose foreground state directly; Application.Current.MainPage
+            // is only null when the app has been backgrounded before initialization completes.
+            bool isBackground = Application.Current?.MainPage is null;
+
+            if (isBackground)
+            {
+                // App in background: send notification, don't auto-play
+                await _notification.SendGeofenceNotificationAsync(poi.Name);
+            }
+            else
+            {
+                // App in foreground: auto-play narration
+                await _player.PlayAsync(poi.AudioUrl, poi.NarrationText, poi.LangCode ?? "vi");
+                NowPlayingName = poi.Name;
+            }
         });
     }
 
@@ -203,5 +282,48 @@ public partial class MainViewModel : ObservableObject
             IsPlaying = _player.IsPlaying;
             if (!IsPlaying) NowPlayingName = string.Empty;
         });
+    }
+
+    /// <summary>
+    /// Called when narration finishes naturally (not when stopped manually by user).
+    /// Applies per-POI cooldown so the same narration doesn't auto-replay immediately
+    /// when the tourist remains inside the geofence.
+    /// </summary>
+    private void OnPlaybackCompleted(object? sender, EventArgs e)
+    {
+        if (_activeNarrationPoi is not null)
+        {
+            var listenSeconds = (int)(DateTime.UtcNow - _narrationStartTime).TotalSeconds;
+            _visitQueue.UpdateListenDuration(_activeNarrationPoi.Id, listenSeconds);
+
+            _geofence.SetCooldown(_activeNarrationPoi.Id);
+            Console.WriteLine($"[MainViewModel] Cooldown set for: {_activeNarrationPoi.Name}");
+            _activeNarrationPoi = null;
+        }
+
+        // Attempt to flush the queue after each completed narration (low-frequency, opportunistic)
+        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+            _ = FlushVisitQueueAsync();
+    }
+
+    /// <summary>
+    /// Upload pending visits to the server when connectivity is available.
+    /// Fire-and-forget — failures are recoverable (data stays in queue).
+    /// </summary>
+    private async Task FlushVisitQueueAsync()
+    {
+        if (_visitQueue.PendingCount == 0) return;
+
+        var batch = _visitQueue.Dequeue();
+        var (ok, err) = await _api.UploadVisitsAsync(batch);
+        if (!ok)
+        {
+            Console.WriteLine($"[MainViewModel] Visit upload failed: {err}. Re-queuing {batch.Count} entries.");
+            _visitQueue.RestoreToQueue(batch);
+        }
+        else
+        {
+            Console.WriteLine($"[MainViewModel] Uploaded {batch.Count} visit(s) successfully.");
+        }
     }
 }
