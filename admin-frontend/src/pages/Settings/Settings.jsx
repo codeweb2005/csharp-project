@@ -172,7 +172,7 @@ export default function Settings() {
                 <Row gutter={[24, 24]}>
                     <Col xs={24} lg={12}>
                         {/* Geofence */}
-                        <Card title={<Space><EnvironmentOutlined /> Geofence Settings</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                        <Card title={<Space><EnvironmentOutlined /> Geofence Settings</Space>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                             <Row gutter={16}>
                                 <Col span={12}>
                                     <Form.Item name="geofence_defaultRadius" label="Default Radius (meters)" extra="Range 10 – 500">
@@ -198,7 +198,7 @@ export default function Settings() {
                         </Card>
 
                         {/* Sync */}
-                        <Card title={<Space><RetweetOutlined /> Sync Settings</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginTop: 24 }}>
+                        <Card title={<Space><RetweetOutlined /> Sync Settings</Space>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginTop: 24 }}>
                             <Row gutter={16}>
                                 <Col span={12}>
                                     <Form.Item name="sync_syncFrequency" label="Sync Frequency (minutes)">
@@ -238,7 +238,7 @@ export default function Settings() {
 
                     <Col xs={24} lg={12}>
                         {/* Narration */}
-                        <Card title={<Space><SoundOutlined /> Narration Settings</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                        <Card title={<Space><SoundOutlined /> Narration Settings</Space>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                             <Row gutter={16}>
                                 <Col span={12}>
                                     <Form.Item name="narration_defaultCooldown" label="Default Cooldown (minutes)">
@@ -299,7 +299,7 @@ export default function Settings() {
                         </Card>
 
                         {/* API Config */}
-                        <Card title={<Space><ApiOutlined /> API & Integration</Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginTop: 24 }}>
+                        <Card title={<Space><ApiOutlined /> API & Integration</Space>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginTop: 24 }}>
                             <Form.Item name="api_apiKey" label="API Key">
                                 <Space.Compact style={{ width: '100%' }}>
                                     <Input readOnly placeholder="—" />

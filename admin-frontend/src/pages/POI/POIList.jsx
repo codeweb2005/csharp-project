@@ -136,7 +136,7 @@ export default function POIList() {
             title: 'Name',
             key: 'name',
             render: (_, record) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <Text strong>{record.name}</Text>
                     {record.isFeatured && <Tag color="gold" icon={<StarFilled />}>Featured</Tag>}
                 </Space>
@@ -280,7 +280,7 @@ export default function POIList() {
 
             {/* Vendor: compact full-width table; Admin: table + mini-map side-by-side */}
             {isVendor ? (
-                <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                <Card variant="borderless" styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                     <Table
                         columns={columns}
                         dataSource={data}
@@ -304,7 +304,7 @@ export default function POIList() {
             ) : (
                 <Row gutter={[24, 24]}>
                     <Col xs={24} xl={16}>
-                        <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                        <Card variant="borderless" styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                             <Table
                                 columns={columns}
                                 dataSource={data}
@@ -330,7 +330,7 @@ export default function POIList() {
                                 })}
                                 locale={{
                                     emptyText: (
-                                        <Space direction="vertical" align="center">
+                                        <Space orientation="vertical" align="center">
                                             No POIs found.
                                             <Button type="link" onClick={openCreate}>Add the first one?</Button>
                                         </Space>

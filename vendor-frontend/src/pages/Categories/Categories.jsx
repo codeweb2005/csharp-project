@@ -176,7 +176,7 @@ export default function Categories() {
                     <Col xs={24} sm={12} lg={8} xl={6} key={cat.id}>
                         <Card
                             hoverable
-                            bordered={false}
+                            variant="borderless"
                             style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%', opacity: cat.isActive ? 1 : 0.6, borderLeft: `4px solid ${cat.color}` }}
                             actions={isVendor ? undefined : [
                                 <Tooltip title={cat.isActive ? 'Enabled' : 'Disabled'} key="toggle"><Switch size="small" checked={cat.isActive} onChange={(checked) => handleToggle(cat, checked)} /></Tooltip>,
@@ -211,7 +211,7 @@ export default function Categories() {
                 placement="right"
                 onClose={closeDrawer}
                 open={drawerVisible}
-                width={400}
+                size={400}
                 extra={
                     <Button type="primary" onClick={() => form.submit()} loading={saveLoading} icon={<SaveOutlined />}>
                         {isCreating ? 'Create' : 'Save'}

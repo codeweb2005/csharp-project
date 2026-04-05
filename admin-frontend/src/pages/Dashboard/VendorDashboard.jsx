@@ -20,7 +20,7 @@ import { Eye, Volume2, Clock, Globe } from 'lucide-react'
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
 import {
     Card, Row, Col, Typography, Statistic, Spin, Space, Badge,
-    List, Avatar, Radio,
+    Avatar, Radio,
 } from 'antd'
 import {
     AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -150,7 +150,7 @@ export default function VendorDashboard() {
                     const Icon = k.icon
                     return (
                         <Col xs={24} sm={12} lg={6} key={i}>
-                            <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                            <Card variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                                     <div style={{ width: 40, height: 40, borderRadius: 8, background: k.bg, color: k.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Icon size={20} />
@@ -168,7 +168,7 @@ export default function VendorDashboard() {
                                 <Statistic
                                     title={<span style={{ fontWeight: 500 }}>{k.label}</span>}
                                     value={k.value}
-                                    valueStyle={{ fontWeight: 600, fontSize: 24 }}
+                                    styles={{ content: { fontWeight: 600, fontSize: 24 } }}
                                 />
                             </Card>
                         </Col>
@@ -182,7 +182,7 @@ export default function VendorDashboard() {
                 <Col xs={24} lg={16}>
                     <Card
                         title={<Title level={5} style={{ margin: 0 }}>Visits by Day</Title>}
-                        bordered={false}
+                        variant="borderless"
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
                         <ResponsiveContainer width="100%" height={260}>
@@ -209,7 +209,7 @@ export default function VendorDashboard() {
                 <Col xs={24} lg={8}>
                     <Card
                         title={<Title level={5} style={{ margin: 0 }}>Visits by Hour (Today)</Title>}
-                        bordered={false}
+                        variant="borderless"
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
                         <ResponsiveContainer width="100%" height={260}>
@@ -237,7 +237,7 @@ export default function VendorDashboard() {
                 <Col xs={24} lg={8}>
                     <Card
                         title={<Title level={5} style={{ margin: 0 }}>Language Distribution</Title>}
-                        bordered={false}
+                        variant="borderless"
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
                         <ResponsiveContainer width="100%" height={180}>
@@ -274,7 +274,7 @@ export default function VendorDashboard() {
                 <Col xs={24} lg={8}>
                     <Card
                         title={<Title level={5} style={{ margin: 0 }}>Top Visited POIs</Title>}
-                        bordered={false}
+                        variant="borderless"
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
                         {topPOIs.length === 0 && <Text type="secondary">No data available</Text>}
@@ -302,28 +302,25 @@ export default function VendorDashboard() {
                 <Col xs={24} lg={8}>
                     <Card
                         title={<Title level={5} style={{ margin: 0 }}>Recent Activity</Title>}
-                        bordered={false}
+                        variant="borderless"
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
-                        <List
-                            size="small"
-                            dataSource={recentActivity}
-                            locale={{ emptyText: 'No recent activity' }}
-                            renderItem={(item) => (
-                                <List.Item style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
-                                    <List.Item.Meta
-                                        avatar={<Avatar size="small" style={{ backgroundColor: '#f8fafc', fontSize: 14 }}>{item.flagEmoji || '🌐'}</Avatar>}
-                                        title={<Text strong style={{ fontSize: 13 }}>{item.userName}</Text>}
-                                        description={
-                                            <span style={{ fontSize: 12 }}>
-                                                visited <strong>{item.poiName}</strong> ·{' '}
-                                                {new Date(item.visitedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        }
-                                    />
-                                </List.Item>
-                            )}
-                        />
+                        {recentActivity.length === 0 ? (
+                            <Text type="secondary">No recent activity</Text>
+                        ) : (
+                            recentActivity.map(item => (
+                                <div key={item.id ?? `${item.userName}-${item.visitedAt}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                    <Avatar size="small" style={{ backgroundColor: '#f8fafc', fontSize: 14 }}>{item.flagEmoji || '🌐'}</Avatar>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <Text strong style={{ fontSize: 13 }}>{item.userName}</Text>
+                                        <div style={{ fontSize: 12 }}>
+                                            visited <strong>{item.poiName}</strong> ·{' '}
+                                            {new Date(item.visitedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </Card>
                 </Col>
             </Row>

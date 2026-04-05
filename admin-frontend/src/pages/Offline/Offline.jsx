@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { PlusOutlined, DownloadOutlined, SyncOutlined, DeleteOutlined, CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined, WarningOutlined } from '@ant-design/icons'
-import { Card, List, Modal, Form, Input, Select, Button, Tag, Progress, Space, Typography, Tooltip, Statistic, Row, Col, message, Popconfirm } from 'antd'
+import { Card, Modal, Form, Input, Select, Button, Tag, Progress, Space, Typography, Tooltip, Statistic, Row, Col, message, Popconfirm, Spin } from 'antd'
 import { offlinePackages as pkgApi, API_BASE } from '../../api.js'
 
 const { Title, Text } = Typography
@@ -121,21 +121,21 @@ export default function Offline() {
                 </Col>
             </Row>
 
-            <List
-                grid={{ gutter: 16, xs: 1, sm: 1, md: 1, lg: 2, xl: 2, xxl: 3 }}
-                dataSource={packages}
-                loading={loading}
-                locale={{ emptyText: 'No offline packages found. Create one!' }}
-                renderItem={pkg => {
+            <Spin spinning={loading}>
+            <Row gutter={[16, 16]}>
+                {packages.length === 0 && !loading && (
+                    <Col span={24}><Text type="secondary">No offline packages found. Create one!</Text></Col>
+                )}
+                {packages.map(pkg => {
                     const sc = statusConfig[pkg.status] || statusConfig.draft
                     const isBuilding = pkg.status === 'building' || pkg.status === 'Building'
                     const isActive = pkg.status === 'active' || pkg.status === 'Active'
                     const isDraft = pkg.status === 'draft' || pkg.status === 'Draft'
 
                     return (
-                        <List.Item>
-                            <Card 
-                                bordered={false} 
+                        <Col key={pkg.id} xs={24} sm={24} md={24} lg={12} xl={12} xxl={8}>
+                            <Card
+                                variant="borderless"
                                 style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', height: '100%' }}
                                 actions={[
                                     isActive && (
@@ -201,17 +201,19 @@ export default function Offline() {
                                     </div>
                                 )}
                             </Card>
-                        </List.Item>
+                        </Col>
                     )
-                }}
-            />
+                })}
+            </Row>
+            </Spin>
 
             <Modal
                 title="Create Offline Package"
                 open={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
                 footer={null}
-                destroyOnClose
+                destroyOnHidden
+                forceRender
             >
                 <Form layout="vertical" form={form} onFinish={handleCreate} initialValues={{ languageId: '1', version: '1.0' }}>
                     <Form.Item name="name" label="Package Name" rules={[{ required: true, message: 'Please enter package name!' }]}>
