@@ -230,23 +230,22 @@ public class POIService : IPOIService
         // Use raw SQL with MySQL spatial function for accurate distance calculation.
         // ST_Distance_Sphere returns distance in meters between two points.
         // Note: MySQL point() takes (longitude, latitude) — not (lat, lng).
-        var sql = $@"
-            SELECT p.Id,
-                   ST_Distance_Sphere(
-                       point(p.Longitude, p.Latitude),
-                       point({lng}, {lat})
-                   ) AS DistanceMeters
-            FROM POIs p
-            WHERE p.IsActive = 1
-              AND ST_Distance_Sphere(
-                       point(p.Longitude, p.Latitude),
-                       point({lng}, {lat})
-                  ) <= {radiusMeters}
-            ORDER BY DistanceMeters ASC";
-
-        // Get IDs + distances via raw query, then load full entities via EF
+        // Use interpolated SQL so EF parameterizes values safely and
+        // avoids culture-specific decimal formatting issues (e.g. 10,7626).
         var distanceResults = await _db.Database
-            .SqlQueryRaw<PoiDistanceResult>(sql)
+            .SqlQuery<PoiDistanceResult>($@"
+                SELECT p.Id,
+                       ST_Distance_Sphere(
+                           point(p.Longitude, p.Latitude),
+                           point({lng}, {lat})
+                       ) AS DistanceMeters
+                FROM POIs p
+                WHERE p.IsActive = 1
+                  AND ST_Distance_Sphere(
+                           point(p.Longitude, p.Latitude),
+                           point({lng}, {lat})
+                      ) <= {radiusMeters}
+                ORDER BY DistanceMeters ASC")
             .ToListAsync();
 
         if (distanceResults.Count == 0)
@@ -374,22 +373,20 @@ public class POIService : IPOIService
             radiusMeters = MaxRadiusMeters;
 
         // Step 1: Find nearby active POIs with distance via spatial query
-        var sql = $@"
-            SELECT p.Id,
-                   ST_Distance_Sphere(
-                       point(p.Longitude, p.Latitude),
-                       point({lng}, {lat})
-                   ) AS DistanceMeters
-            FROM POIs p
-            WHERE p.IsActive = 1
-              AND ST_Distance_Sphere(
-                       point(p.Longitude, p.Latitude),
-                       point({lng}, {lat})
-                  ) <= {radiusMeters}
-            ORDER BY DistanceMeters ASC";
-
         var distanceResults = await _db.Database
-            .SqlQueryRaw<PoiDistanceResult>(sql)
+            .SqlQuery<PoiDistanceResult>($@"
+                SELECT p.Id,
+                       ST_Distance_Sphere(
+                           point(p.Longitude, p.Latitude),
+                           point({lng}, {lat})
+                       ) AS DistanceMeters
+                FROM POIs p
+                WHERE p.IsActive = 1
+                  AND ST_Distance_Sphere(
+                           point(p.Longitude, p.Latitude),
+                           point({lng}, {lat})
+                      ) <= {radiusMeters}
+                ORDER BY DistanceMeters ASC")
             .ToListAsync();
 
         if (distanceResults.Count == 0)

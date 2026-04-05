@@ -138,16 +138,18 @@ public class NarrationPlayer : INarrationPlayer
             return Task.CompletedTask;
         }
 
+        var playbackUrl = NormalizeAudioStreamUrl(url);
+
         MainThread.BeginInvokeOnMainThread(() =>
         {
             // T-10: subscribe to MediaFailed before setting source
             element.MediaFailed -= OnMediaFailed;  // remove old subscription first
             element.MediaFailed += OnMediaFailed;
 
-            if (TryGetLocalFilePath(url, out var localPath))
+            if (TryGetLocalFilePath(playbackUrl, out var localPath))
                 element.Source = MediaSource.FromFile(localPath);
             else
-                element.Source = MediaSource.FromUri(new Uri(url, UriKind.Absolute));
+                element.Source = MediaSource.FromUri(new Uri(playbackUrl, UriKind.Absolute));
             element.Play();
         });
 
@@ -171,7 +173,9 @@ public class NarrationPlayer : INarrationPlayer
         {
             try
             {
-                await Toast.Make("Audio unavailable, using TTS").Show();
+                await Toast.Make(_lastTtsText is not null
+                    ? "Audio unavailable, using TTS"
+                    : "Audio unavailable (offline)").Show();
             }
             catch { /* Toast may fail on some platforms */ }
 
@@ -205,6 +209,28 @@ public class NarrationPlayer : INarrationPlayer
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Force proxy mode for API audio stream URLs so MediaElement doesn't rely
+    /// on HTTP redirects from presigned S3 links.
+    /// </summary>
+    private static string NormalizeAudioStreamUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return url;
+
+        if (!uri.AbsolutePath.Contains("/audio/", StringComparison.OrdinalIgnoreCase) ||
+            !uri.AbsolutePath.EndsWith("/stream", StringComparison.OrdinalIgnoreCase))
+            return url;
+
+        var query = uri.Query ?? string.Empty;
+        if (query.Contains("proxy=1", StringComparison.OrdinalIgnoreCase) ||
+            query.Contains("proxy=true", StringComparison.OrdinalIgnoreCase))
+            return url;
+
+        var separator = string.IsNullOrEmpty(query) ? "?" : "&";
+        return $"{url}{separator}proxy=1";
     }
 
     private async Task PlayTtsAsync(string text, string langCode)
