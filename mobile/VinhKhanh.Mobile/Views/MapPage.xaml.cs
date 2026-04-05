@@ -1,23 +1,40 @@
-using System.Globalization;
-using System.Text;
-using System.Text.Json;
+using Mapsui;
+using Mapsui.Extensions;
+using Mapsui.Layers;
+using Mapsui.Projections;
+using Mapsui.Styles;
+using Mapsui.Tiling;
+using Mapsui.UI.Maui;
 using VinhKhanh.Mobile.Models;
 using VinhKhanh.Mobile.Services;
 using VinhKhanh.Mobile.ViewModels;
+using Color = Mapsui.Styles.Color;
+using MPoint = Mapsui.MPoint;
 
 namespace VinhKhanh.Mobile.Views;
 
 /// <summary>
-/// Tour map using Leaflet + OpenStreetMap inside a WebView — same map stack as admin
-/// (<c>MapPicker.jsx</c> / <c>POIMiniMap.jsx</c>): Leaflet 1.9.4 CDN and OSM tile URL.
+/// Tour map using Mapsui + OpenStreetMap — fully native, no WebView or JS bridge.
+/// Layers:
+///   0 — OSM tile layer (base map)
+///   1 — Geofence circles (semi-transparent indigo fill per POI radius)
+///   2 — POI pins (indigo filled circle with white border)
+///   3 — User location dot (blue)
 /// </summary>
 public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _vm;
     private readonly ILocationService _location;
 
-    private bool _htmlSourceAssigned;
-    private bool _mapDomReady;
+    // Separate writable layers so we can update each independently
+    private readonly WritableLayer _geofenceLayer = new() { Name = "Geofences", Style = null };
+    private readonly WritableLayer _poisLayer     = new() { Name = "POIs",      Style = null };
+    private readonly WritableLayer _userLayer     = new() { Name = "User",      Style = null };
+
+    // Vinh Khanh default centre (Ho Chi Minh City, Vinh Khanh Street area)
+    private const double DefaultLat = 10.7553;
+    private const double DefaultLng = 106.7017;
+    private const double DefaultZoom = 15;
 
     public MapPage(MapViewModel vm, ILocationService location)
     {
@@ -26,93 +43,153 @@ public partial class MapPage : ContentPage
         _location = location;
         BindingContext = vm;
 
-        vm.NearbyPois.CollectionChanged += (_, _) => _ = PushPoisToWebAsync();
+        InitMap();
 
-        TourMapWebView.Navigating += OnWebViewNavigating;
-        TourMapWebView.Navigated += OnWebViewNavigated;
+        // Refresh pins whenever the nearby POI list changes
+        vm.NearbyPois.CollectionChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RefreshMapLayers);
+
+        // Navigate to detail page when user taps a POI pin
+        TourMapControl.Map.Info += OnMapInfo;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await EnsureWebSourceAsync();
         await _vm.InitializeCommand.ExecuteAsync(null);
+        RefreshMapLayers();
     }
 
-    private async Task EnsureWebSourceAsync()
+    // ── Map initialisation ────────────────────────────────────────────────────
+
+    private void InitMap()
     {
-        if (_htmlSourceAssigned) return;
-        _htmlSourceAssigned = true;
+        var map = new Mapsui.Map();
 
-        await using var stream = await FileSystem.OpenAppPackageFileAsync("leaflet_tour_map.html");
-        using var reader = new StreamReader(stream, Encoding.UTF8);
-        var html = await reader.ReadToEndAsync();
+        // Layer 0: OSM base tiles
+        map.Layers.Add(OpenStreetMap.CreateTileLayer("VinhKhanhFoodTour/1.0"));
 
-        TourMapWebView.Source = new HtmlWebViewSource
+        // Layers 1-3: dynamic data
+        map.Layers.Add(_geofenceLayer);
+        map.Layers.Add(_poisLayer);
+        map.Layers.Add(_userLayer);
+
+        // Centre on Vinh Khanh Street
+        var (cx, cy) = SphericalMercator.FromLonLat(DefaultLng, DefaultLat);
+        map.Home = n => n.CenterOnAndZoomTo(new MPoint(cx, cy), n.Resolutions[(int)DefaultZoom]);
+
+        TourMapControl.Map = map;
+    }
+
+    // ── Layer refresh ─────────────────────────────────────────────────────────
+
+    private void RefreshMapLayers()
+    {
+        UpdatePoisLayer();
+        UpdateGeofenceLayer();
+        UpdateUserLayer();
+        TourMapControl.Map.Refresh();
+    }
+
+    private void UpdatePoisLayer()
+    {
+        var features = _vm.NearbyPois.Select(MakePinFeature).ToList();
+        _poisLayer.Clear();
+        _poisLayer.AddRange(features);
+    }
+
+    private void UpdateGeofenceLayer()
+    {
+        var features = _vm.NearbyPois
+            .Where(p => p.GeofenceRadiusMeters > 0)
+            .Select(MakeCircleFeature)
+            .ToList();
+        _geofenceLayer.Clear();
+        _geofenceLayer.AddRange(features);
+    }
+
+    private void UpdateUserLayer()
+    {
+        _userLayer.Clear();
+        var loc = _location.LastKnownLocation;
+        if (loc is null) return;
+
+        var (x, y) = SphericalMercator.FromLonLat(loc.Longitude, loc.Latitude);
+        var f = new PointFeature(new MPoint(x, y));
+        f.Styles.Add(new SymbolStyle
         {
-            Html = html,
-            BaseUrl = "https://unpkg.com/"
-        };
+            Fill            = new Brush(new Color(99, 102, 241)),   // indigo-500
+            Outline         = new Pen(Color.White, 2.5),
+            SymbolType      = SymbolType.Ellipse,
+            SymbolScale     = 0.5
+        });
+        _userLayer.Add(f);
     }
 
-    private void OnWebViewNavigated(object? sender, WebNavigatedEventArgs e)
+    // ── Feature builders ──────────────────────────────────────────────────────
+
+    private static PointFeature MakePinFeature(PoiLocal poi)
     {
-        if (e.Result != WebNavigationResult.Success) return;
-        _mapDomReady = true;
-        MainThread.BeginInvokeOnMainThread(() => _ = PushPoisToWebAsync());
+        var (x, y) = SphericalMercator.FromLonLat(poi.Longitude, poi.Latitude);
+        var f = new PointFeature(new MPoint(x, y));
+        f["PoiId"] = poi.Id;
+        f["Name"]  = poi.Name ?? string.Empty;
+
+        f.Styles.Add(new SymbolStyle
+        {
+            Fill        = new Brush(new Color(99, 102, 241)),   // indigo-500
+            Outline     = new Pen(Color.White, 2),
+            SymbolType  = SymbolType.Ellipse,
+            SymbolScale = 0.6
+        });
+
+        // Label below pin
+        if (!string.IsNullOrWhiteSpace(poi.Name))
+        {
+            f.Styles.Add(new LabelStyle
+            {
+                Text            = poi.Name,
+                ForeColor       = Color.White,
+                BackColor       = new Brush(new Color(30, 41, 59, 200)), // slate-800 semi-transparent
+                Font            = new Font { Size = 11 },
+                Offset          = new Offset(0, 18),
+                HorizontalAlignment = LabelStyle.HorizontalAlignmentEnum.Center
+            });
+        }
+
+        return f;
     }
 
-    private async void OnWebViewNavigating(object? sender, WebNavigatingEventArgs e)
+    private static PointFeature MakeCircleFeature(PoiLocal poi)
     {
-        if (!e.Url.StartsWith("poi://", StringComparison.OrdinalIgnoreCase)) return;
+        var (x, y) = SphericalMercator.FromLonLat(poi.Longitude, poi.Latitude);
+        var f = new PointFeature(new MPoint(x, y));
 
-        e.Cancel = true;
-        var raw = e.Url.AsSpan("poi://".Length).Trim('/');
-        if (!int.TryParse(raw.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var id))
-            return;
+        // Convert geofence radius (metres) to Mercator pixels at zoom 15
+        // 1 metre ≈ 0.298 Mapsui units at the equator; close enough for HCM City latitude
+        var radiusPx = poi.GeofenceRadiusMeters * 0.298;
 
+        f.Styles.Add(new SymbolStyle
+        {
+            Fill            = new Brush(new Color(99, 102, 241, 30)),   // very transparent indigo
+            Outline         = new Pen(new Color(99, 102, 241, 140), 1.5),
+            SymbolType      = SymbolType.Ellipse,
+            SymbolScale     = radiusPx / 32.0   // SymbolStyle default bitmap size is 32px
+        });
+
+        return f;
+    }
+
+    // ── Pin tap → POI detail ──────────────────────────────────────────────────
+
+    private async void OnMapInfo(object? sender, MapInfoEventArgs e)
+    {
+        var feature = e.MapInfo?.Feature;
+        if (feature is null || !feature.Fields.Contains("PoiId")) return;
+
+        var id  = (int)feature["PoiId"]!;
         var poi = _vm.NearbyPois.FirstOrDefault(p => p.Id == id);
         if (poi is null) return;
 
         await Shell.Current.GoToAsync("poiDetail", new Dictionary<string, object> { { "poi", poi } });
-    }
-
-    private async Task PushPoisToWebAsync()
-    {
-        if (!_mapDomReady) return;
-
-        var items = _vm.NearbyPois
-            .Select(p => new
-            {
-                id             = p.Id,
-                name           = p.Name,
-                address        = p.Address,
-                latitude       = p.Latitude,
-                longitude      = p.Longitude,
-                geofenceRadius = p.GeofenceRadiusMeters,
-                categoryIcon   = p.CategoryIcon,
-                categoryName   = p.CategoryName,
-                distanceMeters = p.DistanceMeters
-            })
-            .ToList();
-
-        var json = JsonSerializer.Serialize(items);
-        var b64  = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
-
-        var loc  = _location.LastKnownLocation;
-        var uLat = loc is null ? "null" : loc.Latitude.ToString(CultureInfo.InvariantCulture);
-        var uLng = loc is null ? "null" : loc.Longitude.ToString(CultureInfo.InvariantCulture);
-
-        var js = $"vkTourMap.setDataFromBase64('{b64}', {uLat}, {uLng});";
-
-        try
-        {
-            await MainThread.InvokeOnMainThreadAsync(
-                async () => await TourMapWebView.EvaluateJavaScriptAsync(js));
-        }
-        catch
-        {
-            /* WebView may not be ready on some transitions */
-        }
     }
 }

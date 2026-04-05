@@ -107,6 +107,7 @@
 		<PackageReference Include="CommunityToolkit.Maui" Version="*" />
 		<PackageReference Include="CommunityToolkit.Maui.MediaElement" Version="*" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="*" />
+		<PackageReference Include="Mapsui.Maui" Version="5.0.2" />
 		<PackageReference Include="Microsoft.Extensions.Http" Version="*" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />

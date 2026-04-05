@@ -1,5 +1,6 @@
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
+using Mapsui.UI.Maui;
 using SQLitePCL;
 using VinhKhanh.Mobile.Services;
 using VinhKhanh.Mobile.ViewModels;
@@ -25,6 +26,7 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
             .UseMauiCommunityToolkitMediaElement(isAndroidForegroundServiceEnabled: false)
+            .UseMapsui()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
