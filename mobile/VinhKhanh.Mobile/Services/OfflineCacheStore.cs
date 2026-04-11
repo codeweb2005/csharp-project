@@ -71,10 +71,19 @@ public sealed class OfflineCacheStore
                     Priority = p.Priority,
                     CategoryIcon = p.CategoryIcon,
                     CategoryName = p.CategoryName,
-                    NarrationText = p.NarrationText,
-                    LangCode = p.LangCode ?? "vi",
+                    // Preserve offline/package narration text when online nearby payload
+                    // doesn't include narrationText for this language.
+                    NarrationText = !string.IsNullOrWhiteSpace(p.NarrationText)
+                        ? p.NarrationText
+                        : existing?.NarrationText,
+                    LangCode = !string.IsNullOrWhiteSpace(p.LangCode)
+                        ? p.LangCode!
+                        : (existing?.LangCode ?? "vi"),
                     LocalAudioPath = existing?.LocalAudioPath,
-                    CachedStreamUrl = p.AudioUrl
+                    // Keep previous stream URL if new payload has no audio URL.
+                    CachedStreamUrl = !string.IsNullOrWhiteSpace(p.AudioUrl)
+                        ? p.AudioUrl
+                        : existing?.CachedStreamUrl
                 };
                 await db.InsertOrReplaceAsync(row);
             }

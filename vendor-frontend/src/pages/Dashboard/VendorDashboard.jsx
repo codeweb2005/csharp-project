@@ -173,7 +173,7 @@ export default function VendorDashboard() {
 
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={24}>
-                    <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <Card variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <Space size="middle" wrap>
                             <Text strong>Quick Actions:</Text>
                             <Button icon={<UtensilsCrossed size={16} />} onClick={() => navigate('/menu')}>Edit Menu</Button>
@@ -186,7 +186,7 @@ export default function VendorDashboard() {
 
             <Row gutter={[16, 16]}>
                 <Col xs={24} lg={12}>
-                    <Card title={<Space><Globe2 size={18} /><span>Visitors by Language</span></Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
+                    <Card title={<Space><Globe2 size={18} /><span>Visitors by Language</span></Space>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
                         {langStats.length === 0 ? (
                             <Text type="secondary">No visits recorded yet.</Text>
                         ) : (
@@ -211,7 +211,7 @@ export default function VendorDashboard() {
                 </Col>
 
                 <Col xs={24} lg={12}>
-                    <Card title={<Space><BarChart3 size={18} /><span>Peak Visit Hours (Today)</span></Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
+                    <Card title={<Space><BarChart3 size={18} /><span>Peak Visit Hours (Today)</span></Space>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}>
                         {peakHour && peakHour.visits > 0 ? (
                             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                                 <Text strong style={{ color: '#b45309' }}>
@@ -255,7 +255,7 @@ function StatCard({ icon, label, value, change, color, bg }) {
     const isNeutral = change === 0 || change == null
 
     return (
-        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+        <Card variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 8, background: bg, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {icon}
@@ -266,7 +266,7 @@ function StatCard({ icon, label, value, change, color, bg }) {
                     </Space>
                 )}
             </div>
-            <Statistic title={<span style={{ fontWeight: 500 }}>{label}</span>} value={value} valueStyle={{ fontWeight: 600, fontSize: 24 }} />
+            <Statistic title={<span style={{ fontWeight: 500 }}>{label}</span>} value={value} styles={{ content: { fontWeight: 600, fontSize: 24 } }} />
         </Card>
     )
 }

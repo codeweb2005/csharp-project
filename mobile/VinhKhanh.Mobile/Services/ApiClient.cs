@@ -64,7 +64,8 @@ public class ApiClient
         var tr = d.Translations.FirstOrDefault(t => t.LanguageId == langId)
                  ?? d.Translations.FirstOrDefault();
 
-        var streamUrl = audio != null ? $"{_baseUrl}/audio/{audio.Id}/stream" : null;
+        // Use proxy mode to avoid media redirect issues on some Android emulator/player builds.
+        var streamUrl = audio != null ? $"{_baseUrl}/audio/{audio.Id}/stream?proxy=1" : null;
 
         return new PoiLocal
         {

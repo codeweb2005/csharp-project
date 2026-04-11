@@ -34,13 +34,16 @@ public sealed class AndroidLocationService : ILocationService
     {
         _pollIntervalSeconds = pollIntervalSeconds;
 
-        // Subscribe to location fixes broadcast from GpsTrackerService
         WeakReferenceMessenger.Default.Register<LocationUpdateMessage>(
             this,
             (_, msg) =>
             {
                 var (lat, lng, accuracy) = msg.Value;
                 LastKnownLocation = new Location { Latitude = lat, Longitude = lng, Accuracy = accuracy };
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[AndroidLocationService] Relaying fix: {lat:F6}, {lng:F6} → {LocationUpdated?.GetInvocationList().Length ?? 0} subscriber(s)");
+
                 LocationUpdated?.Invoke(this, new LocationUpdate(lat, lng, accuracy));
             });
     }

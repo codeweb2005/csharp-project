@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ArrowUpOutlined, ArrowDownOutlined, GlobalOutlined, ClockCircleOutlined, ThunderboltOutlined, BarChartOutlined } from '@ant-design/icons'
-import { Card, Row, Col, Typography, Radio, Spin, List, Avatar, Tag, Statistic, Space, Badge } from 'antd'
+import { Card, Row, Col, Typography, Radio, Spin, Avatar, Tag, Statistic, Space, Badge } from 'antd'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 import { analytics as analyticsApi, dashboard as dashboardApi } from '../../api.js'
 import useCurrentUser from '../../hooks/useCurrentUser.js'
@@ -93,11 +93,11 @@ export default function Analytics() {
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 {trendCards.map((t, i) => (
                     <Col xs={24} sm={12} lg={6} key={i}>
-                        <Card bordered={false} bodyStyle={{ padding: '20px' }} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                        <Card variant="borderless" styles={{ body: { padding: '20px' } }} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                             <Statistic
                                 title={<Text type="secondary">{t.label}</Text>}
                                 value={t.value}
-                                valueStyle={{ color: t.color, fontWeight: 700, fontSize: 24, margin: '8px 0' }}
+                                styles={{ content: { color: t.color, fontWeight: 700, fontSize: 24, margin: '8px 0' } }}
                             />
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Text
@@ -107,8 +107,8 @@ export default function Analytics() {
                                     {t.change >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
                                     {Math.abs(t.change).toFixed(1)}%
                                 </Text>
-                                <div style={{ width: 60, height: 30 }}>
-                                    <ResponsiveContainer width="100%" height="100%">
+                                <div style={{ width: 60, height: 30, flexShrink: 0 }}>
+                                    <ResponsiveContainer width={60} height={30} minWidth={60} minHeight={30}>
                                         <LineChart data={visitsByDay.slice(0, 15)}>
                                             <Line type="monotone" dataKey="visits" stroke={t.color} strokeWidth={2} dot={false} isAnimationActive={false} />
                                         </LineChart>
@@ -124,8 +124,8 @@ export default function Analytics() {
                 <Col xs={24} lg={16}>
                     <Card
                         title={<><BarChartOutlined style={{ color: '#3b82f6', marginRight: 8 }} /> Visits by day</>}
-                        bordered={false}
-                        bodyStyle={{ padding: '20px 24px' }}
+                        variant="borderless"
+                        styles={{ body: { padding: '20px 24px' } }}
                         style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', height: '100%' }}
                     >
                         <div style={{ height: 300 }}>
@@ -153,8 +153,8 @@ export default function Analytics() {
                 <Col xs={24} lg={8}>
                     <Card
                         title={<><ClockCircleOutlined style={{ color: '#f59e0b', marginRight: 8 }} /> Visits by hour</>}
-                        bordered={false}
-                        bodyStyle={{ padding: '20px 24px' }}
+                        variant="borderless"
+                        styles={{ body: { padding: '20px 24px' } }}
                         style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', height: '100%' }}
                     >
                         <div style={{ height: 260 }}>
@@ -184,8 +184,8 @@ export default function Analytics() {
                 <Col xs={24} md={10} lg={8}>
                     <Card
                         title={<><GlobalOutlined style={{ color: '#10b981', marginRight: 8 }} /> Language distribution</>}
-                        bordered={false}
-                        bodyStyle={{ padding: '20px 24px' }}
+                        variant="borderless"
+                        styles={{ body: { padding: '20px 24px' } }}
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
                         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -208,22 +208,22 @@ export default function Analytics() {
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
-                            
-                            <List
-                                size="small"
-                                dataSource={langData}
-                                renderItem={(item, i) => (
-                                    <List.Item style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', border: 'none' }}>
-                                        <Space>
-                                            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: LANG_COLORS[i % LANG_COLORS.length], display: 'inline-block' }} />
-                                            <Text>{item.flagEmoji} {item.name}</Text>
-                                        </Space>
-                                        <Text strong>{item.percentage}%</Text>
-                                    </List.Item>
+
+                            <div style={{ flex: 1, overflowY: 'auto' }}>
+                                {langData.length === 0 ? (
+                                    <Text type="secondary">No data</Text>
+                                ) : (
+                                    langData.map((item, i) => (
+                                        <div key={item.name + i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', border: 'none' }}>
+                                            <Space>
+                                                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: LANG_COLORS[i % LANG_COLORS.length], display: 'inline-block' }} />
+                                                <Text>{item.flagEmoji} {item.name}</Text>
+                                            </Space>
+                                            <Text strong>{item.percentage}%</Text>
+                                        </div>
+                                    ))
                                 )}
-                                locale={{ emptyText: 'No data' }}
-                                style={{ flex: 1, overflowY: 'auto' }}
-                            />
+                            </div>
                         </div>
                     </Card>
                 </Col>
@@ -231,22 +231,21 @@ export default function Analytics() {
                 <Col xs={24} md={14} lg={16}>
                     <Card
                         title={<><ThunderboltOutlined style={{ color: '#8b5cf6', marginRight: 8 }} /> Recent activity</>}
-                        bordered={false}
-                        bodyStyle={{ padding: 0 }}
+                        variant="borderless"
+                        styles={{ body: { padding: 0 } }}
                         style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', height: '100%' }}
                     >
-                        <List
-                            itemLayout="horizontal"
-                            dataSource={recentVisits}
-                            locale={{ emptyText: <div style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8' }}>No recent activity</div> }}
-                            renderItem={item => (
-                                <List.Item style={{ padding: '16px 24px', borderBottom: '1px solid #f1f5f9' }}>
-                                    <List.Item.Meta
-                                        avatar={<Avatar style={{ backgroundColor: '#f8fafc', fontSize: 20 }}>{item.flagEmoji || '🌐'}</Avatar>}
-                                        title={<Text strong>{item.userName}</Text>}
-                                        description={<span>visited <strong>{item.poiName}</strong></span>}
-                                    />
-                                    <div style={{ textAlign: 'right' }}>
+                        {recentVisits.length === 0 ? (
+                            <div style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8' }}>No recent activity</div>
+                        ) : (
+                            recentVisits.map(item => (
+                                <div key={item.id ?? `${item.userName}-${item.visitedAt}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '16px 24px', borderBottom: '1px solid #f1f5f9' }}>
+                                    <Avatar style={{ backgroundColor: '#f8fafc', fontSize: 20 }}>{item.flagEmoji || '🌐'}</Avatar>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <Text strong>{item.userName}</Text>
+                                        <div><span>visited <strong>{item.poiName}</strong></span></div>
+                                    </div>
+                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
                                         <Tag color={item.triggerType === 'Geofence' ? 'blue' : item.triggerType === 'Manual' ? 'purple' : 'orange'} style={{ borderRadius: 12 }}>
                                             {item.triggerType}
                                         </Tag>
@@ -254,9 +253,9 @@ export default function Analytics() {
                                             {new Date(item.visitedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                                         </div>
                                     </div>
-                                </List.Item>
-                            )}
-                        />
+                                </div>
+                            ))
+                        )}
                     </Card>
                 </Col>
             </Row>

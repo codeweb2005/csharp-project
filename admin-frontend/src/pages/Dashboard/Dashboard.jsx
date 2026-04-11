@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { MapPin, Users, Globe, Volume2, TrendingUp, TrendingDown, Eye } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { Card, Row, Col, Typography, Statistic, Spin, List, Avatar, Badge, Space } from 'antd'
+import { Card, Row, Col, Typography, Statistic, Spin, Avatar, Badge, Space } from 'antd'
 import { dashboard as dashboardApi } from '../../api'
 import './Dashboard.css'
 
@@ -75,7 +75,7 @@ export default function Dashboard() {
                     const change = s.changeKey ? stats?.[s.changeKey] : null
                     return (
                         <Col xs={24} sm={12} lg={6} key={i}>
-                            <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', border: 'none' }}>
+                            <Card variant="borderless" style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', border: 'none' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                     <div style={{ width: 42, height: 42, borderRadius: 12, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Icon size={20} />
@@ -87,7 +87,7 @@ export default function Dashboard() {
                                         </Space>
                                     )}
                                 </div>
-                                <Statistic title={<span style={{ fontWeight: 500, fontFamily: "'Inter', sans-serif", fontSize: 13 }}>{s.label}</span>} value={value} valueStyle={{ fontWeight: 700, fontSize: 26, fontFamily: "'Manrope', sans-serif", letterSpacing: '-0.02em' }} />
+                                <Statistic title={<span style={{ fontWeight: 500, fontFamily: "'Inter', sans-serif", fontSize: 13 }}>{s.label}</span>} value={value} styles={{ content: { fontWeight: 700, fontSize: 26, fontFamily: "'Manrope', sans-serif", letterSpacing: '-0.02em' } }} />
                             </Card>
                         </Col>
                     )
@@ -97,7 +97,7 @@ export default function Dashboard() {
             {/* Charts Row */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={24} lg={16}>
-                    <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
+                    <Card variant="borderless" style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                             <Title level={5} style={{ margin: 0 }}>Visits by Day</Title>
                             <Space size="middle">
@@ -128,7 +128,7 @@ export default function Dashboard() {
                 </Col>
 
                 <Col xs={24} lg={8}>
-                    <Card title={<Title level={5} style={{ margin: 0 }}>Top Locations</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Top Locations</Title>} variant="borderless" style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         {topPOIs.length === 0 && <Text type="secondary">No data yet</Text>}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
                             {topPOIs.map((poi, i) => (
@@ -154,7 +154,7 @@ export default function Dashboard() {
             {/* Bottom Row */}
             <Row gutter={[16, 16]}>
                 <Col xs={24} lg={8}>
-                    <Card title={<Title level={5} style={{ margin: 0 }}>Language Distribution</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Language Distribution</Title>} variant="borderless" style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         <ResponsiveContainer width="100%" height={200}>
                             <PieChart>
                                 <Pie
@@ -189,26 +189,25 @@ export default function Dashboard() {
                 </Col>
 
                 <Col xs={24} lg={16}>
-                    <Card title={<Title level={5} style={{ margin: 0 }}>Recent Activity</Title>} bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
-                        <List
-                            itemLayout="horizontal"
-                            dataSource={recentActivity}
-                            locale={{ emptyText: 'No recent activity' }}
-                            renderItem={(item) => (
-                                <List.Item>
-                                    <List.Item.Meta
-                                        avatar={<Avatar style={{ backgroundColor: 'rgba(143,167,254,0.15)' }}>{item.flagEmoji || '🌐'}</Avatar>}
-                                        title={<>
+                    <Card title={<Title level={5} style={{ margin: 0 }}>Recent Activity</Title>} variant="borderless" style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
+                        {recentActivity.length === 0 ? (
+                            <Text type="secondary">No recent activity</Text>
+                        ) : (
+                            recentActivity.map(item => (
+                                <div key={item.id ?? `${item.userName}-${item.visitedAt}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                    <Avatar style={{ backgroundColor: 'rgba(143,167,254,0.15)' }}>{item.flagEmoji || '🌐'}</Avatar>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div>
                                             <Text strong>{item.userName}</Text> <Text type="secondary">visited</Text> <Text strong>{item.poiName}</Text>
-                                        </>}
-                                        description={new Date(item.visitedAt).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-                                    />
+                                        </div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>{new Date(item.visitedAt).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</Text>
+                                    </div>
                                     <Space>
                                         <Badge status={item.triggerType === 'Geofence' ? 'processing' : 'warning'} text={<span style={{ fontSize: 12 }}>{item.triggerType}</span>} style={{ background: '#eeedf4', padding: '4px 10px', borderRadius: 12, border: 'none' }} />
                                     </Space>
-                                </List.Item>
-                            )}
-                        />
+                                </div>
+                            ))
+                        )}
                     </Card>
                 </Col>
             </Row>

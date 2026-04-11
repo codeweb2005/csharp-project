@@ -295,7 +295,7 @@ export default function Users() {
                 </Button>
             </div>
 
-            <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+            <Card variant="borderless" styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                 <Table 
                     columns={columns} 
                     dataSource={data} 
@@ -318,7 +318,8 @@ export default function Users() {
                 open={isModalVisible}
                 onCancel={() => setIsModalVisible(false)}
                 footer={null}
-                destroyOnClose
+                destroyOnHidden
+                forceRender
             >
                 <Form layout="vertical" form={form} onFinish={handleModalSubmit} initialValues={{ role: 'Customer' }}>
                     {!editingUser && (

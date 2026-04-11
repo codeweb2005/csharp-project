@@ -100,7 +100,7 @@ export default function POIList() {
                 {loading ? (
                     <Card loading={true} />
                 ) : data.length === 0 ? (
-                    <Card bordered={false} style={{ borderRadius: 12, textAlign: 'center', padding: '48px 0' }}>
+                    <Card variant="borderless" style={{ borderRadius: 12, textAlign: 'center', padding: '48px 0' }}>
                         <Empty
                             image={Empty.PRESENTED_IMAGE_SIMPLE}
                             description="You don't have any shops yet"
@@ -115,7 +115,7 @@ export default function POIList() {
                         {data.map(poi => (
                             <Col xs={24} lg={12} key={poi.id}>
                                 <Card
-                                    bordered={false}
+                                    variant="borderless"
                                     style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', height: '100%' }}
                                     actions={[
                                         <Tooltip title="Edit" key="edit">
@@ -224,7 +224,7 @@ export default function POIList() {
             title: 'Name',
             key: 'name',
             render: (_, record) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <Text strong>{record.name}</Text>
                     {record.isFeatured && <Tag color="gold">Featured</Tag>}
                 </Space>
@@ -331,7 +331,7 @@ export default function POIList() {
 
             <Row gutter={[24, 24]}>
                 <Col xs={24} xl={16}>
-                    <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <Card variant="borderless" styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <Table
                             columns={columns}
                             dataSource={data}
@@ -357,7 +357,7 @@ export default function POIList() {
                             })}
                             locale={{
                                 emptyText: (
-                                    <Space direction="vertical" align="center">
+                                    <Space orientation="vertical" align="center">
                                         No POIs found.
                                         <Button type="link" onClick={openCreate}>Add the first one?</Button>
                                     </Space>

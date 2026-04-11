@@ -93,7 +93,22 @@ public sealed class OfflinePackageCatalogItemDto
     public int AudioCount { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
-    public string SizeLabel => FileSize is long n ? $"{n / 1024 / 1024.0:0.#} MB" : "—";
+    public string SizeLabel
+    {
+        get
+        {
+            if (FileSize is not long n || n <= 0) return "—";
+
+            const double KB = 1024d;
+            const double MB = 1024d * 1024d;
+            const double GB = 1024d * 1024d * 1024d;
+
+            if (n < KB) return $"{n} B";
+            if (n < MB) return $"{n / KB:0.#} KB";
+            if (n < GB) return $"{n / MB:0.#} MB";
+            return $"{n / GB:0.#} GB";
+        }
+    }
 }
 
 public sealed class OfflineManifestV1

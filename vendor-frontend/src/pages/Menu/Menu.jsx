@@ -269,8 +269,8 @@ export default function MenuPage() {
                             <Card
                                 hoverable
                                 onClick={() => openEdit(item)}
-                                bordered={false}
-                                bodyStyle={{ padding: 16 }}
+                                variant="borderless"
+                                styles={{ body: { padding: 16 } }}
                                 style={{
                                     borderRadius: 12,
                                     boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
@@ -317,7 +317,7 @@ export default function MenuPage() {
                 placement="right"
                 onClose={closeDrawer}
                 open={drawerVisible}
-                width={400}
+                size={400}
                 extra={
                     <Space>
                         {!isCreating && editingState && (

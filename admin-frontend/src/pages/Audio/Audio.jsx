@@ -302,7 +302,7 @@ export default function Audio() {
 
     return (
         <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
-            <Card bordered={false} style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+            <Card variant="borderless" style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                 <Row gutter={[16, 16]} align="middle" justify="space-between">
                     <Col xs={24} md={12}>
                         <Space wrap>
@@ -353,10 +353,10 @@ export default function Audio() {
                 </Row>
             </Card>
 
-            <Row gutter={[24, 24]}>
+            <Row gutter={[24, 24]} style={{ position: 'relative' }}>
                 <Col xs={24} xl={showTTS ? 16 : 24} style={{ transition: 'all 0.3s' }}>
                     
-                    <Card title={<span><PictureOutlined /> Images — <Text type="secondary">{poiName}</Text></span>} bordered={false} style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <Card title={<span><PictureOutlined /> Images — <Text type="secondary">{poiName}</Text></span>} variant="borderless" style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
                             {images.map(img => (
                                 <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: img.isPrimary ? '2px solid #00246a' : '1px solid #e2e8f0', aspectRatio: '1/1', backgroundColor: '#f8fafc' }}>
@@ -377,7 +377,7 @@ export default function Audio() {
                                     )}
 
                                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 8px 4px', background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                        <Space direction="vertical" size={0} style={{ color: '#fff' }}>
+                                        <Space orientation="vertical" size={0} style={{ color: '#fff' }}>
                                             <Text style={{ color: '#fff', fontSize: 12, display: 'block', maxWidth: 100 }} ellipsis>{img.caption || `IMG-${img.id}`}</Text>
                                             <Text style={{ color: '#cbd5e1', fontSize: 10 }}>{formatSize(img.fileSize)}</Text>
                                         </Space>
@@ -402,7 +402,7 @@ export default function Audio() {
                         </div>
                     </Card>
 
-                    <Card title={<span><AudioOutlined /> Narration Audio <Badge count={filtered.length} style={{ backgroundColor: '#00246a', marginLeft: 8 }} /></span>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <Card title={<span><AudioOutlined /> Narration Audio <Badge count={filtered.length} style={{ backgroundColor: '#00246a', marginLeft: 8 }} /></span>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <Table 
                             columns={columns} 
                             dataSource={filtered} 
@@ -414,9 +414,27 @@ export default function Audio() {
                     </Card>
                 </Col>
 
-                {showTTS && (
-                    <Col xs={24} xl={8}>
-                        <Card title={<Space><RobotOutlined style={{ color: '#00246a' }} /><span>Auto Generate TTS</span></Space>} bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'sticky', top: 24 }} extra={<Button type="text" onClick={() => setShowTTS(false)}>✕</Button>}>
+                <Col
+                    xs={24}
+                    xl={8}
+                    style={
+                        showTTS
+                            ? { transition: 'all 0.3s' }
+                            : {
+                                position: 'absolute',
+                                width: 1,
+                                height: 1,
+                                margin: -1,
+                                padding: 0,
+                                overflow: 'hidden',
+                                clip: 'rect(0,0,0,0)',
+                                whiteSpace: 'nowrap',
+                                border: 0,
+                            }
+                    }
+                    aria-hidden={!showTTS}
+                >
+                        <Card title={<Space><RobotOutlined style={{ color: '#00246a' }} /><span>Auto Generate TTS</span></Space>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'sticky', top: 24 }} extra={<Button type="text" onClick={() => setShowTTS(false)}>✕</Button>}>
                             <Form form={ttsForm} layout="vertical" onFinish={handleGenerateTTS}>
                                 <Form.Item name="languageId" label="Language">
                                     <Select>
@@ -450,7 +468,6 @@ export default function Audio() {
                             </Form>
                         </Card>
                     </Col>
-                )}
             </Row>
         </div>
     )
