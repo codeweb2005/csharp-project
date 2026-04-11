@@ -24,6 +24,9 @@ public partial class MapViewModel : ObservableObject
 
     private int _langId = 1;
     private readonly int _radiusMeters;
+    private double _lastFetchLat;
+    private double _lastFetchLng;
+    private const double RefreshDistanceThresholdMeters = 50;
 
     public MapViewModel(ILocationService location, ApiClient api, MobileAppSettings settings, OfflineCacheStore offlineCache)
     {
@@ -33,6 +36,8 @@ public partial class MapViewModel : ObservableObject
         _offlineCache = offlineCache;
         _radiusMeters = settings.DefaultRadiusMeters;
 
+        _location.LocationUpdated += OnLocationUpdated;
+
         WeakReferenceMessenger.Default.Register<ValueChangedMessage<int>>(
             this,
             (_, message) =>
@@ -40,6 +45,18 @@ public partial class MapViewModel : ObservableObject
                 _langId = message.Value;
                 MainThread.BeginInvokeOnMainThread(async () => await RefreshAsync());
             });
+    }
+
+    private void OnLocationUpdated(object? sender, LocationUpdate update)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+            StatusText = $"📍 {update.Lat:F4}, {update.Lng:F4}");
+
+        double dist = Services.GeofenceEngine.HaversineMeters(
+            update.Lat, update.Lng, _lastFetchLat, _lastFetchLng);
+
+        if (dist >= RefreshDistanceThresholdMeters)
+            MainThread.BeginInvokeOnMainThread(async () => await RefreshAsync());
     }
 
     [RelayCommand]
@@ -73,6 +90,9 @@ public partial class MapViewModel : ObservableObject
         var loc = _location.LastKnownLocation;
         double lat = loc?.Latitude ?? 10.7553;
         double lng = loc?.Longitude ?? 106.7017;
+
+        _lastFetchLat = lat;
+        _lastFetchLng = lng;
 
         List<PoiLocal> pois;
         if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)

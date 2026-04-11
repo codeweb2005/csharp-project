@@ -70,6 +70,13 @@ public partial class MainViewModel : ObservableObject
     private DateTime    _narrationStartTime; // UTC timestamp when narration started (for listen duration)
     private bool        _autoPlay = true;    // from Preferences (T-06 settings)
 
+    // Track last position used for nearby POI fetch so we only refresh when
+    // the user has moved a meaningful distance (avoids spamming the API on
+    // every GPS tick while standing still).
+    private double _lastFetchLat;
+    private double _lastFetchLng;
+    private const double RefreshDistanceThresholdMeters = 50;
+
     public MainViewModel(ILocationService location, GeofenceEngine geofence,
                          ApiClient api, INarrationPlayer player, MobileAppSettings settings,
                          OfflineCacheStore offlineCache, VisitQueueStore visitQueue,
@@ -95,6 +102,9 @@ public partial class MainViewModel : ObservableObject
         // Wire player events for NowPlayingBar and cooldown tracking
         _player.IsPlayingChanged  += OnPlayerIsPlayingChanged;
         _player.PlaybackCompleted += OnPlaybackCompleted;
+
+        // Refresh nearby list + status when user moves significantly
+        _location.LocationUpdated += OnLocationUpdated;
 
         // Profile tab updates preferred language, so refresh nearby POIs.
         WeakReferenceMessenger.Default.Register<ValueChangedMessage<int>>(
@@ -173,9 +183,11 @@ public partial class MainViewModel : ObservableObject
         ErrorMessage = string.Empty;
         var loc = _location.LastKnownLocation;
 
-        // While GPS hasn't got a fix yet, use a sensible fallback (Vinh Khanh street, Q4, HCM)
         double lat = loc?.Latitude  ?? 10.7553;
         double lng = loc?.Longitude ?? 106.7017;
+
+        _lastFetchLat = lat;
+        _lastFetchLng = lng;
 
         List<PoiLocal> pois;
         if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
@@ -215,6 +227,25 @@ public partial class MainViewModel : ObservableObject
     {
         if (_player.IsPlaying) _player.Pause();
         else _player.Resume();
+    }
+
+    // ── Location event handler ──────────────────────────────────────────────────
+
+    private void OnLocationUpdated(object? sender, LocationUpdate update)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+            StatusText = $"📍 {update.Lat:F4}, {update.Lng:F4}");
+
+        // Only re-fetch nearby POIs when the user has moved far enough from
+        // the last fetch position. This keeps the list fresh during a walking
+        // tour while avoiding excessive API calls when standing still.
+        double dist = GeofenceEngine.HaversineMeters(
+            update.Lat, update.Lng, _lastFetchLat, _lastFetchLng);
+
+        if (dist >= RefreshDistanceThresholdMeters)
+        {
+            MainThread.BeginInvokeOnMainThread(async () => await RefreshPoisAsync());
+        }
     }
 
     // ── Geofence event handlers ────────────────────────────────────────────────

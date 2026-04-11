@@ -26,9 +26,11 @@ RUN dotnet publish backend/src/VinhKhanh.API/VinhKhanh.API.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Non-root user for security
-RUN addgroup --system --gid 1001 appgroup && \
-    adduser  --system --uid 1001 --gid 1001 --no-create-home appuser
+# Install curl for healthcheck + create non-root user
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --system --gid 1001 appgroup && \
+    useradd  --system --uid 1001 --gid 1001 --no-create-home appuser
 
 # Copy published output from build stage
 COPY --from=build /app/publish .

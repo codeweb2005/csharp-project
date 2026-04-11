@@ -84,25 +84,40 @@ public class GpsTrackerService : Service
 
     private async Task PollLoopAsync(TimeSpan interval, CancellationToken token)
     {
+        // Use High accuracy so Android reads fresh GPS fixes instead of returning
+        // stale cached locations. This is critical for emulator mock locations
+        // (adb emu geo fix) and third-party GPS simulation apps on physical devices.
+        // PRIORITY_HIGH_ACCURACY forces the fused location provider to use the GPS
+        // hardware provider, which is the only one that receives mock coordinates.
+        const GeolocationAccuracy accuracy = GeolocationAccuracy.High;
+
         while (!token.IsCancellationRequested)
         {
             try
             {
-                var request  = new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(3));
+                var request  = new GeolocationRequest(accuracy, TimeSpan.FromSeconds(5));
                 var location = await Geolocation.GetLocationAsync(request, token).ConfigureAwait(false);
 
                 if (location is not null)
                 {
-                    // Broadcast to AndroidLocationService (cross-class, cross-thread)
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[GpsTrackerService] Fix: {location.Latitude:F6}, {location.Longitude:F6} " +
+                        $"± {location.Accuracy ?? 0:F0}m (isFromMockProvider={location.IsFromMockProvider})");
+
                     WeakReferenceMessenger.Default.Send(
                         new LocationUpdateMessage(location.Latitude, location.Longitude,
                             location.Accuracy ?? 0));
                 }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        "[GpsTrackerService] GetLocationAsync returned null — no GPS provider available.");
+                }
             }
             catch (FeatureNotEnabledException)
             {
-                // GPS disabled — keep service alive, update notification
                 UpdateNotificationText("⚠️ GPS disabled on device");
+                System.Diagnostics.Debug.WriteLine("[GpsTrackerService] GPS is disabled on device.");
             }
             catch (System.OperationCanceledException)
             {

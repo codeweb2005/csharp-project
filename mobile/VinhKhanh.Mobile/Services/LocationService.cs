@@ -153,9 +153,10 @@ public class LocationService : ILocationService
         {
             try
             {
-                // DesiredAccuracy: Medium balances battery vs precision.
-                // For geofences of 50m radius, this is accurate enough.
-                var request = new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(3));
+                // High accuracy forces the platform to read a fresh GPS fix
+                // rather than returning a stale cached position. Required for
+                // mock/simulated locations on emulators and GPS spoofing apps.
+                var request = new GeolocationRequest(GeolocationAccuracy.High, TimeSpan.FromSeconds(5));
                 var location = await Geolocation.GetLocationAsync(request, token);
 
                 if (location is not null)
@@ -164,8 +165,14 @@ public class LocationService : ILocationService
                     var update = new LocationUpdate(location.Latitude, location.Longitude,
                         location.Accuracy ?? 0);
 
-                    // Raise event (subscribers must marshal to UI thread if needed)
+                    Console.WriteLine(
+                        $"[LocationService] Fix: {location.Latitude:F6}, {location.Longitude:F6} ± {location.Accuracy ?? 0:F0}m");
+
                     LocationUpdated?.Invoke(this, update);
+                }
+                else
+                {
+                    Console.WriteLine("[LocationService] GetLocationAsync returned null.");
                 }
             }
             catch (FeatureNotEnabledException)
