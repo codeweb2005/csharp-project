@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chức năng hệ thống — Vinh Khanh Food Tour Docs</title>
+<meta name="description" content="Danh sách đầy đủ chức năng: 3 actor, 13 controller, 40+ endpoint, 9 màn hình mobile — verified from Controllers.cs, ViewModels, Services.">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI &amp; DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html" class="active">Chức năng</a></li>
+    <li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>📋 Chức Năng Hệ Thống</h1>
+  <p class="subtitle">Toàn bộ chức năng của 3 thành phần: <strong>Backend REST API</strong>, <strong>Web Admin/Vendor Panel</strong>, <strong>Mobile .NET MAUI</strong> — verified từ Controllers.cs, ViewModels, và Services thực tế.</p>
+  <div class="badges">
+    <span class="badge">13 Controllers</span>
+    <span class="badge teal">40+ Endpoints</span>
+    <span class="badge indigo">9 Mobile Screens</span>
+    <span class="badge">3 Actor Roles</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠</a><span>›</span><strong>Chức năng hệ thống</strong>
+</div>
+
+<div class="page-content">
+
+  <!-- OVERVIEW TABLE -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">🗺️</div>
+      <div><div class="section-num">Overview</div><h2>Phân Quyền Theo Actor</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Nhóm chức năng</th><th>Customer (Mobile)</th><th>Vendor (Web)</th><th>Admin (Web)</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Auth &amp; Profile</td>
+            <td>Login, Register, Forgot/Reset Password, Update Profile, Change Password</td>
+            <td>Login, Change Password, Update Profile</td>
+            <td>Login, Change Password, Manage all users</td>
+          </tr>
+          <tr>
+            <td>POI</td>
+            <td>View Nearby, View Detail Public, Audio Queue</td>
+            <td>View/Edit own POIs (VendorPOIs DB-scoped), Toggle Active</td>
+            <td>CRUD all POIs, Toggle Active, Toggle Featured, assign VendorUserId</td>
+          </tr>
+          <tr>
+            <td>Audio</td>
+            <td>Stream (anonymous, proxy=1)</td>
+            <td>List, Upload MP3, Generate TTS, Set Default, Delete</td>
+            <td>All vendor features + any POI</td>
+          </tr>
+          <tr>
+            <td>Geofence &amp; Narration</td>
+            <td>Auto-play on GeofenceEntered (3-reading debounce), Priority resolution, 10-min cooldown, NowPlayingBar</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Offline &amp; Sync</td>
+            <td>Download offline ZIP, Delta Sync, Visit Queue upload</td>
+            <td>—</td>
+            <td>Create/Build/Delete offline packages</td>
+          </tr>
+          <tr>
+            <td>Analytics</td>
+            <td>—</td>
+            <td>Own POI stats, trends, visits by day/hour (DB-scoped)</td>
+            <td>All analytics, all POIs</td>
+          </tr>
+          <tr>
+            <td>Media (Images)</td>
+            <td>—</td>
+            <td>Upload, Reorder, Delete POI images</td>
+            <td>Same as Vendor, all POIs</td>
+          </tr>
+          <tr>
+            <td>Menu Items</td>
+            <td>—</td>
+            <td>CRUD menu items, toggle available/signature</td>
+            <td>Same as Vendor, all POIs</td>
+          </tr>
+          <tr>
+            <td>System</td>
+            <td>—</td>
+            <td>—</td>
+            <td>System Settings, Maintenance Mode toggle, Generate API Key, Categories CRUD</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════ -->
+  <!-- BACKEND API - AuthController        -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">🔐</div>
+      <div><div class="section-num">AuthController — /api/v1/auth</div><h2>Xác thực &amp; Tài khoản</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Mô tả</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/auth/login</code></td><td>Anonymous</td><td>Login → trả accessToken + refreshToken. PBKDF2-SHA256.Verify → GenerateAccessToken (sub email name role jti iat) + GenerateRefreshToken 64-byte. RefreshToken lưu plaintext trong DB.</td><td>AuthService.LoginAsync</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/auth/refresh</code></td><td>Anonymous</td><td>Rotate token: SELECT User WHERE RefreshToken == plaintext → generate new pair. Revoke cũ.</td><td>AuthService.RefreshTokenAsync</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/auth/register</code></td><td>Anonymous</td><td>Tourist tự đăng ký: validate email/username uniqueness → PBKDF2-SHA256 hash → Role=Customer → issue JWT ngay. EmailConfirmed=false.</td><td>AuthService.RegisterAsync</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/auth/forgot-password</code></td><td>Anonymous</td><td>Generate reset token 32-byte hex → SHA-256 hash stored, plaintext link gửi qua SesEmailSender hoặc NullEmailSender. No email enumeration.</td><td>AuthService.ForgotPasswordAsync</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/auth/reset-password</code></td><td>Anonymous</td><td>Verify SHA-256(token) == stored hash + expiry 1h → PBKDF2-SHA256 hash new password → revoke RefreshToken.</td><td>AuthService.ResetPasswordAsync</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/auth/me</code></td><td>Authorize</td><td>Current user info from JWT sub claim. Include VendorPOIs ThenInclude Translations → ShopName.</td><td>AuthService.GetCurrentUserAsync</td></tr>
+          <tr><td><span class="badge warning">POST</span></td><td><code>/auth/change-password</code></td><td>Authorize</td><td>Verify current password → PBKDF2-SHA256 hash new → revoke RefreshToken (force re-login).</td><td>AuthService.ChangePasswordAsync</td></tr>
+          <tr><td><span class="badge warning">PUT</span></td><td><code>/auth/profile</code></td><td>Authorize Customer,Vendor</td><td>Update FullName Phone PreferredLanguageId AvatarUrl. Admin excluded (403).</td><td>AuthService.UpdateProfileAsync</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- POIsController -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">📍</div>
+      <div><div class="section-num">POIsController — /api/v1/pois</div><h2>Quản lý POI</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Mô tả</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge">GET</span></td><td><code>/pois</code></td><td>Authorize</td><td>Paginated list: page size search categoryId isActive sortBy order. Vendor: vendorPoiIds fetched FRESH from DB (GetVendorPOIIdsAsync) — không dùng JWT claim.</td><td>Admin thấy all, Vendor chỉ thấy own</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/pois/{id}</code></td><td>Authorize</td><td>Full detail của 1 POI (có translations, audio, menu). Admin/Vendor only.</td><td>—</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/pois</code></td><td>Admin, Vendor</td><td>Tạo POI mới. Vendor: VendorUserId tự động gán = GetUserId().</td><td>CreatePOIRequest</td></tr>
+          <tr><td><span class="badge warning">PUT</span></td><td><code>/pois/{id}</code></td><td>Authorize</td><td>Update POI. Service kiểm tra poi.VendorUserId == callerId cho Vendor → 403 FORBIDDEN nếu sai.</td><td>UpdatePOIRequest</td></tr>
+          <tr><td><span class="badge danger">DELETE</span></td><td><code>/pois/{id}</code></td><td>Admin, Vendor</td><td>Xóa POI. Vendor chỉ xóa được POI mình sở hữu.</td><td>Cascade? check service</td></tr>
+          <tr><td><span class="badge warning">PATCH</span></td><td><code>/pois/{id}/toggle</code></td><td>Admin only</td><td>Toggle IsActive.</td><td>—</td></tr>
+          <tr><td><span class="badge warning">PATCH</span></td><td><code>/pois/{id}/featured</code></td><td>Admin only</td><td>Toggle IsFeatured.</td><td>—</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/pois/nearby</code></td><td>Anonymous</td><td>Spatial query: <code>ST_Distance_Sphere(POINT(lng,lat), POINT(poi.Lng,poi.Lat)) &lt;= radiusMeters</code>. Params: lat lng radiusMeters(default 500, max 5000) langId.</td><td>Mobile app bootstrap</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/pois/{id}/public</code></td><td>Anonymous</td><td>Public detail cho mobile tourist. Optional langId filter translations+audio. 404 nếu IsActive=false.</td><td>PoiDetailPage</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/pois/audio-queue</code></td><td>Anonymous</td><td>Ordered narration queue: POIs trong radius sorted by Priority DESC rồi Distance ASC.</td><td>Priority tie-breaking</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- AudioController -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">🎧</div>
+      <div><div class="section-num">AudioController — /api/v1/audio</div><h2>Quản lý Audio &amp; TTS</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Mô tả</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge">GET</span></td><td><code>/audio/poi/{poiId}</code></td><td>Authorize</td><td>Liệt kê tất cả AudioNarrations của POI. Optional lang filter.</td><td>—</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/audio/poi/{poiId}/upload</code></td><td>Authorize</td><td>Upload MP3 multipart/form-data. Lưu qua IFileStorageService (local hoặc S3). INSERT AudioNarrations TTSGenerated=false.</td><td>file + languageId</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/audio/poi/{poiId}/generate-tts</code></td><td>Admin, Vendor</td><td>Azure TTS SDK: SpeechConfig.FromSubscription → SpeakSsmlAsync với prosody rate. Output Audio16Khz128KBitRateMonoMp3. Vendor: GetVendorPOIIdsAsync scoping.</td><td>GenerateTTSRequest: languageId voiceName speed</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/audio/{id}/stream</code></td><td>Anonymous</td><td>Stream audio. S3 provider: 302 redirect tới presigned URL (default) hoặc proxy=1 (API download+stream). Local: stream trực tiếp. enableRangeProcessing=true.</td><td>URL có ?proxy=1 cho mobile MediaElement</td></tr>
+          <tr><td><span class="badge danger">DELETE</span></td><td><code>/audio/{id}</code></td><td>Admin, Vendor</td><td>Xóa AudioNarration + file vật lý. Vendor: scoped by vendorPoiIds.</td><td>—</td></tr>
+          <tr><td><span class="badge warning">PATCH</span></td><td><code>/audio/{id}/set-default</code></td><td>Authorize</td><td>Set IsDefault=true cho audio này, reset IsDefault=false cho các audio cùng POI+Language.</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MediaController -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(245,158,11,.1);color:var(--warning)">🖼️</div>
+      <div><div class="section-num">MediaController — /api/v1/media</div><h2>Ảnh POI</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge">GET</span></td><td><code>/media/poi/{poiId}</code></td><td>Authorize</td><td>Liệt kê tất cả ảnh của POI theo DisplayOrder.</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/media/poi/{poiId}/upload</code></td><td>Authorize</td><td>Upload ảnh multipart/form-data. Params: file caption isPrimary.</td></tr>
+          <tr><td><span class="badge danger">DELETE</span></td><td><code>/media/{id}</code></td><td>Authorize</td><td>Xóa ảnh + file.</td></tr>
+          <tr><td><span class="badge warning">PATCH</span></td><td><code>/media/{id}/set-primary</code></td><td>Authorize</td><td>Set IsPrimary=true, reset các ảnh khác của cùng POI.</td></tr>
+          <tr><td><span class="badge warning">PUT</span></td><td><code>/media/poi/{poiId}/reorder</code></td><td>Authorize</td><td>Cập nhật DisplayOrder theo ordered id list.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MenuController -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(16,185,129,.1);color:var(--success)">🍽️</div>
+      <div><div class="section-num">MenuController — /api/v1/menu</div><h2>Thực đơn POI</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge">GET</span></td><td><code>/menu/poi/{poiId}</code></td><td>Authorize</td><td>Liệt kê menu items của POI.</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/menu/poi/{poiId}</code></td><td>Authorize</td><td>Tạo menu item mới. CreateMenuItemRequest: name price isSignature isAvailable.</td></tr>
+          <tr><td><span class="badge warning">PUT</span></td><td><code>/menu/{id}</code></td><td>Authorize</td><td>Cập nhật menu item.</td></tr>
+          <tr><td><span class="badge danger">DELETE</span></td><td><code>/menu/{id}</code></td><td>Authorize</td><td>Xóa menu item.</td></tr>
+          <tr><td><span class="badge warning">PATCH</span></td><td><code>/menu/{id}/toggle-available</code></td><td>Authorize</td><td>Toggle IsAvailable.</td></tr>
+          <tr><td><span class="badge warning">PATCH</span></td><td><code>/menu/{id}/toggle-signature</code></td><td>Authorize</td><td>Toggle IsSignature (món đặc trưng).</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/menu/{id}/upload-image</code></td><td>Authorize</td><td>Upload ảnh menu item.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- UsersController -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(239,68,68,.1);color:var(--danger)">👥</div>
+      <div><div class="section-num">UsersController — /api/v1/users (Admin only)</div><h2>Quản lý Người dùng</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge">GET</span></td><td><code>/users</code></td><td>Paginated list: page size search role filter.</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/users/{id}</code></td><td>Chi tiết 1 user.</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/users</code></td><td>Admin tạo user (bao gồm Vendor). CreateUserRequest: username email password fullName role.</td></tr>
+          <tr><td><span class="badge warning">PUT</span></td><td><code>/users/{id}</code></td><td>Cập nhật user. UpdateUserRequest.</td></tr>
+          <tr><td><span class="badge danger">DELETE</span></td><td><code>/users/{id}</code></td><td>Xóa user.</td></tr>
+          <tr><td><span class="badge warning">PATCH</span></td><td><code>/users/{id}/toggle</code></td><td>Toggle IsActive (vô hiệu hóa / kích hoạt lại).</td></tr>
+          <tr><td><span class="badge teal">POST</span></td><td><code>/users/{id}/reset-password</code></td><td>Admin reset password của user (generated temp password).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Dashboard + Analytics -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">📊</div>
+      <div><div class="section-num">Dashboard + Analytics — Admin &amp; Vendor</div><h2>Thống kê &amp; Phân tích</h2></div>
+    </div>
+    <div class="highlight">
+      Vendor: tất cả endpoint tự động scoped theo <code>GetVendorPOIIdsAsync(userSvc)</code> — query fresh từ DB, không từ JWT claim.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge">GET</span></td><td><code>/dashboard/stats</code></td><td>Tổng quan: totalPOIs totalVisits totalUsers activeLanguages. Vendor: scoped to own POIs.</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/dashboard/top-pois?count=5</code></td><td>Top POIs nhiều visit nhất.</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/dashboard/visits-chart?from=&amp;to=</code></td><td>Chart dữ liệu visits theo ngày trong khoảng thời gian.</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/dashboard/language-stats</code></td><td>Phân phối visits theo ngôn ngữ.</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/dashboard/recent-activity?count=10</code></td><td>Hoạt động gần đây nhất.</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/analytics/trends?period=30d</code></td><td>Xu hướng visit theo period (7d / 30d / 90d).</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/analytics/visits-by-day?from=&amp;to=</code></td><td>Visits theo ngày (bar chart).</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/analytics/visits-by-hour?date=</code></td><td>Visits theo giờ trong ngày.</td></tr>
+          <tr><td><span class="badge">GET</span></td><td><code>/analytics/language-distribution?from=&amp;to=</code></td><td>Phân phối ngôn ngữ theo khoảng thời gian.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Remaining controllers -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">⚙️</div>
+      <div><div class="section-num">Categories + Languages + Settings + Offline + Sync</div><h2>Các Controller còn lại</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Controller</th><th>Endpoint</th><th>Auth</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="6"><strong>Categories</strong><br><code>/api/v1/categories</code><br>CRUD: Admin only<br>GET: Anonymous</td>
+            <td><code>GET /categories</code></td><td>Anonymous</td><td>Tất cả categories (mobile + web picker)</td></tr>
+          <tr><td><code>GET /categories/{id}</code></td><td>Admin</td><td>Chi tiết 1 category</td></tr>
+          <tr><td><code>POST /categories</code></td><td>Admin</td><td>Tạo category mới</td></tr>
+          <tr><td><code>PUT /categories/{id}</code></td><td>Admin</td><td>Cập nhật</td></tr>
+          <tr><td><code>DELETE /categories/{id}</code></td><td>Admin</td><td>Xóa</td></tr>
+          <tr><td><code>PATCH /categories/{id}/toggle</code></td><td>Admin</td><td>Toggle IsActive</td></tr>
+
+          <tr><td><strong>Languages</strong><br><code>/api/v1/languages</code></td>
+            <td><code>GET /languages</code></td><td>Anonymous</td><td>Tất cả active languages sorted by SortOrder. Mobile app dùng để language picker lần đầu.</td></tr>
+
+          <tr><td rowspan="4"><strong>Settings</strong><br><code>/api/v1/settings</code><br>Admin only</td>
+            <td><code>GET /settings</code></td><td>Admin</td><td>System settings hiện tại (maintenance, apiKey, ...)</td></tr>
+          <tr><td><code>PUT /settings</code></td><td>Admin</td><td>Update toàn bộ settings (SystemSettingsDto)</td></tr>
+          <tr><td><code>PUT /settings/maintenance</code></td><td>Admin</td><td>Toggle maintenance mode → MaintenanceMiddleware check</td></tr>
+          <tr><td><code>POST /settings/generate-api-key</code></td><td>Admin</td><td>Generate new API key</td></tr>
+
+          <tr><td rowspan="6"><strong>OfflinePackages</strong><br><code>/api/v1/offlinepackages</code></td>
+            <td><code>GET /offlinepackages/catalog</code></td><td>Anonymous</td><td>Public catalog của Active packages. Mobile dùng OfflineViewModel.</td></tr>
+          <tr><td><code>GET /offlinepackages</code></td><td>Admin</td><td>All packages kể cả draft/building.</td></tr>
+          <tr><td><code>POST /offlinepackages</code></td><td>Admin</td><td>Tạo package definition (CreatePackageRequest).</td></tr>
+          <tr><td><code>POST /offlinepackages/{id}/build</code></td><td>Admin</td><td>Trigger async build ZIP + manifest.json.</td></tr>
+          <tr><td><code>GET /offlinepackages/{id}/status</code></td><td>Admin</td><td>Poll build status: Pending / Building / Active / Failed.</td></tr>
+          <tr><td><code>GET /offlinepackages/{id}/download</code></td><td>Anonymous</td><td>Download ZIP. S3: 302 redirect presigned 60min. Local: stream.</td></tr>
+
+          <tr><td rowspan="2"><strong>Sync</strong><br><code>/api/v1/sync</code><br>Authorize (Customer)</td>
+            <td><code>GET /sync/delta?since=ISO&amp;langId=</code></td><td>Authorize</td><td>Delta changes kể từ <code>since</code> (UpdatedAt &gt;= since AND IsActive=true). Response: <code>SyncDeltaResponse { ServerTime, POIs, Categories, Audio, Menu }</code> — mỗi group có <code>Updated[]</code> + <code>Deleted[]</code>. Mobile lưu <code>last_sync_time</code> Preferences.</td></tr>
+          <tr><td><code>POST /sync/visits</code></td><td>Authorize</td><td>Upload visit batch từ mobile (VisitBatchRequest). VisitQueueStore → Dequeue → UploadVisitsAsync.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════ -->
+  <!-- MOBILE APP FEATURES                 -->
+  <!-- ════════════════════════════════════ -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">📱</div>
+      <div><div class="section-num">Mobile — .NET MAUI</div><h2>Màn hình &amp; Tính năng Mobile</h2></div>
+    </div>
+    <div class="highlight">
+      9 màn hình (Views/) · 9 ViewModels · MauiProgram.cs DI · AppShell Shell tabbed navigation
+    </div>
+    <div class="card-grid" style="--cols:3">
+
+      <div class="card">
+        <h3>LoginPage</h3>
+        <p><strong>ViewModel:</strong> LoginViewModel</p>
+        <ul>
+          <li>POST /auth/login → PersistTokensAsync SecureStorage</li>
+          <li>Navigate to MainPage on success</li>
+          <li>Link đến RegisterPage, ForgotPassword flow</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>RegisterPage</h3>
+        <p><strong>ViewModel:</strong> RegisterViewModel</p>
+        <ul>
+          <li>POST /auth/register username email password fullName preferredLanguageId</li>
+          <li>Auto-login: PersistTokensAsync ngay sau register</li>
+          <li>Language dropdown từ GET /languages</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>ResetPasswordPage</h3>
+        <p><strong>ViewModel:</strong> ResetPasswordViewModel</p>
+        <ul>
+          <li>POST /auth/forgot-password (gửi email link)</li>
+          <li>POST /auth/reset-password (token + newPassword)</li>
+          <li>No email enumeration response</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>MainPage — Nearby POI List</h3>
+        <p><strong>ViewModel:</strong> MainViewModel (central hub)</p>
+        <ul>
+          <li>ILocationService.StartTrackingAsync → GPS poll</li>
+          <li>RefreshPoisAsync: online → /pois/nearby, offline → SQLite Haversine</li>
+          <li>POI re-fetch khi di chuyển &gt;50m (RefreshDistanceThresholdMeters)</li>
+          <li>GeofenceEngine subscribe LocationUpdated</li>
+          <li>NowPlayingBar: IsPlaying NowPlayingName PlaybackProgress</li>
+          <li>FlushVisitQueueAsync khi có internet (sau narration / on RefreshPois)</li>
+          <li>WeakReferenceMessenger: language changed → reload, settings_changed, delta_sync trigger</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>MapPage — Mapsui Map</h3>
+        <p><strong>ViewModel:</strong> MapViewModel</p>
+        <ul>
+          <li>Mapsui 5.x MapControl — registered via <code>.UseMapsui()</code> in MauiProgram</li>
+          <li>Render POI pins trên OpenStreetMap tiles</li>
+          <li>OnMapInfo tap → Navigate to PoiDetailPage</li>
+          <li>User location dot update theo GPS</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>PoiDetailPage</h3>
+        <p><strong>ViewModel:</strong> PoiDetailViewModel</p>
+        <ul>
+          <li>GET /pois/{id}/public?langId= anonymous</li>
+          <li>Hiện: name address translations highlights menu price range hours</li>
+          <li>Play narration manual từ detail page</li>
+          <li>VisitQueueStore.Enqueue triggerType=manual</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>OfflinePage</h3>
+        <p><strong>ViewModel:</strong> OfflineViewModel</p>
+        <ul>
+          <li>GET /offlinepackages/catalog → package list</li>
+          <li>DownloadAndInstallAsync: download ZIP → ZipFile.ExtractToDirectory → ImportFromManifestAsync SQLite</li>
+          <li>IProgress&lt;double&gt; progress bar</li>
+          <li>CheckForUpdateAsync: so sánh ContentChecksum</li>
+          <li>SyncDeltaAsync: GET /sync/delta since last_sync_time</li>
+          <li>RemoveInstalledPackageAsync</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>ProfilePage</h3>
+        <p><strong>ViewModel:</strong> ProfileViewModel</p>
+        <ul>
+          <li>GET /auth/me để load profile</li>
+          <li>PUT /auth/profile update FullName Phone AvatarUrl</li>
+          <li>Language picker → PUT PreferredLanguageId → WeakReferenceMessenger publish langId</li>
+          <li>POST /auth/change-password</li>
+          <li>Logout: SecureStorage.Remove tokens</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>SettingsPage</h3>
+        <p><strong>ViewModel:</strong> SettingsViewModel</p>
+        <ul>
+          <li><code>setting_geofence_radius</code> — bán kính geofence (50–500m)</li>
+          <li><code>setting_gps_poll_interval</code> — GPS poll interval (3–15s)</li>
+          <li><code>setting_debounce_readings</code> — số readings trước khi trigger (1–5)</li>
+          <li><code>setting_cooldown_minutes</code> — thời gian cooldown per-POI (1–15 phút)</li>
+          <li><code>setting_auto_play</code> — bool, auto-play narration khi enter (default true)</li>
+          <li><code>setting_preferred_tts_voice</code> — TTS voice locale (LoadVoicesAsync vi/en filter)</li>
+          <li>SyncNow → publish <code>"delta_sync"</code> message → MainViewModel.FlushVisitQueueAsync</li>
+          <li>Publish <code>"settings_changed"</code> → GeofenceEngine.DebounceCount/CooldownDuration updated live</li>
+          <li>ResetToDefaults command restore MobileAppSettings defaults</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- GEOFENCE ENGINE DETAIL -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">📡</div>
+      <div><div class="section-num">Core Mobile Feature</div><h2>Geofence Engine — Chi tiết kỹ thuật</h2></div>
+    </div>
+    <div class="card-grid" style="--cols:2">
+      <div class="card">
+        <h3>📐 Thuật toán</h3>
+        <ul>
+          <li><strong>Haversine formula</strong> — great-circle distance (không dùng ST_Distance)</li>
+          <li>Per-POI state machine: <code>Unknown → Outside ↔ Inside</code></li>
+          <li>Debounce: <code>DebounceCount = 3</code> consecutive readings trước khi fire</li>
+          <li>Priority resolution: nhiều POI trigger cùng lúc → <code>OrderByDescending(Priority).First()</code></li>
+          <li>Cooldown: <code>CooldownDuration = 10 min</code> (configurable via SettingsPage)</li>
+          <li>GeofenceExited: fire ngay không debounce khi out-of-range</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>⚡ Events &amp; Wiring</h3>
+        <ul>
+          <li><code>GeofenceEntered</code> → MainViewModel.OnGeofenceEntered</li>
+          <li><code>GeofenceExited</code> → MainViewModel.OnGeofenceExited → player.Stop()</li>
+          <li>Auto-play check: foreground → <code>player.PlayAsync(audioUrl, narrationText, langCode)</code></li>
+          <li>Background → <code>LocalNotificationService.SendGeofenceNotificationAsync(poiName)</code></li>
+          <li>Auto-play OFF → notification regardless foreground/background</li>
+          <li><code>PlaybackCompleted</code> → SetCooldown + UpdateListenDuration + FlushVisitQueueAsync</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔊 NarrationPlayer Fallback Chain</h3>
+        <ul>
+          <li><strong>1.</strong> <code>TryGetLocalFilePath</code> → <code>MediaSource.FromFile</code> (offline ZIP audio)</li>
+          <li><strong>2.</strong> <code>NormalizeAudioStreamUrl</code> → thêm <code>?proxy=1</code> → <code>MediaSource.FromUri</code></li>
+          <li><strong>3.</strong> <code>OnMediaFailed</code> → Toast → fallback <code>TextToSpeech.SpeakAsync</code></li>
+          <li><strong>4.</strong> audioUrl = null → <code>PlayTtsAsync(narrationText, langCode)</code></li>
+          <li>TTS locale: <code>TextToSpeech.GetLocalesAsync</code> match by langCode prefix</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🗄️ VisitQueueStore</h3>
+        <ul>
+          <li>In-memory <code>_pending</code> list + Preferences backup <code>vk_pending_visits</code></li>
+          <li><code>Enqueue</code>: thêm VisitEntry (poiId langId triggerType narrationPlayed lat lng)</li>
+          <li><code>UpdateListenDuration</code>: cập nhật listenDuration khi PlaybackCompleted</li>
+          <li><code>Dequeue</code>: snapshot + clear</li>
+          <li><code>RestoreToQueue</code>: trả lại nếu upload fail</li>
+          <li>Crash recovery: RestoreFromPreferences trong constructor</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECURITY SUMMARY -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(239,68,68,.1);color:var(--danger)">🔒</div>
+      <div><div class="section-num">Security</div><h2>Bảo mật — Kiểm tra kỹ thuật</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Cơ chế</th><th>Implementation thực tế</th><th>File</th></tr></thead>
+        <tbody>
+          <tr><td><strong>JWT Access Token</strong></td><td>HMAC-SHA256. Claims: sub email name role jti iat. <strong>Không có vendorPoiId.</strong> ExpiryMinutes từ config (default 60).</td><td>JwtService.GenerateAccessToken</td></tr>
+          <tr><td><strong>Refresh Token</strong></td><td>64-byte random, base64. Lưu <strong>plaintext</strong> trong Users.RefreshToken. Match trực tiếp. Rotate on each use.</td><td>JwtService.GenerateRefreshToken / AuthService.RefreshTokenAsync</td></tr>
+          <tr><td><strong>Password Hash</strong></td><td>PBKDF2-SHA256, 100,000 iterations (OWASP). Salt 16 bytes random. FixedTimeEquals.</td><td>Infrastructure/Services/PasswordHasher.cs</td></tr>
+          <tr><td><strong>Vendor Scoping</strong></td><td>GetVendorPOIIdsAsync: SELECT VendorPOIs WHERE VendorUserId = userId FRESH from DB. Không dùng JWT claim.</td><td>BaseApiController.GetVendorPOIIdsAsync</td></tr>
+          <tr><td><strong>Two-layer security</strong></td><td>Layer 1: [Authorize] route-level. Layer 2: Service-level ownership check (poi.VendorUserId == callerId → 403).</td><td>POIsController + POIService.UpdateAsync</td></tr>
+          <tr><td><strong>Password Reset</strong></td><td>32-byte hex token SHA-256 hash stored. 1-hour expiry. Email via SES (prod) or Null (dev). No enumeration.</td><td>AuthService.ForgotPasswordAsync</td></tr>
+          <tr><td><strong>CORS</strong></td><td>AllowFrontend policy. Origins: :5173 :5174 :3000 + CORS_ALLOWED_ORIGINS env (CloudFront). AllowCredentials.</td><td>Program.cs</td></tr>
+          <tr><td><strong>ClockSkew</strong></td><td><code>ClockSkew = TimeSpan.Zero</code> — token hết hạn chính xác, không có grace period.</td><td>Program.cs JwtBearer options</td></tr>
+          <tr><td><strong>Mobile Token Storage</strong></td><td>SecureStorage (iOS: Keychain, Android: EncryptedSharedPreferences). Keys: vk_access_token, vk_refresh_token.</td><td>ApiClient.PersistTokensAsync</td></tr>
+          <tr><td><strong>Maintenance Mode</strong></td><td>MaintenanceMiddleware check setting từ DB. Admin toggle qua PUT /settings/maintenance.</td><td>Middleware/MaintenanceMiddleware.cs</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="patterns.html">← Design Patterns</a>
+  <a href="uml.html">UML Diagrams →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <p style="margin-top:.3rem">ASP.NET Core 10 · EF Core · MySQL 8 · React 19 · .NET MAUI · Azure TTS · AWS ECS Fargate</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="patterns.html">Patterns</a><a href="appendix.html">Tech Stack</a>
+  </div>
+</footer>
+<script src="js/main.js"></script>
+</body></html>

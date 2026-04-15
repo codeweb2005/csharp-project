@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tech Stack — Vinh Khanh Food Tour Docs</title>
+<meta name="description" content="Full tech stack: NuGet packages, npm libraries, AWS production infrastructure.">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>🛠️ Tech Stack</h1>
+  <p class="subtitle">Danh sách đầy đủ các thư viện, NuGet packages, npm dependencies và AWS production infrastructure.</p>
+  <div class="badges">
+    <span class="badge">ASP.NET Core 10</span>
+    <span class="badge teal">React 19 + Vite 7</span>
+    <span class="badge indigo">.NET MAUI</span>
+    <span class="badge">AWS ECS + RDS</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠</a><span>›</span><a href="uml.html">UML</a><span>›</span><strong>Tech Stack</strong>
+</div>
+
+<div class="page-content">
+
+  <!-- TECH STACK -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">⚙️</div>
+      <div><div class="section-num">Backend</div><h2>ASP.NET Core 10 Stack</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Layer</th><th>Technology / NuGet</th><th>Mục đích</th></tr></thead>
+        <tbody>
+          <tr><td>Web Framework</td><td><strong>ASP.NET Core 10</strong></td><td>REST API, Controller routing, Middleware, DI container</td></tr>
+          <tr><td>ORM</td><td><strong>Entity Framework Core + Pomelo MySQL</strong></td><td>MySQL 8 adapter. KHÔNG dùng EF Migrations.</td></tr>
+          <tr><td>Auth</td><td><strong>Microsoft.AspNetCore.Authentication.JwtBearer</strong></td><td>JWT validation, ClockSkew=Zero</td></tr>
+          <tr><td>Password</td><td><strong>PasswordHasher — PBKDF2-SHA256</strong></td><td>100,000 iterations, salt 16 bytes (OWASP)</td></tr>
+          <tr><td>Validation</td><td><strong>FluentValidation.AspNetCore</strong></td><td>Request body validation (trong Application layer)</td></tr>
+          <tr><td>Docs</td><td><strong>Swashbuckle (Swagger)</strong></td><td>OpenAPI docs — dev only</td></tr>
+          <tr><td>Storage</td><td><strong>AWSSDK.S3</strong></td><td>S3 file upload (khi FileStorage:Provider=s3)</td></tr>
+          <tr><td>TTS</td><td><strong>Azure Cognitive Services SDK</strong></td><td>Speech synthesis REST calls</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">🌐</div>
+      <div><div class="section-num">Frontend</div><h2>React 19 + Vite 7 Stack</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mục đích</th><th>Library (npm)</th><th>Ghi chú — KHÔNG dùng thay thế</th></tr></thead>
+        <tbody>
+          <tr><td>UI Framework</td><td><strong>React 19</strong></td><td>Functional components + hooks</td></tr>
+          <tr><td>Build Tool</td><td><strong>Vite 7</strong></td><td>HMR, ESM bundling</td></tr>
+          <tr><td>Routing</td><td><strong>React Router v7</strong></td><td>KHÔNG dùng Next.js, TanStack Router</td></tr>
+          <tr><td>UI Components</td><td><strong>Ant Design 6.3</strong></td><td>KHÔNG dùng Material UI, Chakra UI, Headless UI</td></tr>
+          <tr><td>Icons</td><td><strong>Lucide React</strong></td><td>KHÔNG dùng Font Awesome, Heroicons, React Icons</td></tr>
+          <tr><td>Charts</td><td><strong>Recharts</strong></td><td>KHÔNG dùng Chart.js, D3, Nivo</td></tr>
+          <tr><td>Maps</td><td><strong>Leaflet</strong></td><td>MapPicker component (admin POI editing)</td></tr>
+          <tr><td>CSS</td><td><strong>Vanilla CSS</strong> (co-located)</td><td>KHÔNG dùng Tailwind, styled-components, CSS-in-JS</td></tr>
+          <tr><td>HTTP Client</td><td><strong>fetch() trong api.js</strong></td><td>KHÔNG call fetch() trực tiếp trong components</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">📱</div>
+      <div><div class="section-num">Mobile</div><h2>.NET MAUI Stack</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Component</th><th>Technology</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>Mobile Framework</td><td><strong>.NET MAUI</strong> (net10.0-android, net10.0-ios)</td><td>Cross-platform C# native mobile</td></tr>
+          <tr><td>UI Pattern</td><td><strong>MVVM</strong> (ViewModels + XAML)</td><td>Binding qua <code>INotifyPropertyChanged</code></td></tr>
+          <tr><td>Maps</td><td><strong>Mapsui 5.x</strong></td><td>SkiaSharp renderer. Registered via <code>.UseMapsui()</code> (breaking change từ <code>UseMapsuiControls()</code>)</td></tr>
+          <tr><td>GPS</td><td><strong>Platform-specific LocationService</strong></td><td>Android: FusedLocationProvider / iOS: CLLocationManager</td></tr>
+          <tr><td>Local DB</td><td><strong>SQLite-net-pcl</strong></td><td>Offline POI cache, audio path cache, visit queue</td></tr>
+          <tr><td>HTTP</td><td><strong>System.Net.Http.HttpClient</strong></td><td>DI-injected, base URL từ appsettings.json</td></tr>
+          <tr><td>Audio Playback</td><td><strong>MediaElement (MAUI)</strong></td><td>Phát MP3 file / stream</td></tr>
+          <tr><td>Build Android</td><td><code>dotnet build -f net10.0-android -c Debug</code></td><td>APK → <code>adb install</code></td></tr>
+          <tr><td>Build iOS</td><td><code>dotnet build -f net10.0-ios -c Debug</code></td><td>Simulator hoặc physical device</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PRODUCTION INFRA -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(245,158,11,.1);color:var(--warning)">☁️</div>
+      <div><div class="section-num">Production</div><h2>AWS Production Infrastructure</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="infra-prod">☁️ Production Infrastructure</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Service</th><th>Role</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><strong>AWS ECS Fargate</strong></td><td>Run VinhKhanh.API container</td><td>Serverless containers, auto-scale</td></tr>
+          <tr><td><strong>AWS RDS MySQL 8.0</strong></td><td>Primary database</td><td>Multi-AZ for high availability</td></tr>
+          <tr><td><strong>AWS S3</strong></td><td>Audio MP3 files + offline ZIP packages</td><td>Prefix: <code>audio/</code>, <code>offline/</code></td></tr>
+          <tr><td><strong>AWS CloudFront</strong></td><td>CDN for admin + vendor React SPA</td><td>Origin: S3 bucket hosting static files</td></tr>
+          <tr><td><strong>AWS ALB</strong></td><td>HTTPS 443 → ECS API</td><td>SSL termination, health checks</td></tr>
+          <tr><td><strong>Azure TTS</strong></td><td>Speech synthesis</td><td>Southeastasia region. API key từ Secrets Manager</td></tr>
+          <tr><td><strong>AWS Secrets Manager</strong></td><td>Store sensitive config</td><td>JWT key, DB password, Azure key, S3 credentials</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="code-block"><span class="comment"># Production traffic flow</span>
+Browser/Mobile
+  → CloudFront (SPA: admin-frontend/ vendor-frontend)
+  → ALB (HTTPS 443) → ECS Fargate (VinhKhanh.API)
+                    → RDS MySQL 8.0
+                    → S3 (audio/ zip/)
+                    → Azure TTS (southeastasia)</div>
+  </div>
+
+
+
+</div>
+
+<div class="sibling-nav">
+  <a href="uml.html">← UML Diagrams</a>
+  <a href="index.html">🏠 Home →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <p style="margin-top:.3rem">ASP.NET Core 10 · EF Core · MySQL 8 · React 19 · .NET MAUI · Azure TTS · AWS ECS Fargate</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="patterns.html">Patterns</a><a href="auth.html">Auth</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+</body></html>

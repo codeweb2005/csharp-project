@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Offline & Sync — Vinh Khanh Food Tour Docs</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>📴 Offline & Data Sync</h1>
+  <p class="subtitle">SQLite local cache trên MAUI, Delta sync (<code>GET /sync/delta?since=...</code>), visit upload batch (<code>POST /sync/visits</code>), Admin offline packages ZIP.</p>
+  <div class="badges">
+    <span class="badge">SQLite Cache</span>
+    <span class="badge teal">Delta Sync</span>
+    <span class="badge">Visit Upload</span>
+    <span class="badge indigo">Offline Packages</span>
+    <span class="badge">OfflinePage.xaml</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠</a><span>›</span><a href="localization.html">i18n</a><span>›</span><strong>Offline & Sync</strong>
+</div>
+
+<div class="page-content">
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">📴</div>
+      <div><div class="section-num">Mobile Sync</div><h2>Offline & Sync Strategy — MAUI</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="sync-flow">🔄 Sequence: Delta Sync + Visit Upload</button>
+    </div>
+    <div class="flow">
+      <span class="flow-step">App Launch</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step teal">Load SQLite Cache (offline)</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step">Online check</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step indigo">GET /pois/nearby (full)</span>
+      <span class="flow-arrow">or</span>
+      <span class="flow-step warning">GET /sync/delta (since=...)</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step success">Upsert SQLite</span>
+    </div>
+
+    <div class="card-grid" style="margin-top:1.2rem">
+      <div class="card">
+        <h3>Initial Load (First launch)</h3>
+        <ul>
+          <li><code>GET /api/v1/pois/nearby?lat&lng&radius=2000&langId=1</code></li>
+          <li>Lấy đầy đủ POIs + translations + audioUrls trong vòng 2000m</li>
+          <li>Upsert toàn bộ vào SQLite</li>
+          <li>Lưu timestamp <code>lastSyncedAt</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Delta Sync (Subsequent launches)</h3>
+        <ul>
+          <li><code>GET /api/v1/sync/delta?since=2026-03-01T00:00Z&languageId=1</code></li>
+          <li>Auth: Customer JWT</li>
+          <li>Backend: <code>SELECT WHERE UpdatedAt > since</code></li>
+          <li>Return: <code>{modified: [...], deleted: [...]}</code></li>
+          <li>Mobile: upsert modified + soft-delete deleted records</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Visit Upload (POST /sync/visits)</h3>
+        <ul>
+          <li>Auth: Customer or Anonymous</li>
+          <li>Queue visits locally khi offline → upload batch khi có mạng</li>
+          <li>Batch request: <code>{visits: [{poiId, triggerType, narrationPlayed, listenDuration, visitedAt}]}</code></li>
+          <li>Backend: INSERT batch + <code>TotalVisits += 1</code> per POI</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Audio Cache (SQLite)</h3>
+        <ul>
+          <li>NarrationPlayer lưu MP3 path vào SQLite sau khi stream</li>
+          <li>Lần sau: kiểm tra SQLite trước → play local (0ms)</li>
+          <li>Phase 3: <code>OfflinePage.xaml</code> — user tải toàn bộ audio ZIP</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">📦</div>
+      <div><div class="section-num">Admin</div><h2>Offline Packages (Admin Only)</h2></div>
+    </div>
+    <p style="margin-bottom:1rem">Admin tạo offline data packages cho mobile app tải xuống — ZIP chứa toàn bộ POI data + audio files của một ngôn ngữ/khu vực.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Auth</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/offlinepackages</code></td><td>Admin only</td><td>List offline package definitions</td></tr>
+          <tr><td><code>POST /api/v1/offlinepackages</code></td><td>Admin only</td><td>Create package definition (name, languageId, area, ...)</td></tr>
+          <tr><td><code>POST /api/v1/offlinepackages/{id}/build</code></td><td>Admin only</td><td>Trigger build — generate ZIP file async</td></tr>
+          <tr><td><code>GET /api/v1/offlinepackages/{id}/status</code></td><td>Admin only</td><td>Check build status (pending / building / completed / failed)</td></tr>
+          <tr><td><code>GET /api/v1/offlinepackages/{id}/download</code></td><td>Customer ✅</td><td>Download ZIP file — dùng bởi mobile OfflinePage</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="highlight info">
+      <strong>OfflinePage.xaml (Phase 3):</strong> User xem danh sách available packages, tải về, theo dõi progress bar, và manage local storage. Sau khi tải, app dùng data từ ZIP — không cần network để xem POI và nghe audio.
+    </div>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="localization.html">← Đa Ngôn Ngữ</a>
+  <a href="admin.html">Admin & Vendor Portal →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="appendix.html">Tech Stack</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+</body></html>

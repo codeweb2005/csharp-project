@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Patterns — Vinh Khanh Food Tour Docs</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>⚡ Design Patterns & Code Conventions</h1>
+  <p class="subtitle">One-file convention per type, <code>ApiResponse&lt;T&gt;</code> envelope, DI scoping rules, error code standards, frontend API client pattern, và các quyết định thiết kế của dự án.</p>
+  <div class="badges">
+    <span class="badge">One-File Convention</span>
+    <span class="badge teal">ApiResponse&lt;T&gt;</span>
+    <span class="badge">DI Scoping</span>
+    <span class="badge indigo">Error Codes</span>
+    <span class="badge">SOLID</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠</a><span>›</span><a href="admin.html">Admin/Vendor</a><span>›</span><strong>Design Patterns</strong>
+</div>
+
+<div class="page-content">
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">📄</div>
+      <div><div class="section-num">Convention</div><h2>One-File Convention</h2></div>
+    </div>
+    <p style="margin-bottom:1rem">Dự án dùng pattern <strong>"1 file cho mỗi loại"</strong> để dễ nhìn toàn bộ API surface trong 1 lần. Chỉ service <em>implementations</em> trong Infrastructure mới có file riêng.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Loại</th><th>File tập trung</th><th>Cách thêm mới</th></tr></thead>
+        <tbody>
+          <tr><td>All Controllers</td><td><code>API/Controllers/Controllers.cs</code></td><td>Thêm controller mới vào CUỐI file, ngăn cách bằng <code>// ===========</code></td></tr>
+          <tr><td>All Middleware</td><td><code>API/Middleware/Middleware.cs</code></td><td>Tương tự Controllers</td></tr>
+          <tr><td>All Service Interfaces</td><td><code>Application/Services/IServices.cs</code></td><td>Thêm interface mới vào cuối file</td></tr>
+          <tr><td>All DTOs</td><td><code>Application/DTOs/DTOs.cs</code></td><td>Thêm DTO/Request/Response mới vào cuối file</td></tr>
+          <tr><td>All Entities</td><td><code>Domain/Entities/Entities.cs</code></td><td>Thêm entity mới vào cuối file</td></tr>
+          <tr><td>All Enums</td><td><code>Domain/Enums/Enums.cs</code></td><td>Thêm enum mới vào cuối file</td></tr>
+          <tr><td>Domain Interfaces</td><td><code>Domain/Interfaces/Interfaces.cs</code></td><td>Repository interfaces</td></tr>
+          <tr><td>Service Implementations</td><td><code>Infrastructure/Services/{Name}Service.cs</code></td><td><strong>1 file riêng per service</strong> (ngoại lệ duy nhất)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="highlight warning">
+      <strong>KHÔNG tạo file riêng</strong> cho từng controller, DTO, service interface, entity, hoặc enum. Chỉ service implementations trong Infrastructure được tách file. Vi phạm quy tắc này sẽ bị reject khi code review.
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">📦</div>
+      <div><div class="section-num">API Response</div><h2>ApiResponse&lt;T&gt; Envelope</h2></div>
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Success Response</h3>
+        <div class="code-block">{
+  <span class="attr">"success"</span>: <span class="type">true</span>,
+  <span class="attr">"data"</span>: { <span class="comment">/* payload */</span> },
+  <span class="attr">"error"</span>: <span class="type">null</span>
+}</div>
+      </div>
+      <div class="card">
+        <h3>Error Response</h3>
+        <div class="code-block">{
+  <span class="attr">"success"</span>: <span class="type">false</span>,
+  <span class="attr">"data"</span>: <span class="type">null</span>,
+  <span class="attr">"error"</span>: {
+    <span class="attr">"code"</span>: <span class="string">"NOT_FOUND"</span>,
+    <span class="attr">"message"</span>: <span class="string">"POI not found"</span>
+  }
+}</div>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-top:1rem">
+      <table>
+        <thead><tr><th>Error Code</th><th>HTTP Status</th><th>Khi nào</th></tr></thead>
+        <tbody>
+          <tr><td><code>NOT_FOUND</code></td><td>404</td><td>Resource không tồn tại</td></tr>
+          <tr><td><code>FORBIDDEN</code></td><td>403</td><td>JWT valid nhưng không đủ quyền (ví dụ: Vendor truy cập POI của người khác)</td></tr>
+          <tr><td><code>UNAUTHORIZED</code></td><td>401</td><td>Thiếu hoặc expired JWT</td></tr>
+          <tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>FluentValidation fail</td></tr>
+          <tr><td><em>any other</em></td><td>400</td><td>General client error</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">🔧</div>
+      <div><div class="section-num">DI Patterns</div><h2>Dependency Injection Scoping</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Service</th><th>Lifetime</th><th>Lý do</th></tr></thead>
+        <tbody>
+          <tr><td><code>JwtService</code></td><td><strong>Singleton</strong></td><td>Stateless, expensive init — chia sẻ toàn app</td></tr>
+          <tr><td><code>AuthService, POIService, AudioService, …</code></td><td><strong>Scoped</strong></td><td>Default. 1 instance per HTTP request → đúng với DB context lifecycle</td></tr>
+          <tr><td><code>IRepository&lt;T&gt;</code></td><td><strong>Scoped</strong></td><td>Generic repository — tied to AppDbContext scope</td></tr>
+          <tr><td><code>IPOIRepository</code></td><td><strong>Scoped</strong></td><td>Specialized repo với custom spatial queries</td></tr>
+          <tr><td><code>FileStorage (local/s3)</code></td><td><strong>Scoped</strong></td><td>DI conditional dựa trên <code>FileStorage:Provider</code> config</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="highlight">
+      <strong>Thêm service mới — checklist 3 bước:</strong> (1) Thêm interface vào <code>Application/Services/IServices.cs</code> → (2) Tạo implementation <code>Infrastructure/Services/{Name}Service.cs</code> → (3) Đăng ký <code>AddScoped&lt;IXxxService, XxxService&gt;()</code> trong <code>Program.cs</code> section "Application Services".
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(245,158,11,.1);color:var(--warning)">📝</div>
+      <div><div class="section-num">Naming</div><h2>Naming Conventions</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Loại</th><th>Pattern</th><th>Ví dụ</th></tr></thead>
+        <tbody>
+          <tr><td>Entity</td><td>PascalCase, số ít</td><td><code>POI</code>, <code>User</code>, <code>AudioNarration</code>, <code>POIMenuItem</code></td></tr>
+          <tr><td>DTO Request</td><td><code>Create{Entity}Request</code>, <code>Update{Entity}Request</code></td><td><code>CreatePOIRequest</code>, <code>UpdatePOIRequest</code></td></tr>
+          <tr><td>DTO Response</td><td><code>{Entity}Dto</code>, <code>{Entity}ListDto</code>, <code>{Entity}DetailDto</code></td><td><code>POIListDto</code>, <code>POIDetailDto</code></td></tr>
+          <tr><td>Interface</td><td><code>I{Name}Service</code>, <code>I{Name}Repository</code></td><td><code>IAuthService</code>, <code>IPOIRepository</code></td></tr>
+          <tr><td>Controller</td><td><code>{Name}Controller</code> kế thừa <code>BaseApiController</code></td><td><code>POIsController</code>, <code>AuthController</code></td></tr>
+          <tr><td>React Component</td><td>PascalCase folder + file</td><td><code>MapPicker/MapPicker.jsx</code>, <code>AudioPreview/AudioPreview.jsx</code></td></tr>
+          <tr><td>React Page</td><td><code>pages/{Feature}/{Feature}.jsx</code></td><td><code>pages/POI/POIList.jsx</code></td></tr>
+          <tr><td>React Hook</td><td>camelCase với <code>use</code> prefix</td><td><code>useCurrentUser.js</code>, <code>useAuth</code></td></tr>
+          <tr><td>API Route</td><td>Base: <code>/api/v1/[controller]</code> lowercase</td><td><code>GET /pois</code>, <code>PATCH /pois/{id}/toggle</code></td></tr>
+          <tr><td>Error code</td><td>UPPER_SNAKE_CASE</td><td><code>NOT_FOUND</code>, <code>FORBIDDEN</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="admin.html">← Admin & Vendor Portal</a>
+  <a href="uml.html">UML Diagrams →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="appendix.html">Tech Stack</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+</body></html>

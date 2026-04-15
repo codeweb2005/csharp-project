@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auth & JWT — Vinh Khanh Food Tour Docs</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>🛡️ Authentication & JWT Security</h1>
+  <p class="subtitle">Bearer JWT (HMAC-SHA256), BCrypt work factor 12, refresh token rotation với SHA-256 hash. Two-layer security model: JWT claims + service-level Vendor scoping.</p>
+  <div class="badges">
+    <span class="badge">HMAC-SHA256</span>
+    <span class="badge teal">PBKDF2-SHA256</span>
+    <span class="badge">Refresh Rotation</span>
+    <span class="badge indigo">ClockSkew=Zero</span>
+    <span class="badge">Two-Layer Security</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠</a><span>›</span><a href="audio.html">Audio</a><span>›</span><strong>Auth & JWT</strong>
+</div>
+
+<div class="page-content">
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">🔐</div>
+      <div><div class="section-num">JWT Flow</div><h2>Authentication Flow</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="auth-jwt">🔐 Sequence: Login + Refresh + 401 Interceptor</button>
+      <button class="diagram-btn" data-diagram="vendor-scoping">🔒 Sequence: Vendor Data Scoping</button>
+      <button class="diagram-btn" data-diagram="activity-login">🔄 Activity: Login + Token Storage</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>JWT Claim</th><th>Present for</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td><code>sub</code></td><td>Tất cả</td><td>User ID (int)</td></tr>
+          <tr><td><code>email</code></td><td>Tất cả</td><td>User email</td></tr>
+          <tr><td><code>name</code></td><td>Tất cả</td><td>Display name</td></tr>
+          <tr><td><code>role</code></td><td>Tất cả</td><td><code>Admin</code> / <code>Vendor</code> / <code>Customer</code></td></tr>
+          <tr><td><code>jti</code></td><td>Tất cả</td><td>Unique token ID (revocation)</td></tr>
+          <tr><td><code>iat</code></td><td>Tất cả</td><td>Issued-at timestamp</td></tr>
+          <tr><td><code>vendorPoiId</code></td><td><strong>Vendor only</strong></td><td>ID của POI thuộc vendor này — dùng để scope DB queries</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">🔄</div>
+      <div><div class="section-num">Auth Endpoints</div><h2>Auth API Endpoints</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Auth</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td><code>POST /api/v1/auth/login</code></td><td>None</td><td>Email + password → access token + refresh token. PBKDF2-SHA256 verify (100,000 iterations).</td></tr>
+          <tr><td><code>POST /api/v1/auth/refresh</code></td><td>None</td><td>Đổi refresh token → cặp token mới (rotation). Body: plain string, không phải object.</td></tr>
+          <tr><td><code>POST /api/v1/auth/register</code></td><td>None</td><td>Đăng ký Customer account mới. Trả về JWT ngay (auto login).</td></tr>
+          <tr><td><code>POST /api/v1/auth/change-password</code></td><td>Any auth</td><td>Đổi mật khẩu. Body: <code>{currentPassword, newPassword}</code>.</td></tr>
+          <tr><td><code>GET /api/v1/auth/me</code></td><td>Any auth</td><td>Current user profile — <code>UserDto</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">🏪</div>
+      <div><div class="section-num">Vendor Security</div><h2>Two-Layer Security Model</h2></div>
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Layer 1 — Frontend (UX only)</h3>
+        <ul>
+          <li><code>useCurrentUser()</code> decode JWT từ localStorage</li>
+          <li><code>isAdmin</code> / <code>isVendor</code> flags → ẩn/hiện UI elements</li>
+          <li>Sidebar items có <code>adminOnly: true</code> → ẩn với Vendor</li>
+          <li><code>DashboardRoute</code> → Admin Dashboard vs Vendor Dashboard</li>
+          <li><strong>Chỉ là UX — có thể bypass!</strong></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Layer 2 — Backend (Authoritative)</h3>
+        <ul>
+          <li><code>[Authorize(Roles = "Admin")]</code> — Admin only routes</li>
+          <li><code>[Authorize(Roles = "Admin,Vendor")]</code> — shared routes</li>
+          <li><code>[AllowAnonymous]</code> — mobile endpoints (nearby, public, audio stream)</li>
+          <li>Vendor write: <code>if (poi.VendorUserId != callerId) return FORBIDDEN</code></li>
+          <li>Vendor read: controller lấy <code>vendorPoiIds</code> từ DB fresh, truyền vào service → <code>WHERE POIId IN (...)</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Refresh Token Security</h3>
+        <ul>
+          <li>64-byte cryptographically secure random</li>
+          <li>Lưu DB dưới dạng SHA-256 hash (<strong>không phải plaintext</strong>)</li>
+          <li><strong>Rotation</strong>: mỗi lần dùng → tạo cặp mới, revoke cũ</li>
+          <li><strong>Reuse detection</strong>: token đã revoked được dùng → detect → revoke toàn bộ sessions của user đó</li>
+          <li>TTL: <code>Jwt:RefreshExpiryDays</code> (default 7 ngày)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Frontend Token Storage</h3>
+        <ul>
+          <li><code>localStorage.setItem('accessToken', jwt)</code></li>
+          <li><code>localStorage.setItem('refreshToken', token)</code></li>
+          <li><code>localStorage.setItem('user', JSON.stringify({...}))</code></li>
+          <li>401 interceptor trong <code>api.js → request()</code> → tự động refresh → retry</li>
+          <li>Refresh fail → <code>clearTokens()</code> → redirect <code>/login</code></li>
+        </ul>
+      </div>
+    </div>
+    <div class="highlight warning">
+      <strong>KHÔNG bao giờ</strong> xóa hoặc làm yếu <code>[Authorize]</code> attributes. Không đổi <code>[Authorize(Roles="Admin")]</code> thành <code>[AllowAnonymous]</code>. Không thêm <code>[AllowAnonymous]</code> vào admin/vendor endpoints. Xem <code>CLAUDE.md § 5</code>.
+    </div>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="audio.html">← Audio & TTS</a>
+  <a href="localization.html">Đa Ngôn Ngữ →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="appendix.html">Tech Stack</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+</body></html>
