@@ -20,8 +20,7 @@
 7. [Database Setup](#7-database-setup)
 8. [Running the Full Stack](#8-running-the-full-stack)
 9. [Mobile App (MAUI)](#9-mobile-app-maui)
-10. [Project Status](#10-project-status)
-11. [Reference Documents](#11-reference-documents)
+10. [Reference Documents](#10-reference-documents)
 
 ---
 
@@ -405,31 +404,7 @@ See [`DEPLOYMENT.md § 7`](DEPLOYMENT.md#7-mobile-app-deployment) for the full g
 
 ---
 
-## 10. Project Status
-
-| Phase | Status | Description |
-|---|---|---|
-| **Phase 1** — Backend & Admin Panel | ✅ **Complete** | REST API, Leaflet POI editor, Vendor Portal, Azure TTS |
-| **Phase 2** — MAUI Mobile PoC | ✅ **Complete** | GPS geofencing, audio narration, Mapsui map, offline sync |
-| **Phase 3** — MAUI Mobile MVP | 🚧 **In progress** | Background GPS, visit tracking, settings UI, delta sync |
-| **Phase 4** — AWS Production | ⬜ **Planned** | ECS Fargate, RDS Multi-AZ, S3, CloudFront |
-
-### Phase 3 — Remaining items
-
-| Priority | Feature |
-|---|---|
-| 🔴 Critical | Background GPS (Android ForegroundService + iOS CLLocationManager) |
-| 🔴 Critical | Upgrade `LocationWhenInUse` → `LocationAlways` permission |
-| 🔴 Critical | Per-POI geofence cooldown (prevent narration replay) |
-| 🟡 Medium | Visit tracking upload (`POST /sync/visits`) |
-| 🟡 Medium | Settings UI (radius, cooldown, auto-play toggle) |
-| 🟡 Medium | Local notification on geofence trigger in background |
-| 🟠 Low | Delta sync (`GET /sync/delta`) for post-install POI updates |
-| 🟠 Low | Narration error handling + TTS fallback |
-
----
-
-## 11. Reference Documents
+## 10. Reference Documents
 
 | Document | Contents |
 |---|---|
