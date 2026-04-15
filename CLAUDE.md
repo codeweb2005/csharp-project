@@ -137,7 +137,7 @@ Du an su dung pattern **1 file cho moi loai** de de nhin toan bo contract:
 |---|---|---|
 | `sub` | User ID | Tat ca |
 | `role` | `Admin` / `Vendor` / `Customer` | Tat ca |
-| `vendorPoiIds` | JSON array `"[1,3,5]"` — ID cac POI cua vendor | Chi Vendor |
+| `vendorPoiId` | Single int — ID cua POI ma vendor nay quan ly | Chi Vendor |
 
 ### Quy tac bat buoc
 
@@ -147,7 +147,7 @@ Du an su dung pattern **1 file cho moi loai** de de nhin toan bo contract:
 - **KHONG** xoa `[AllowAnonymous]` khoi cac endpoint mobile (nearby, public detail, languages, audio stream).
 - **Vendor write operations BAT BUOC** kiem tra ownership: `if (poi.VendorUserId != callerId) return FORBIDDEN`.
 - **Vendor scoping:** Controller goi `GetVendorPOIIdsAsync()` lay fresh POI IDs tu DB, truyen vao service. Service filter `WHERE POIId IN (vendorPOIIds)`.
-- **Password:** BCrypt work factor 12. KHONG BAO GIO luu plaintext, KHONG log password/token.
+- **Password:** PBKDF2-SHA256, 100,000 iterations, 16-byte random salt (`PasswordHasher.cs`). KHONG BAO GIO luu plaintext, KHONG log password/token.
 - **Refresh token:** SHA-256 hash trong DB, rotation moi lan dung, revoke khi phat hien reuse. KHONG thay doi flow nay.
 - **JWT signing:** HMAC-SHA256, `ClockSkew = TimeSpan.Zero`. KHONG them clock skew tolerance.
 - **KHONG BAO GIO** commit `appsettings.json`, `.env`, hoac bat ky file chua secrets.

@@ -220,7 +220,8 @@ Vendor data scoping is an additional layer beyond route authorization — see [`
 
 ### Password Storage
 
-- `BCrypt` with work factor 12
+- `PBKDF2-SHA256` with 100,000 iterations and a 16-byte random salt (`PasswordHasher.cs`)
+- Constant-time comparison via `CryptographicOperations.FixedTimeEquals`
 - Passwords are never stored in plaintext or logged
 
 ### Refresh Tokens
