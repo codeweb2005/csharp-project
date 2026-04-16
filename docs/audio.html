@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio & Azure TTS — Vinh Khanh Food Tour Docs</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>🎧 Audio Management & Azure TTS</h1>
+  <p class="subtitle">Upload MP3 (multipart/form-data) hoặc generate tự động từ <code>NarrationText</code> qua Azure Cognitive Services — voice <code>vi-VN-HoaiMyNeural</code>, region <code>southeastasia</code>.</p>
+  <div class="badges">
+    <span class="badge">AudioService</span>
+    <span class="badge teal">Azure TTS</span>
+    <span class="badge">vi-VN-HoaiMyNeural</span>
+    <span class="badge indigo">AWS S3 / Local</span>
+    <span class="badge">TTSGenerated flag</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠</a><span>›</span><a href="content.html">POI & DB</a><span>›</span><strong>Audio & TTS</strong>
+</div>
+
+<div class="page-content">
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">🎧</div>
+      <div><div class="section-num">Audio API</div><h2>Audio Endpoints</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="audio-flow">🎧 Audio Management Flow</button>
+      <button class="diagram-btn" data-diagram="activity-tts">🔄 Activity: Generate Azure TTS</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Auth</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/audio/poi/{poiId}?lang=vi</code></td><td>Authenticated</td><td>List audio narrations của POI. Filter by language code (optional)</td></tr>
+          <tr><td><code>POST /api/v1/audio/poi/{poiId}/upload</code></td><td>Admin / Vendor</td><td>Upload MP3. <code>multipart/form-data</code>: field <code>file</code> (MP3) + <code>languageId</code> (int)</td></tr>
+          <tr><td><code>POST /api/v1/audio/poi/{poiId}/generate-tts</code></td><td>Admin / Vendor</td><td>Gen từ <code>NarrationText</code> qua Azure TTS. Body: <code>{languageId, voiceName}</code></td></tr>
+          <tr><td><code>PATCH /api/v1/audio/{id}/set-default</code></td><td>Admin / Vendor</td><td>Set làm default audio cho language này</td></tr>
+          <tr><td><code>DELETE /api/v1/audio/{id}</code></td><td>Admin / Vendor</td><td>Xóa audio record + file từ storage</td></tr>
+          <tr><td><code>GET /api/v1/audio/{id}/stream</code></td><td>Anonymous ✅</td><td>Stream audio file. Dùng bởi MAUI mobile app. Hỗ trợ Range requests</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">🔊</div>
+      <div><div class="section-num">Azure TTS</div><h2>Azure Cognitive Services TTS</h2></div>
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Cấu hình</h3>
+        <ul>
+          <li>Service: <strong>Azure Cognitive Services — Speech</strong></li>
+          <li>Region: <code>southeastasia</code></li>
+          <li>Config keys: <code>AzureTTS:SubscriptionKey</code>, <code>AzureTTS:Region</code></li>
+          <li>Format output: MP3 audio stream</li>
+          <li>API: Speech Synthesis (SSML) REST endpoint</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Voice — vi-VN-HoaiMyNeural</h3>
+        <ul>
+          <li><strong>Tiếng Việt:</strong> <code>vi-VN-HoaiMyNeural</code> (Female, chất lượng tốt nhất cho Vietnamese)</li>
+          <li>Admin nhập <code>voiceName</code> vào request — có thể dùng voice khác</li>
+          <li>TTS chỉ chạy khi NarrationText đã được điền trong POITranslation</li>
+          <li>Sau khi gen: lưu MP3 vào storage, INSERT <code>AudioNarrations</code> với <code>TTSGenerated=true</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>File Storage</h3>
+        <ul>
+          <li><code>FileStorage:Provider = local</code> → lưu <code>wwwroot/audio/</code> (dev)</li>
+          <li><code>FileStorage:Provider = s3</code> → PUT lên <code>FileStorage:S3BucketName</code></li>
+          <li>DI conditional registration trong <code>Program.cs</code></li>
+          <li>Filename pattern: <code>poi-{id}-lang-{id}-{uuid}.mp3</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>AudioNarrations Table</h3>
+        <ul>
+          <li><code>IsDefault</code> — audio mặc định cho ngôn ngữ đó</li>
+          <li><code>IsActive</code> — soft disable không xóa file</li>
+          <li><code>TTSGenerated</code> — phân biệt upload vs auto-gen</li>
+          <li><code>DurationSeconds</code> — thời lượng audio (tính khi gen)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="highlight">
+      <strong>Vendor audio access:</strong> Vendor có thể upload MP3 và generate TTS cho POI của mình. AuthService kiểm tra <code>poi.VendorUserId == callerId</code> trước khi cho phép. Admin có thể thao tác trên mọi POI.
+    </div>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="content.html">← POI & Database</a>
+  <a href="auth.html">Auth & JWT →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="appendix.html">Tech Stack</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+</body></html>

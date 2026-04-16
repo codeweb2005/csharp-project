@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đa Ngôn Ngữ — Vinh Khanh Food Tour Docs</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>🌐 Đa Ngôn Ngữ — POI Translations</h1>
+  <p class="subtitle">Mỗi POI có bảng <code>POITranslations</code> — 1 row per language. <code>GET /languages</code> public endpoint. <code>langId</code> param lọc translation. Azure TTS gen per language.</p>
+  <div class="badges">
+    <span class="badge">POITranslations</span>
+    <span class="badge teal">LanguageId FK</span>
+    <span class="badge">NarrationText</span>
+    <span class="badge indigo">GET /languages</span>
+    <span class="badge">Highlights (JSON)</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠</a><span>›</span><a href="auth.html">Auth</a><span>›</span><strong>Đa Ngôn Ngữ</strong>
+</div>
+
+<div class="page-content">
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">🌐</div>
+      <div><div class="section-num">i18n Model</div><h2>POITranslations — Data Model</h2></div>
+    </div>
+    <p style="margin-bottom:1.2rem">Ngôn ngữ không được hardcode — mọi thứ dựa trên bảng <code>Languages</code>. Mỗi kết hợp POI + Language = 1 row trong <code>POITranslations</code>.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>Languages Table</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Id</th><th>Code</th><th>NativeName</th><th>Flag</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>vi</td><td>Tiếng Việt</td><td>🇻🇳</td></tr>
+              <tr><td>2</td><td>en</td><td>English</td><td>🇬🇧</td></tr>
+              <tr><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:.5rem;font-size:.8rem"><code>GET /api/v1/languages</code> — Anonymous. Dùng bởi mobile app khi hiển thị language picker.</p>
+      </div>
+      <div class="card">
+        <h3>POITranslations Fields</h3>
+        <ul>
+          <li><code>POIId</code> — FK → POIs.Id</li>
+          <li><code>LanguageId</code> — FK → Languages.Id</li>
+          <li><code>Name</code> — Tên quán bằng ngôn ngữ tương ứng</li>
+          <li><code>ShortDescription</code> — Mô tả ngắn (hiển thị trên map popup)</li>
+          <li><code>FullDescription</code> — Mô tả đầy đủ (detail page)</li>
+          <li><code>NarrationText</code> — Script cho Azure TTS đọc khi geofence trigger</li>
+          <li><code>Highlights</code> — JSON array (e.g. <code>["Bún bò đặc biệt", "Giá bình dân"]</code>)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="highlight">
+      <strong>Highlights serialization:</strong> <code>Highlights</code> là JSON string trong MySQL — serialize/deserialize bằng <code>System.Text.Json.JsonSerializer</code>. Không dùng thư viện ngoài.
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">🔤</div>
+      <div><div class="section-num">API Usage</div><h2>langId Param — Filter Translation</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Endpoint</th><th>langId param</th><th>Hành vi</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/pois/{id}/public</code></td><td><code>?langId=2</code></td><td>Return translation của language 2 (en). Nếu không có → trả vi (fallback)</td></tr>
+          <tr><td><code>GET /api/v1/pois/nearby</code></td><td><code>?langId=1</code></td><td>JOIN POITranslations WHERE LanguageId=1 → name, shortDescription trên map</td></tr>
+          <tr><td><code>GET /api/v1/sync/delta</code></td><td><code>?languageId=1</code></td><td>Delta sync — trả translations của language đó cho mobile cache</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">📱</div>
+      <div><div class="section-num">Mobile</div><h2>DefaultLanguageId — Mobile Config</h2></div>
+    </div>
+    <div class="code-block"><span class="comment">// mobile/VinhKhanh.Mobile/appsettings.json (embedded resource)</span>
+{
+  <span class="attr">"ApiBaseUrl"</span>: <span class="string">"http://10.0.2.2:5015/api/v1"</span>,
+  <span class="attr">"DefaultLanguageId"</span>: 1    <span class="comment">// 1 = Tiếng Việt</span>
+}</div>
+    <p style="margin-top:.8rem">User có thể đổi language trong Settings UI (Phase 3). Mobile lưu <code>selectedLanguageId</code> vào SQLite preference, dùng cho mọi API call có <code>langId</code> param.</p>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="auth.html">← Auth & JWT</a>
+  <a href="offline.html">Offline & Sync →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="appendix.html">Tech Stack</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+</body></html>

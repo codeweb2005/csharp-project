@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Startup & DI — Vinh Khanh Food Tour Docs</title>
+<meta name="description" content="ASP.NET Core 10 startup, DI registration, JWT middleware pipeline, MAUI mobile startup sequence.">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>🚀 Startup & Dependency Injection</h1>
+  <p class="subtitle">ASP.NET Core 10 <code>Program.cs</code> — DI registration, JWT middleware, MySQL connection, seed defaults. MAUI startup — DI, Mapsui 5.x, LocationService.</p>
+  <div class="badges">
+    <span class="badge">Program.cs</span>
+    <span class="badge teal">EF Core + MySQL</span>
+    <span class="badge">JWT Bearer</span>
+    <span class="badge indigo">MAUI MauiProgram.cs</span>
+    <span class="badge">PBKDF2-SHA256</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠 Home</a><span>›</span><a href="overview.html">Kiến trúc</a><span>›</span><strong>Startup & DI</strong>
+</div>
+
+<div class="page-content">
+
+  <!-- BACKEND STARTUP -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">⚙️</div>
+      <div><div class="section-num">Backend</div><h2>ASP.NET Core 10 — Program.cs</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="backend-startup">⚙️ Sequence: Backend Startup</button>
+    </div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <h4>1. AddDbContext&lt;AppDbContext&gt;</h4>
+        <p>MySQL 8 provider (Pomelo.EntityFrameworkCore.MySql). Connection string từ <code>appsettings.json → ConnectionStrings:DefaultConnection</code>. Không dùng EF Migrations.</p>
+      </div>
+      <div class="timeline-item">
+        <h4>2. DI — Service Registration</h4>
+        <p><code>JwtService</code> đăng ký <code>AddSingleton</code>. Tất cả application services khác (<code>AuthService</code>, <code>POIService</code>, <code>AudioService</code>, <code>DashboardService</code>, <code>AnalyticsService</code>, <code>MenuService</code>…) đăng ký <code>AddScoped</code>. Repositories đăng ký <code>AddScoped</code>.</p>
+      </div>
+      <div class="timeline-item">
+        <h4>3. AddAuthentication JwtBearer</h4>
+        <p>HMAC-SHA256. <code>ClockSkew = TimeSpan.Zero</code> — token hết hạn đúng giờ, không tolerance. Key từ <code>Jwt:Key</code> (≥ 32 ký tự).</p>
+      </div>
+      <div class="timeline-item">
+        <h4>4. AddCors</h4>
+        <p>Cho phép origins từ config <code>CORS_ALLOWED_ORIGINS</code> (comma-separated). Dev: <code>http://localhost:5173,http://localhost:5174</code>.</p>
+      </div>
+      <div class="timeline-item">
+        <h4>5. AddSwaggerGen (dev only)</h4>
+        <p>Tự động từ controller attributes. Chỉ enable trong <code>app.Environment.IsDevelopment()</code>. URL: <code>http://localhost:5015/swagger</code>.</p>
+      </div>
+      <div class="timeline-item">
+        <h4>6. Middleware Pipeline</h4>
+        <p><code>UseExceptionMiddleware</code> → <code>UseHttpsRedirection</code> → <code>UseCors</code> → <code>UseAuthentication</code> → <code>UseAuthorization</code> → <code>MapControllers</code>. Thứ tự này <strong>bắt buộc</strong>, không được thay đổi.</p>
+      </div>
+      <div class="timeline-item">
+        <h4>7. EnsureDefaultAdmin (Seed)</h4>
+        <p><code>AuthService.EnsureDefaultAdmin()</code> — create admin user nếu chưa tồn tại. Email: <code>admin@vinhkhanh.app</code>, password PBKDF2-SHA256(100k iter). Idempotent — chạy mỗi startup an toàn.</p>
+      </div>
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>Ports</h3>
+        <ul>
+          <li><strong>Backend API</strong>: <code>localhost:5015</code> (dev)</li>
+          <li><strong>Admin Panel</strong>: <code>localhost:5173</code></li>
+          <li><strong>Vendor Panel</strong>: <code>localhost:5174</code></li>
+          <li><strong>Swagger UI</strong>: <code>localhost:5015/swagger</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>appsettings.json — Key Config</h3>
+        <ul>
+          <li><code>ConnectionStrings:DefaultConnection</code></li>
+          <li><code>Jwt:Key</code> (≥ 32 chars), <code>Jwt:Issuer</code>, <code>Jwt:Audience</code></li>
+          <li><code>Jwt:ExpiryMinutes</code> (default: 60), <code>Jwt:RefreshExpiryDays</code> (default: 7)</li>
+          <li><code>FileStorage:Provider</code> (local / s3)</li>
+          <li><code>AzureTTS:SubscriptionKey</code>, <code>AzureTTS:Region</code> (southeastasia)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAUI STARTUP -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">📱</div>
+      <div><div class="section-num">Mobile</div><h2>.NET MAUI — MauiProgram.cs</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="mobile-startup">📱 Sequence: Mobile Startup + Offline Sync</button>
+    </div>
+    <div class="highlight">
+      <strong>Breaking change Mapsui 5.x:</strong> Registration đổi từ <code>UseMapsuiControls()</code> → <code>.UseMapsui()</code> (verified MauiProgram.cs:29). API MapInfoEventArgs đổi từ <code>e.Feature</code> → <code>e.GetMapInfo(layers)</code>.
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <h3>MauiProgram.cs — DI Services</h3>
+        <ul>
+          <li><code>ILocationService</code> → <code>AndroidLocationService / IosLocationService</code> (platform-specific DI)</li>
+          <li><code>GeofenceEngine</code> — Singleton, nhận ILocationService</li>
+          <li><code>NarrationPlayer</code> — manages MediaElement + SQLite cache</li>
+          <li><code>HttpClient</code> → configured with <code>ApiBaseUrl</code> from embedded <code>appsettings.json</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>appsettings.json (embedded resource)</h3>
+        <div class="code-block">{"ApiBaseUrl": "http://10.0.2.2:5015/api/v1",<br>"DefaultLanguageId": 1}</div>
+        <p style="margin-top:.5rem;font-size:.8rem"><code>10.0.2.2</code> = host IP từ Android Emulator. Dùng IP thật cho physical device.</p>
+      </div>
+      <div class="card">
+        <h3>GPS Permissions</h3>
+        <ul>
+          <li>Phase 2: <code>LocationWhenInUse</code> — foreground only</li>
+          <li>Phase 3 (planned): upgrade lên <code>LocationAlways</code> cho background GPS</li>
+          <li>Android: <code>ACCESS_FINE_LOCATION</code> permission trong Manifest</li>
+          <li>iOS: <code>NSLocationWhenInUseUsageDescription</code> trong Info.plist</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="overview.html">← Kiến Trúc Hệ Thống</a>
+  <a href="geofence.html">GPS Geofence →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <p style="margin-top:.3rem">ASP.NET Core 10 · EF Core · MySQL 8 · React 19 · .NET MAUI · Azure TTS · AWS S3</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="appendix.html">Tech Stack</a><a href="auth.html">Auth</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+</body></html>

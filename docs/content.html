@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POI & Database — Vinh Khanh Food Tour Docs</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>📍 POI Management & REST API</h1>
+  <p class="subtitle">CRUD endpoints for Points of Interest. <code>ST_Distance_Sphere</code> spatial query. <code>Priority</code> field cho geofence conflict resolution. Vendor ownership guard.</p>
+  <div class="badges">
+    <span class="badge">POIsController</span>
+    <span class="badge teal">ST_Distance_Sphere</span>
+    <span class="badge">Priority field</span>
+    <span class="badge indigo">Vendor Scoping</span>
+    <span class="badge">PagedResult&lt;T&gt;</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠</a><span>›</span><a href="geofence.html">Geofence</a><span>›</span><strong>POI & Database</strong>
+</div>
+
+<div class="page-content">
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">📍</div>
+      <div><div class="section-num">POI API</div><h2>POI REST Endpoints</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="poi-lifecycle">📍 Sequence: Create POI + TTS</button>
+      <button class="diagram-btn" data-diagram="poi-nearby">🗺️ Sequence: GET /pois/nearby</button>
+      <button class="diagram-btn" data-diagram="vendor-scoping">🔒 Sequence: Vendor Data Scoping</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Auth</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/pois</code></td><td>Admin / Vendor</td><td>Paginated list. Vendor → tự động scoped về <code>vendorPoiId</code> JWT claim. Params: page, size, search, categoryId, isActive, sortBy, order</td></tr>
+          <tr><td><code>GET /api/v1/pois/{id}</code></td><td>Admin / Vendor</td><td>Full detail kèm <code>translations[]</code> array. Vendor → 403 nếu không phải POI của họ</td></tr>
+          <tr><td><code>GET /api/v1/pois/{id}/public</code></td><td>Anonymous ✅</td><td>POI detail cho mobile app (chỉ active). Query: <code>?langId=1</code> lọc translation</td></tr>
+          <tr><td><code>GET /api/v1/pois/nearby</code></td><td>Anonymous ✅</td><td>Spatial query với <code>ST_Distance_Sphere</code>. Query: lat, lng, radius (max 5000m), langId</td></tr>
+          <tr><td><code>POST /api/v1/pois</code></td><td>Admin only</td><td>Create POI + translations (all languages in one request). FluentValidation.</td></tr>
+          <tr><td><code>PUT /api/v1/pois/{id}</code></td><td>Admin / Vendor</td><td>Update. Vendor → 403 nếu <code>poi.VendorUserId != callerId</code></td></tr>
+          <tr><td><code>DELETE /api/v1/pois/{id}</code></td><td>Admin only</td><td>Delete POI + cascade AudioNarrations, POITranslations, MenuItems</td></tr>
+          <tr><td><code>PATCH /api/v1/pois/{id}/toggle</code></td><td>Admin / Vendor</td><td>Toggle <code>IsActive</code></td></tr>
+          <tr><td><code>PATCH /api/v1/pois/{id}/featured</code></td><td>Admin only</td><td>Toggle <code>IsFeatured</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">📋</div>
+      <div><div class="section-num">Request Body</div><h2>CreatePOIRequest — Cấu Trúc</h2></div>
+    </div>
+    <div class="code-block">{
+  <span class="attr">"categoryId"</span>: 2,
+  <span class="attr">"address"</span>: <span class="string">"123 Vĩnh Khánh, P8, Q4, TP.HCM"</span>,
+  <span class="attr">"latitude"</span>: 10.7553,
+  <span class="attr">"longitude"</span>: 106.7017,
+  <span class="attr">"geofenceRadius"</span>: 50,    <span class="comment">// metres — tùy chỉnh per POI</span>
+  <span class="attr">"priority"</span>: 1,             <span class="comment">// higher = trigger first trong overlap</span>
+  <span class="attr">"phone"</span>: <span class="string">"028-1234-5678"</span>,
+  <span class="attr">"priceRangeMin"</span>: 30000, <span class="attr">"priceRangeMax"</span>: 80000,
+  <span class="attr">"openingHours"</span>: <span class="string">"06:00 – 22:00"</span>,
+  <span class="attr">"vendorUserId"</span>: 5,        <span class="comment">// null = Admin-managed</span>
+  <span class="attr">"translations"</span>: [
+    {
+      <span class="attr">"languageId"</span>: 1,        <span class="comment">// 1=vi, 2=en, …</span>
+      <span class="attr">"name"</span>: <span class="string">"Quán Bún Bò Cô Linh"</span>,
+      <span class="attr">"shortDescription"</span>: <span class="string">"Bún bò nổi tiếng Q4"</span>,
+      <span class="attr">"fullDescription"</span>: <span class="string">"..."</span>,
+      <span class="attr">"narrationText"</span>: <span class="string">"Chào mừng bạn đến..."</span>,  <span class="comment">// dùng cho Azure TTS</span>
+      <span class="attr">"highlights"</span>: [<span class="string">"Bún bò đặc biệt"</span>, <span class="string">"Giá bình dân"</span>]  <span class="comment">// JSON array</span>
+    }
+  ]
+}</div>
+    <div class="highlight">
+      <strong>Response Envelope:</strong> Mọi response đều wrap trong <code>{"success": true, "data": {...}, "error": null}</code>. Admin dùng <code>ApiResult()</code> helper từ <code>BaseApiController</code> để map error code → HTTP status. Error codes: <code>NOT_FOUND</code>→404, <code>FORBIDDEN</code>→403, <code>UNAUTHORIZED</code>→401, <code>VALIDATION_ERROR</code>→400.
+    </div>
+  </div>
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">🔍</div>
+      <div><div class="section-num">Spatial</div><h2>Nearby Query — ST_Distance_Sphere</h2></div>
+    </div>
+    <div class="code-block"><span class="keyword">SELECT</span> pois.*, t.Name, t.ShortDescription,
+  ST_Distance_Sphere(
+    <span class="fn">POINT</span>(<span class="attr">:lng</span>, <span class="attr">:lat</span>),           <span class="comment">-- POINT(longitude, latitude) !</span>
+    <span class="fn">POINT</span>(poi.Longitude, poi.Latitude)
+  ) <span class="keyword">AS</span> Distance
+<span class="keyword">FROM</span> POIs poi
+<span class="keyword">JOIN</span> POITranslations t <span class="keyword">ON</span> t.POIId = poi.Id
+  <span class="keyword">AND</span> t.LanguageId = <span class="attr">:langId</span>
+<span class="keyword">WHERE</span> poi.IsActive = <span class="string">1</span>
+  <span class="keyword">AND</span> ST_Distance_Sphere(
+    <span class="fn">POINT</span>(<span class="attr">:lng</span>, <span class="attr">:lat</span>),
+    <span class="fn">POINT</span>(poi.Longitude, poi.Latitude)
+  ) &lt;= <span class="attr">:radius</span>
+<span class="keyword">ORDER BY</span> Distance <span class="keyword">ASC</span></div>
+    <div class="highlight warning">
+      <strong>⚠️ POINT(longitude, latitude)</strong> — không phải (lat, lng). MySQL <code>ST_Distance_Sphere</code> nhận theo thứ tự (longitude, latitude). Đây là source of bug phổ biến.
+    </div>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="geofence.html">← GPS Geofence</a>
+  <a href="audio.html">Audio & Azure TTS →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="appendix.html">Tech Stack</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+</body></html>

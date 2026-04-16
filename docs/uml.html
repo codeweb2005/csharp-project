@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UML Diagrams — Vinh Khanh Food Tour Docs</title>
+<meta name="description" content="Architecture, Sequence, Activity, Use Case (include/extend), ER Diagram — modal zoom/pan.">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI &amp; DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html" class="active">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>📊 UML Diagrams</h1>
+  <p class="subtitle">Architecture · Sequence · Activity · Use Case (include/extend) · ER Diagram — click để mở modal zoom/pan. Tất cả dựa trên codebase thực tế của dự án.</p>
+  <div class="badges">
+    <span class="badge">Architecture</span>
+    <span class="badge teal">Sequence</span>
+    <span class="badge">Activity</span>
+    <span class="badge indigo">Use Case include/extend</span>
+    <span class="badge">ER Diagram</span>
+    <span class="badge teal">Modal Zoom/Pan</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠</a><span>›</span><a href="patterns.html">Patterns</a><span>›</span><strong>UML Diagrams</strong>
+</div>
+
+<div class="page-content">
+
+  <!-- ARCHITECTURE -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">🏗️</div>
+      <div><div class="section-num">Architecture</div><h2>Architecture Diagrams</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="architecture">🏗️ System Architecture</button>
+      <button class="diagram-btn" data-diagram="clean-arch">📦 Clean Architecture Layers</button>
+      <button class="diagram-btn" data-diagram="infra-prod">☁️ Production Infrastructure (AWS)</button>
+    </div>
+  </div>
+
+  <!-- SEQUENCE -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">🔀</div>
+      <div><div class="section-num">Sequence (11 diagrams)</div><h2>Sequence Diagrams</h2></div>
+    </div>
+    <div class="highlight" style="margin-bottom:1rem">
+      <strong>Verified từ source:</strong> JwtService.cs, AuthService.cs, GeofenceEngine.cs, NarrationPlayer.cs, VisitQueueStore.cs, OfflinePackageSyncService.cs, AzureTTSService.cs, ApiClient.cs, Program.cs.
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="backend-startup">⚙️ Backend Startup — Program.cs</button>
+      <button class="diagram-btn" data-diagram="mobile-startup">📱 Mobile Startup + Offline Sync</button>
+      <button class="diagram-btn" data-diagram="auth-jwt">🔐 Login + Token Refresh (JWT)</button>
+      <button class="diagram-btn" data-diagram="mobile-auth">📱 Mobile Auth — SecureStorage (ApiClient.cs)</button>
+      <button class="diagram-btn" data-diagram="vendor-scoping">🔒 Vendor Data Scoping (two-layer security)</button>
+      <button class="diagram-btn" data-diagram="geofence-flow">📡 Geofence State Machine (debounce + priority)</button>
+      <button class="diagram-btn" data-diagram="narration-player">🔊 NarrationPlayer Playback Chain (local → stream → TTS fallback)</button>
+      <button class="diagram-btn" data-diagram="poi-lifecycle">📍 Create POI + Generate TTS Azure SDK</button>
+      <button class="diagram-btn" data-diagram="poi-nearby">🗺️ GET /pois/nearby — Spatial Query</button>
+      <button class="diagram-btn" data-diagram="audio-flow">🎧 Audio Upload + TTS + Stream</button>
+      <button class="diagram-btn" data-diagram="sync-flow">🔄 Delta Sync + Visit Upload + Offline Packages</button>
+    </div>
+  </div>
+
+  <!-- ACTIVITY -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">🔄</div>
+      <div><div class="section-num">Activity (3 diagrams)</div><h2>Activity Diagrams</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="activity-geofence">📡 GPS Geofence Processing Loop</button>
+      <button class="diagram-btn" data-diagram="activity-login">🔐 Login + Token Storage (Mobile)</button>
+      <button class="diagram-btn" data-diagram="activity-tts">🎧 Generate Azure TTS Audio</button>
+    </div>
+  </div>
+
+  <!-- USE CASE — Inline SVG -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(245,158,11,.1);color:var(--warning)">👤</div>
+      <div><div class="section-num">Use Case — 3 Actor Diagrams (SVG)</div><h2>Use Case Diagrams — «include» &amp; «extend»</h2></div>
+    </div>
+
+    <!-- LEGEND -->
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.4rem;align-items:center;padding:.75rem 1.1rem;background:#1e293b;border-radius:8px;border:1px solid #334155">
+      <strong style="color:#f1f5f9;font-size:.85rem">Ký hiệu:</strong>
+      <span style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:#94a3b8">
+        <svg width="62" height="16"><line x1="0" y1="8" x2="47" y2="8" stroke="#14b8a6" stroke-width="2" stroke-dasharray="4,2"/><polygon points="47,4 62,8 47,12" fill="#14b8a6"/></svg>
+        <code style="color:#14b8a6">«include»</code> — gọi bắt buộc
+      </span>
+      <span style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:#94a3b8">
+        <svg width="62" height="16"><line x1="0" y1="8" x2="47" y2="8" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,2"/><polygon points="47,4 62,8 47,12" fill="#f59e0b"/></svg>
+        <code style="color:#f59e0b">«extend»</code> — tuỳ điều kiện
+      </span>
+      <span style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:#94a3b8">
+        <svg width="62" height="16"><line x1="0" y1="8" x2="62" y2="8" stroke="#64748b" stroke-width="1.5"/></svg>
+        Association (actor dùng UC)
+      </span>
+      <span style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:#94a3b8">
+        <svg width="26" height="16"><ellipse cx="13" cy="8" rx="12" ry="7" fill="#0f172a" stroke="#14b8a6" stroke-width="1.5"/></svg>
+        Use Case (oval)
+      </span>
+      <span style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:#94a3b8">
+        <svg width="26" height="16"><ellipse cx="13" cy="8" rx="12" ry="7" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5"/></svg>
+        Extend target
+      </span>
+    </div>
+
+    <!-- TABS -->
+    <div style="display:flex;gap:.5rem;margin-bottom:1.3rem;flex-wrap:wrap">
+      <button id="tab-customer" onclick="switchUC('customer')" style="padding:.45rem 1.1rem;border-radius:6px;border:1px solid #14b8a6;background:#14b8a6;color:#0f172a;font-weight:700;cursor:pointer;font-size:.83rem;transition:all .2s">📱 Customer</button>
+      <button id="tab-vendor"   onclick="switchUC('vendor')"   style="padding:.45rem 1.1rem;border-radius:6px;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:600;cursor:pointer;font-size:.83rem;transition:all .2s">🏪 Vendor</button>
+      <button id="tab-admin"    onclick="switchUC('admin')"    style="padding:.45rem 1.1rem;border-radius:6px;border:1px solid #334155;background:#1e293b;color:#94a3b8;font-weight:600;cursor:pointer;font-size:.83rem;transition:all .2s">🛡️ Admin</button>
+    </div>
+
+    <!-- CUSTOMER -->
+    <div id="uc-customer">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:.5rem">
+    <svg viewBox="0 0 1020 680" xmlns="http://www.w3.org/2000/svg" style="min-width:700px;width:100%;max-width:1020px;font-family:Inter,system-ui,sans-serif;display:block;background:#0a1628;border-radius:10px">
+      <defs>
+        <marker id="ai" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="#14b8a6"/></marker>
+        <marker id="ae" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="#f59e0b"/></marker>
+        <marker id="aa" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><polygon points="0,0 6,3 0,6" fill="#475569"/></marker>
+      </defs>
+      <!-- boundary -->
+      <rect x="128" y="30" width="874" height="634" rx="10" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-dasharray="6,3"/>
+      <text x="565" y="58" text-anchor="middle" fill="#334155" font-size="12" font-weight="700" letter-spacing="1">VINH KHANH SYSTEM BOUNDARY</text>
+
+      <!-- actor -->
+      <circle cx="60" cy="264" r="20" fill="none" stroke="#7dd3fc" stroke-width="2.5"/>
+      <line x1="60" y1="284" x2="60" y2="336" stroke="#7dd3fc" stroke-width="2.5"/>
+      <line x1="30" y1="306" x2="90" y2="306" stroke="#7dd3fc" stroke-width="2.5"/>
+      <line x1="60" y1="336" x2="34" y2="370" stroke="#7dd3fc" stroke-width="2.5"/>
+      <line x1="60" y1="336" x2="86" y2="370" stroke="#7dd3fc" stroke-width="2.5"/>
+      <text x="60" y="394" text-anchor="middle" fill="#bae6fd" font-size="13" font-weight="700">📱 Customer</text>
+
+      <!-- === MAIN USE CASES (cx=300) === -->
+      <!-- UC1 -->
+      <ellipse cx="300" cy="110" rx="128" ry="34" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+      <text x="300" y="114" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="600">Xem POI lân cận</text>
+
+      <!-- UC2 -->
+      <ellipse cx="300" cy="210" rx="128" ry="34" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+      <text x="300" y="205" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="600">Nghe Audio</text>
+      <text x="300" y="222" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="600">Narration</text>
+
+      <!-- UC3 -->
+      <ellipse cx="300" cy="316" rx="128" ry="34" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+      <text x="300" y="320" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="600">Xem POI Detail</text>
+
+      <!-- UC4 -->
+      <ellipse cx="300" cy="416" rx="128" ry="34" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+      <text x="300" y="411" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="600">Download Offline</text>
+      <text x="300" y="427" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="600">Package</text>
+
+      <!-- UC5 -->
+      <ellipse cx="300" cy="516" rx="128" ry="34" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+      <text x="300" y="511" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="600">Đăng nhập /</text>
+      <text x="300" y="527" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="600">Đăng ký</text>
+
+      <!-- UC6 -->
+      <ellipse cx="300" cy="614" rx="128" ry="34" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+      <text x="300" y="618" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="600">Upload Visit Batch</text>
+
+      <!-- === INCLUDE TARGETS (cx=668, teal border) === -->
+      <ellipse cx="668" cy="85" rx="150" ry="32" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="80" text-anchor="middle" fill="#6ee7b7" font-size="11.5">GET /pois/nearby</text>
+      <text x="668" y="95" text-anchor="middle" fill="#6ee7b7" font-size="11.5">ST_Distance_Sphere (MySQL)</text>
+
+      <ellipse cx="668" cy="220" rx="150" ry="32" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="215" text-anchor="middle" fill="#6ee7b7" font-size="11.5">GeofenceEngine debounce 3x</text>
+      <text x="668" y="230" text-anchor="middle" fill="#6ee7b7" font-size="11.5">Priority resolution highest int</text>
+
+      <ellipse cx="668" cy="296" rx="150" ry="32" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="291" text-anchor="middle" fill="#6ee7b7" font-size="11.5">NarrationPlayer.PlayAsync</text>
+      <text x="668" y="306" text-anchor="middle" fill="#6ee7b7" font-size="11.5">local → stream?proxy=1</text>
+
+      <ellipse cx="668" cy="468" rx="150" ry="32" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="463" text-anchor="middle" fill="#6ee7b7" font-size="11.5">GET /offlinepackages/catalog</text>
+      <text x="668" y="478" text-anchor="middle" fill="#6ee7b7" font-size="11.5">DownloadAndInstallAsync ZIP</text>
+
+      <ellipse cx="668" cy="614" rx="150" ry="32" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="609" text-anchor="middle" fill="#6ee7b7" font-size="11.5">VisitQueueStore Enqueue/Dequeue</text>
+      <text x="668" y="624" text-anchor="middle" fill="#6ee7b7" font-size="11.5">POST /sync/visits batch</text>
+
+      <!-- === EXTEND TARGETS (cx=668, amber border) === -->
+      <ellipse cx="668" cy="150" rx="150" ry="32" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="145" text-anchor="middle" fill="#fcd34d" font-size="11.5">SQLite Haversine fallback</text>
+      <text x="668" y="160" text-anchor="middle" fill="#fcd34d" font-size="11.5">(khi offline)</text>
+
+      <ellipse cx="668" cy="374" rx="150" ry="32" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="369" text-anchor="middle" fill="#fcd34d" font-size="11.5">TTS fallback OnMediaFailed</text>
+      <text x="668" y="384" text-anchor="middle" fill="#fcd34d" font-size="11.5">TextToSpeech.SpeakAsync</text>
+
+      <ellipse cx="668" cy="422" rx="150" ry="32" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="416" text-anchor="middle" fill="#fcd34d" font-size="11.5">Background Notification</text>
+      <text x="668" y="429" text-anchor="middle" fill="#fcd34d" font-size="11.5">LocalNotificationService</text>
+
+      <ellipse cx="668" cy="540" rx="150" ry="32" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="535" text-anchor="middle" fill="#fcd34d" font-size="11.5">CheckForUpdateAsync</text>
+      <text x="668" y="550" text-anchor="middle" fill="#fcd34d" font-size="11.5">so sánh ContentChecksum</text>
+
+      <!-- === ASSOCIATIONS actor→UC (solid) === -->
+      <line x1="80" y1="250" x2="170" y2="128" stroke="#475569" stroke-width="1.5" marker-end="url(#aa)"/>
+      <line x1="80" y1="262" x2="170" y2="210" stroke="#475569" stroke-width="1.5" marker-end="url(#aa)"/>
+      <line x1="80" y1="272" x2="170" y2="314" stroke="#475569" stroke-width="1.5" marker-end="url(#aa)"/>
+      <line x1="80" y1="282" x2="170" y2="408" stroke="#475569" stroke-width="1.5" marker-end="url(#aa)"/>
+      <line x1="80" y1="292" x2="170" y2="507" stroke="#475569" stroke-width="1.5" marker-end="url(#aa)"/>
+      <line x1="80" y1="302" x2="170" y2="608" stroke="#475569" stroke-width="1.5" marker-end="url(#aa)"/>
+
+      <!-- === INCLUDE arrows (teal dashed) === -->
+      <!-- UC1 → ST_Distance_Sphere -->
+      <line x1="428" y1="96" x2="512" y2="87" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ai)"/>
+      <text x="468" y="88" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+
+      <!-- UC2 → GeofenceEngine -->
+      <line x1="428" y1="204" x2="512" y2="220" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ai)"/>
+      <text x="468" y="206" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+
+      <!-- UC2 → PlayAsync -->
+      <line x1="428" y1="218" x2="512" y2="296" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ai)"/>
+      <text x="464" y="262" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+
+      <!-- UC4 → Catalog/Download -->
+      <line x1="428" y1="408" x2="512" y2="466" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ai)"/>
+      <text x="468" y="434" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+
+      <!-- UC6 → VisitQueue -->
+      <line x1="428" y1="614" x2="512" y2="614" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ai)"/>
+      <text x="468" y="607" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+
+      <!-- === EXTEND arrows (amber dashed) === -->
+      <!-- UC1 → SQLite Haversine -->
+      <line x1="428" y1="124" x2="512" y2="148" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ae)"/>
+      <text x="468" y="143" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+
+      <!-- UC3 extends UC1 (tap pin) -->
+      <path d="M 300 282 C 300 260 300 170 300 144" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,3" fill="none" marker-end="url(#ae)"/>
+      <text x="260" y="215" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+
+      <!-- UC2 → TTS fallback -->
+      <line x1="428" y1="226" x2="512" y2="372" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ae)"/>
+      <text x="462" y="310" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+
+      <!-- UC2 → Bg Notification -->
+      <line x1="428" y1="232" x2="512" y2="420" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ae)"/>
+      <text x="454" y="342" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+
+      <!-- UC4 → CheckForUpdate -->
+      <line x1="428" y1="428" x2="512" y2="540" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ae)"/>
+      <text x="462" y="492" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+    </svg>
+    </div>
+    </div>
+
+    <!-- VENDOR -->
+    <div id="uc-vendor" style="display:none">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:.5rem">
+    <svg viewBox="0 0 1020 600" xmlns="http://www.w3.org/2000/svg" style="min-width:700px;width:100%;max-width:1020px;font-family:Inter,system-ui,sans-serif;display:block;background:#0a1628;border-radius:10px">
+      <defs>
+        <marker id="vi" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="#14b8a6"/></marker>
+        <marker id="ve" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="#f59e0b"/></marker>
+        <marker id="va" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><polygon points="0,0 6,3 0,6" fill="#475569"/></marker>
+      </defs>
+      <!-- boundary -->
+      <rect x="128" y="30" width="874" height="556" rx="10" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-dasharray="6,3"/>
+      <text x="565" y="58" text-anchor="middle" fill="#334155" font-size="12" font-weight="700" letter-spacing="1">VINH KHANH SYSTEM BOUNDARY</text>
+
+      <!-- actor -->
+      <circle cx="60" cy="238" r="20" fill="none" stroke="#a5b4fc" stroke-width="2.5"/>
+      <line x1="60" y1="258" x2="60" y2="308" stroke="#a5b4fc" stroke-width="2.5"/>
+      <line x1="30" y1="278" x2="90" y2="278" stroke="#a5b4fc" stroke-width="2.5"/>
+      <line x1="60" y1="308" x2="34" y2="342" stroke="#a5b4fc" stroke-width="2.5"/>
+      <line x1="60" y1="308" x2="86" y2="342" stroke="#a5b4fc" stroke-width="2.5"/>
+      <text x="60" y="366" text-anchor="middle" fill="#c7d2fe" font-size="13" font-weight="700">🏪 Vendor</text>
+
+      <!-- MAIN USE CASES -->
+      <ellipse cx="295" cy="105" rx="128" ry="34" fill="#0f172a" stroke="#818cf8" stroke-width="2"/>
+      <text x="295" y="100" text-anchor="middle" fill="#e0e7ff" font-size="12" font-weight="600">View / Edit</text>
+      <text x="295" y="116" text-anchor="middle" fill="#e0e7ff" font-size="12" font-weight="600">Own POI</text>
+
+      <ellipse cx="295" cy="225" rx="128" ry="34" fill="#0f172a" stroke="#818cf8" stroke-width="2"/>
+      <text x="295" y="220" text-anchor="middle" fill="#e0e7ff" font-size="12" font-weight="600">Manage Audio</text>
+      <text x="295" y="236" text-anchor="middle" fill="#e0e7ff" font-size="12" font-weight="600">&amp; Generate TTS</text>
+
+      <ellipse cx="295" cy="345" rx="128" ry="34" fill="#0f172a" stroke="#818cf8" stroke-width="2"/>
+      <text x="295" y="340" text-anchor="middle" fill="#e0e7ff" font-size="12" font-weight="600">Manage Menu</text>
+      <text x="295" y="356" text-anchor="middle" fill="#e0e7ff" font-size="12" font-weight="600">Items</text>
+
+      <ellipse cx="295" cy="455" rx="128" ry="34" fill="#0f172a" stroke="#818cf8" stroke-width="2"/>
+      <text x="295" y="450" text-anchor="middle" fill="#e0e7ff" font-size="12" font-weight="600">View Analytics</text>
+      <text x="295" y="466" text-anchor="middle" fill="#e0e7ff" font-size="12" font-weight="600">(Own POIs only)</text>
+
+      <ellipse cx="295" cy="547" rx="128" ry="34" fill="#0f172a" stroke="#818cf8" stroke-width="2"/>
+      <text x="295" y="551" text-anchor="middle" fill="#e0e7ff" font-size="12" font-weight="600">Đổi mật khẩu</text>
+
+      <!-- INCLUDE targets -->
+      <ellipse cx="668" cy="80" rx="150" ry="30" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="75" text-anchor="middle" fill="#6ee7b7" font-size="11.5">GET /pois vendorPoiIds FRESH DB</text>
+      <text x="668" y="89" text-anchor="middle" fill="#6ee7b7" font-size="11.5">PUT /pois/{id} ownership check</text>
+
+      <ellipse cx="668" cy="215" rx="150" ry="30" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="210" text-anchor="middle" fill="#6ee7b7" font-size="11.5">POST /audio/poi/{id}/upload</text>
+      <text x="668" y="224" text-anchor="middle" fill="#6ee7b7" font-size="11.5">multipart/form-data</text>
+
+      <ellipse cx="668" cy="335" rx="150" ry="30" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="330" text-anchor="middle" fill="#6ee7b7" font-size="11.5">CRUD /menu/poi/{id}</text>
+      <text x="668" y="344" text-anchor="middle" fill="#6ee7b7" font-size="11.5">name price isSignature isAvailable</text>
+
+      <ellipse cx="668" cy="455" rx="150" ry="30" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="450" text-anchor="middle" fill="#6ee7b7" font-size="11.5">GET /dashboard/stats</text>
+      <text x="668" y="464" text-anchor="middle" fill="#6ee7b7" font-size="11.5">vendorPoiIds scoped from DB</text>
+
+      <!-- EXTEND targets -->
+      <ellipse cx="668" cy="142" rx="150" ry="30" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="137" text-anchor="middle" fill="#fcd34d" font-size="11.5">PATCH /pois/{id}/toggle IsActive</text>
+      <text x="668" y="151" text-anchor="middle" fill="#fcd34d" font-size="11.5">(khi muốn ẩn POI)</text>
+
+      <ellipse cx="668" cy="270" rx="150" ry="30" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="265" text-anchor="middle" fill="#fcd34d" font-size="11.5">POST generate-tts</text>
+      <text x="668" y="279" text-anchor="middle" fill="#fcd34d" font-size="11.5">AzureTTS SDK SpeakSsmlAsync</text>
+
+      <ellipse cx="668" cy="395" rx="150" ry="30" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="390" text-anchor="middle" fill="#fcd34d" font-size="11.5">PATCH /audio/{id}/set-default</text>
+      <text x="668" y="404" text-anchor="middle" fill="#fcd34d" font-size="11.5">toggle-available / toggle-signature</text>
+
+      <ellipse cx="668" cy="520" rx="150" ry="30" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="515" text-anchor="middle" fill="#fcd34d" font-size="11.5">GET /analytics/visits-by-day</text>
+      <text x="668" y="529" text-anchor="middle" fill="#fcd34d" font-size="11.5">/visits-by-hour /trends</text>
+
+      <!-- ASSOCIATIONS -->
+      <line x1="80" y1="228" x2="165" y2="120" stroke="#475569" stroke-width="1.5" marker-end="url(#va)"/>
+      <line x1="80" y1="238" x2="165" y2="225" stroke="#475569" stroke-width="1.5" marker-end="url(#va)"/>
+      <line x1="80" y1="248" x2="165" y2="342" stroke="#475569" stroke-width="1.5" marker-end="url(#va)"/>
+      <line x1="80" y1="258" x2="165" y2="450" stroke="#475569" stroke-width="1.5" marker-end="url(#va)"/>
+      <line x1="80" y1="268" x2="165" y2="542" stroke="#475569" stroke-width="1.5" marker-end="url(#va)"/>
+
+      <!-- UC1 includes/extends -->
+      <line x1="423" y1="95" x2="512" y2="82" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#vi)"/>
+      <text x="466" y="82" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+      <line x1="423" y1="118" x2="512" y2="140" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ve)"/>
+      <text x="463" y="135" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+
+      <!-- UC2 includes/extends -->
+      <line x1="423" y1="218" x2="512" y2="216" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#vi)"/>
+      <text x="466" y="210" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+      <line x1="423" y1="234" x2="512" y2="268" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ve)"/>
+      <text x="461" y="258" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+
+      <!-- UC3 includes/extends -->
+      <line x1="423" y1="338" x2="512" y2="336" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#vi)"/>
+      <text x="466" y="330" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+      <line x1="423" y1="356" x2="512" y2="394" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ve)"/>
+      <text x="460" y="380" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+
+      <!-- UC4 includes/extends -->
+      <line x1="423" y1="450" x2="512" y2="456" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#vi)"/>
+      <text x="466" y="446" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+      <line x1="423" y1="466" x2="512" y2="519" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ve)"/>
+      <text x="460" y="498" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+    </svg>
+    </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="uc-admin" style="display:none">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:.5rem">
+    <svg viewBox="0 0 1020 600" xmlns="http://www.w3.org/2000/svg" style="min-width:700px;width:100%;max-width:1020px;font-family:Inter,system-ui,sans-serif;display:block;background:#0a1628;border-radius:10px">
+      <defs>
+        <marker id="ni" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="#14b8a6"/></marker>
+        <marker id="ne" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="#f59e0b"/></marker>
+        <marker id="na" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><polygon points="0,0 6,3 0,6" fill="#475569"/></marker>
+      </defs>
+      <!-- boundary -->
+      <rect x="128" y="30" width="874" height="556" rx="10" fill="none" stroke="#1e3a5f" stroke-width="2" stroke-dasharray="6,3"/>
+      <text x="565" y="58" text-anchor="middle" fill="#334155" font-size="12" font-weight="700" letter-spacing="1">VINH KHANH SYSTEM BOUNDARY — ADMIN FULL ACCESS</text>
+
+      <!-- actor -->
+      <circle cx="60" cy="238" r="20" fill="none" stroke="#fca5a5" stroke-width="2.5"/>
+      <line x1="60" y1="258" x2="60" y2="308" stroke="#fca5a5" stroke-width="2.5"/>
+      <line x1="30" y1="278" x2="90" y2="278" stroke="#fca5a5" stroke-width="2.5"/>
+      <line x1="60" y1="308" x2="34" y2="342" stroke="#fca5a5" stroke-width="2.5"/>
+      <line x1="60" y1="308" x2="86" y2="342" stroke="#fca5a5" stroke-width="2.5"/>
+      <text x="60" y="366" text-anchor="middle" fill="#fecaca" font-size="13" font-weight="700">🛡️ Admin</text>
+
+      <!-- MAIN USE CASES -->
+      <ellipse cx="295" cy="105" rx="128" ry="34" fill="#0f172a" stroke="#f87171" stroke-width="2"/>
+      <text x="295" y="100" text-anchor="middle" fill="#fee2e2" font-size="12" font-weight="600">CRUD All POIs</text>
+      <text x="295" y="116" text-anchor="middle" fill="#fee2e2" font-size="12" font-weight="600">(All Vendors)</text>
+
+      <ellipse cx="295" cy="225" rx="128" ry="34" fill="#0f172a" stroke="#f87171" stroke-width="2"/>
+      <text x="295" y="220" text-anchor="middle" fill="#fee2e2" font-size="12" font-weight="600">Manage Users</text>
+      <text x="295" y="236" text-anchor="middle" fill="#fee2e2" font-size="12" font-weight="600">Admin / Vendor</text>
+
+      <ellipse cx="295" cy="345" rx="128" ry="34" fill="#0f172a" stroke="#f87171" stroke-width="2"/>
+      <text x="295" y="340" text-anchor="middle" fill="#fee2e2" font-size="12" font-weight="600">Build Offline</text>
+      <text x="295" y="356" text-anchor="middle" fill="#fee2e2" font-size="12" font-weight="600">Packages</text>
+
+      <ellipse cx="295" cy="455" rx="128" ry="34" fill="#0f172a" stroke="#f87171" stroke-width="2"/>
+      <text x="295" y="450" text-anchor="middle" fill="#fee2e2" font-size="12" font-weight="600">System Settings</text>
+      <text x="295" y="466" text-anchor="middle" fill="#fee2e2" font-size="12" font-weight="600">&amp; Maintenance</text>
+
+      <ellipse cx="295" cy="547" rx="128" ry="34" fill="#0f172a" stroke="#f87171" stroke-width="2"/>
+      <text x="295" y="551" text-anchor="middle" fill="#fee2e2" font-size="12" font-weight="600">View All Analytics</text>
+
+      <!-- INCLUDE targets -->
+      <ellipse cx="668" cy="80" rx="150" ry="30" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="75" text-anchor="middle" fill="#6ee7b7" font-size="11.5">POST /pois + Translations</text>
+      <text x="668" y="89" text-anchor="middle" fill="#6ee7b7" font-size="11.5">all languages + VendorUserId</text>
+
+      <ellipse cx="668" cy="215" rx="150" ry="30" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="210" text-anchor="middle" fill="#6ee7b7" font-size="11.5">POST /users Create (Admin/Vendor)</text>
+      <text x="668" y="224" text-anchor="middle" fill="#6ee7b7" font-size="11.5">PATCH /users/{id}/toggle IsActive</text>
+
+      <ellipse cx="668" cy="335" rx="150" ry="30" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="330" text-anchor="middle" fill="#6ee7b7" font-size="11.5">POST /offlinepackages/{id}/build</text>
+      <text x="668" y="344" text-anchor="middle" fill="#6ee7b7" font-size="11.5">async ZIP + manifest.json SQLite</text>
+
+      <ellipse cx="668" cy="445" rx="150" ry="30" fill="#041f14" stroke="#14b8a6" stroke-width="1.8"/>
+      <text x="668" y="440" text-anchor="middle" fill="#6ee7b7" font-size="11.5">PUT /settings/maintenance</text>
+      <text x="668" y="454" text-anchor="middle" fill="#6ee7b7" font-size="11.5">MaintenanceMiddleware toggle</text>
+
+      <!-- EXTEND targets -->
+      <ellipse cx="668" cy="142" rx="150" ry="30" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="137" text-anchor="middle" fill="#fcd34d" font-size="11.5">PATCH /pois/{id}/featured</text>
+      <text x="668" y="151" text-anchor="middle" fill="#fcd34d" font-size="11.5">DELETE cascade trans/audio/menu</text>
+
+      <ellipse cx="668" cy="270" rx="150" ry="30" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="265" text-anchor="middle" fill="#fcd34d" font-size="11.5">POST /users/{id}/reset-password</text>
+      <text x="668" y="279" text-anchor="middle" fill="#fcd34d" font-size="11.5">(khi vendor/admin quên MK)</text>
+
+      <ellipse cx="668" cy="395" rx="150" ry="30" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="390" text-anchor="middle" fill="#fcd34d" font-size="11.5">GET /offlinepackages/{id}/status</text>
+      <text x="668" y="404" text-anchor="middle" fill="#fcd34d" font-size="11.5">Pending → Building → Active</text>
+
+      <ellipse cx="668" cy="510" rx="150" ry="30" fill="#1c1100" stroke="#f59e0b" stroke-width="1.8"/>
+      <text x="668" y="505" text-anchor="middle" fill="#fcd34d" font-size="11.5">POST /settings/generate-api-key</text>
+      <text x="668" y="519" text-anchor="middle" fill="#fcd34d" font-size="11.5">(khi cần rotate API key)</text>
+
+      <!-- ASSOCIATIONS -->
+      <line x1="80" y1="228" x2="165" y2="120" stroke="#475569" stroke-width="1.5" marker-end="url(#na)"/>
+      <line x1="80" y1="240" x2="165" y2="225" stroke="#475569" stroke-width="1.5" marker-end="url(#na)"/>
+      <line x1="80" y1="250" x2="165" y2="342" stroke="#475569" stroke-width="1.5" marker-end="url(#na)"/>
+      <line x1="80" y1="260" x2="165" y2="450" stroke="#475569" stroke-width="1.5" marker-end="url(#na)"/>
+      <line x1="80" y1="270" x2="165" y2="544" stroke="#475569" stroke-width="1.5" marker-end="url(#na)"/>
+
+      <!-- UC1 lines -->
+      <line x1="423" y1="95" x2="512" y2="82" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ni)"/>
+      <text x="466" y="82" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+      <line x1="423" y1="118" x2="512" y2="140" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ne)"/>
+      <text x="462" y="135" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+
+      <!-- UC2 lines -->
+      <line x1="423" y1="218" x2="512" y2="216" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ni)"/>
+      <text x="466" y="210" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+      <line x1="423" y1="235" x2="512" y2="268" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ne)"/>
+      <text x="461" y="257" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+
+      <!-- UC3 lines -->
+      <line x1="423" y1="338" x2="512" y2="336" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ni)"/>
+      <text x="466" y="330" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+      <line x1="423" y1="356" x2="512" y2="393" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ne)"/>
+      <text x="460" y="380" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+
+      <!-- UC4 lines -->
+      <line x1="423" y1="448" x2="512" y2="446" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ni)"/>
+      <text x="466" y="440" text-anchor="middle" fill="#14b8a6" font-size="10" font-weight="600">«include»</text>
+      <line x1="423" y1="466" x2="512" y2="509" stroke="#f59e0b" stroke-width="1.6" stroke-dasharray="6,3" marker-end="url(#ne)"/>
+      <text x="460" y="492" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">«extend»</text>
+    </svg>
+    </div>
+    </div>
+  </div>
+
+  <!-- ER + ROUTING -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(16,185,129,.1);color:var(--success)">🗄️</div>
+      <div><div class="section-num">Database &amp; Routing</div><h2>ER Diagram &amp; Frontend Routing</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="db-schema">🗄️ ER Diagram — 9 Core Tables</button>
+      <button class="diagram-btn" data-diagram="routing">🔀 Frontend Routing — React Router v7</button>
+    </div>
+  </div>
+
+  <!-- HOW TO USE MODAL -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">💡</div>
+      <div><div class="section-num">Hướng dẫn</div><h2>Cách Dùng Modal Diagram</h2></div>
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <h3>🖱️ Pan (kéo)</h3>
+        <p>Giữ chuột trái và kéo để di chuyển sơ đồ. Cursor đổi thành <code>grab</code> khi hover.</p>
+      </div>
+      <div class="card">
+        <h3>🔍 Zoom</h3>
+        <p>Scroll wheel để zoom in/out. Nút <kbd>+</kbd> <kbd>−</kbd> zoom 1.25x mỗi bước. Nút <kbd>⟲</kbd> reset 100%.</p>
+      </div>
+      <div class="card">
+        <h3>✕ Đóng</h3>
+        <p>Nhấn <kbd>ESC</kbd>, nút <strong>✕ ESC</strong>, hoặc click vào vùng mờ ngoài modal.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="patterns.html">← Design Patterns</a>
+  <a href="features.html">Chức năng →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="patterns.html">Patterns</a><a href="features.html">Chức năng</a><a href="appendix.html">Tech Stack</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+<script>
+// Tab switcher for UC diagrams — plain JS, no framework
+function switchUC(which) {
+  ['customer','vendor','admin'].forEach(function(id) {
+    document.getElementById('uc-' + id).style.display = (id === which) ? 'block' : 'none';
+    var btn = document.getElementById('tab-' + id);
+    if (id === which) {
+      btn.style.background = '#14b8a6'; btn.style.color = '#0f172a';
+      btn.style.borderColor = '#14b8a6'; btn.style.fontWeight = '700';
+    } else {
+      btn.style.background = '#1e293b'; btn.style.color = '#94a3b8';
+      btn.style.borderColor = '#334155'; btn.style.fontWeight = '600';
+    }
+  });
+}
+</script>
+</body></html>

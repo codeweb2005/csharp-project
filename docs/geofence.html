@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPS Geofence — Vinh Khanh Food Tour Docs</title>
+<meta name="description" content="MAUI GeofenceEngine, ILocationService, haversine distance, cooldown per POI, NarrationPlayer trigger flow.">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>📡 GPS Geofence — Tự Động Phát Audio</h1>
+  <p class="subtitle">MAUI <code>GeofenceEngine</code> nhận GPS updates từ <code>ILocationService</code>, tính khoảng cách Haversine, trigger <code>NarrationPlayer</code> khi vào zone POI.</p>
+  <div class="badges">
+    <span class="badge">GeofenceEngine</span>
+    <span class="badge teal">ILocationService</span>
+    <span class="badge">Haversine C#</span>
+    <span class="badge indigo">Cooldown per POI</span>
+    <span class="badge">NarrationPlayer</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠</a><span>›</span><a href="startup.html">Startup</a><span>›</span><strong>GPS Geofence</strong>
+</div>
+
+<div class="page-content">
+
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">📡</div>
+      <div><div class="section-num">Core Flow</div><h2>Geofence Processing Loop</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="geofence-flow">📡 Sequence: Geofence + NarrationPlayer</button>
+      <button class="diagram-btn" data-diagram="activity-geofence">🔄 Activity: GPS Processing Loop</button>
+    </div>
+
+    <div class="flow">
+      <span class="flow-step">GPS Update (ILocationService)</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step teal">Throttle 5s check</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step">Load POIs from SQLite</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step indigo">Haversine Distance</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step warning">Cooldown check</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step success">Trigger Narration</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step">Queue VisitHistory</span>
+    </div>
+
+    <div class="card-grid" style="margin-top:1.2rem">
+      <div class="card">
+        <h3>ILocationService (Platform)</h3>
+        <ul>
+          <li><strong>Android:</strong> <code>AndroidLocationService</code> — FusedLocationProvider</li>
+          <li><strong>iOS:</strong> <code>IosLocationService</code> — CLLocationManager</li>
+          <li>Accuracy: Best available (GPS)</li>
+          <li>Throttle: báo lên GeofenceEngine mỗi <strong>5 giây</strong> (tránh battery drain)</li>
+          <li>Phase 3: nâng lên <code>LocationAlways</code> cho background mode</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>GeofenceEngine</h3>
+        <ul>
+          <li>Singleton — tồn tại suốt app lifetime</li>
+          <li>Haversine distance tính bằng C# thuần (không cần thư viện ngoài)</li>
+          <li><code>GeofenceRadius</code> mỗi POI khác nhau (field trên <code>POIs</code> table)</li>
+          <li><code>Priority</code> field: khi 2 POI overlap → POI Priority cao hơn trigger trước</li>
+          <li>Cooldown per POI ID — tránh phát narration lặp lại khi đứng yên</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>NarrationPlayer</h3>
+        <ul>
+          <li>Kiểm tra SQLite cache trước → play local MP3 (0ms latency)</li>
+          <li>Nếu không có → <code>GET /api/v1/audio/{id}/stream</code> (AllowAnonymous endpoint)</li>
+          <li>Stream về → cache vào SQLite để offline lần sau</li>
+          <li>TriggerType: <code>GeofenceEnter</code> / <code>ManualPlay</code> / <code>Offline</code></li>
+          <li>Phase 3: local notification khi trigger ở background</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>GPS Mock — Testing</h3>
+        <div class="code-block"><span class="comment"># Android Emulator GPS mock</span>
+adb emu geo fix 106.6932 10.7538
+<span class="comment"># Bước vào geofence</span>
+adb emu geo fix 106.6940 10.7544</div>
+        <p style="margin-top:.5rem;font-size:.8rem">Format: <code>geo fix &lt;longitude&gt; &lt;latitude&gt;</code></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP PAGE -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">🗺️</div>
+      <div><div class="section-num">MapPage</div><h2>MapPage.xaml — Mapsui 5.x</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Component</th><th>Version / Note</th><th>Breaking change</th></tr></thead>
+        <tbody>
+          <tr><td><code>MapControl</code></td><td>Mapsui 5.x NuGet</td><td>Registered via <code>.UseMapsui()</code> in MauiProgram (breaking change từ <code>UseMapsuiControls()</code>). MapInfoEventArgs: <code>e.GetMapInfo(layers)</code> thay vì <code>e.Feature</code>.</td></tr>
+          <tr><td><code>OnMapInfo</code> event</td><td>MapInfoEventArgs</td><td>Access đổi từ <code>e.Feature</code> → <code>e.GetMapInfo(layers)</code></td></tr>
+          <tr><td>POI Pins</td><td>SymbolLayer</td><td>Render category icon trên bản đồ, tap → show detail popup</td></tr>
+          <tr><td>User location dot</td><td>WritableLayer</td><td>Cập nhật realtime theo GPS updates từ GeofenceEngine</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="highlight info">
+      <strong>Views structure:</strong> <code>Views/MapPage.xaml</code> (bản đồ + POI pins), <code>Views/MainPage.xaml</code> (startup, permissions, sync), <code>Views/OfflinePage.xaml</code> (download + sync management). ViewModels theo MVVM pattern.
+    </div>
+  </div>
+
+  <!-- VISIT TRACKING -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(245,158,11,.1);color:var(--warning)">📊</div>
+      <div><div class="section-num">Analytics</div><h2>Visit Tracking — POST /sync/visits</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Giá trị</th></tr></thead>
+        <tbody>
+          <tr><td><code>poiId</code></td><td>int</td><td>ID của POI đã trigger</td></tr>
+          <tr><td><code>languageId</code></td><td>int</td><td>Language đang dùng lúc nghe</td></tr>
+          <tr><td><code>triggerType</code></td><td>enum</td><td><code>0</code>=GeofenceEnter, <code>1</code>=ManualPlay, <code>2</code>=Offline</td></tr>
+          <tr><td><code>narrationPlayed</code></td><td>bool</td><td>Audio có thực sự phát không (user cancel?)</td></tr>
+          <tr><td><code>listenDuration</code></td><td>int (seconds)</td><td>Thời gian thực sự nghe (stop sớm?)</td></tr>
+          <tr><td><code>visitedAt</code></td><td>ISO 8601</td><td>Timestamp khi trigger, quyết theo client clock</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:.8rem">Mobile queue visit events locally → upload batch khi online. Backend: <code>INSERT VisitHistory</code> + <code>UPDATE POIs SET TotalVisits = TotalVisits + 1</code>.</p>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="startup.html">← Startup & DI</a>
+  <a href="content.html">POI & Database →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="appendix.html">Tech Stack</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+</body></html>

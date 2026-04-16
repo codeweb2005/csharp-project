@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kiến Trúc Hệ Thống — Vinh Khanh Food Tour Docs</title>
+<meta name="description" content="Clean Architecture (Onion), 4 layers ASP.NET Core 10, MySQL 8 tables, 3 roles, deployment diagram.">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li><li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li><li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li><li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li><li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li><li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li><li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="page-hero">
+  <h1>🏗️ Kiến Trúc Hệ Thống</h1>
+  <p class="subtitle">Clean Architecture (Onion) — 4 layers, 3 user roles, MySQL 8 với ST_Distance_Sphere, production trên AWS ECS Fargate.</p>
+  <div class="badges">
+    <span class="badge">Clean Architecture</span>
+    <span class="badge teal">ASP.NET Core 10</span>
+    <span class="badge indigo">MySQL 8</span>
+    <span class="badge">3 Roles</span>
+    <span class="badge teal">AWS ECS Fargate</span>
+  </div>
+</div>
+<div class="breadcrumb">
+  <a href="index.html">🏠 Home</a><span>›</span><strong>Kiến Trúc Hệ Thống</strong>
+</div>
+
+<div class="page-content">
+
+  <!-- ARCHITECTURE OVERVIEW -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">🏗️</div>
+      <div><div class="section-num">Architecture</div><h2>Tổng Quan Kiến Trúc</h2></div>
+    </div>
+    <p style="margin-bottom:1.2rem">Hệ thống gồm 3 client tier (Admin Panel, Vendor Panel, MAUI Mobile) giao tiếp với 1 REST API backend qua Bearer JWT. Backend theo Clean Architecture: <strong>API → Application → Domain ← Infrastructure</strong>.</p>
+
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="architecture">🏗️ System Architecture</button>
+      <button class="diagram-btn" data-diagram="clean-arch">🔁 Clean Architecture Layers</button>
+      <button class="diagram-btn" data-diagram="infra-prod">☁️ Production Infrastructure (AWS)</button>
+    </div>
+
+    <div class="arch-grid">
+      <div class="arch-module">
+        <div class="mod-icon">🌐</div>
+        <div class="mod-name">Admin Panel</div>
+        <div class="mod-desc">React 19 + Vite 7<br>Ant Design 6.3<br>port 5173</div>
+      </div>
+      <div class="arch-module">
+        <div class="mod-icon">🏪</div>
+        <div class="mod-name">Vendor Panel</div>
+        <div class="mod-desc">React 19 + Vite 7<br>Ant Design 6.3<br>port 5174</div>
+      </div>
+      <div class="arch-module">
+        <div class="mod-icon">📱</div>
+        <div class="mod-name">.NET MAUI</div>
+        <div class="mod-desc">Android + iOS<br>GPS · Geofence · Audio<br>SQLite offline cache</div>
+      </div>
+      <div class="arch-module">
+        <div class="mod-icon">⚙️</div>
+        <div class="mod-name">VinhKhanh.API</div>
+        <div class="mod-desc">ASP.NET Core 10<br>Controllers.cs (all in one)<br>JWT · PBKDF2-SHA256 · Swagger</div>
+      </div>
+      <div class="arch-module">
+        <div class="mod-icon">🗄️</div>
+        <div class="mod-name">MySQL 8</div>
+        <div class="mod-desc">9 core tables<br>ST_Distance_Sphere<br>InnoDB · utf8mb4</div>
+      </div>
+      <div class="arch-module">
+        <div class="mod-icon">🔊</div>
+        <div class="mod-name">Azure TTS</div>
+        <div class="mod-desc">vi-VN-HoaiMyNeural<br>southeastasia region<br>MP3 cached to S3</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLEAN ARCHITECTURE LAYERS -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">📦</div>
+      <div><div class="section-num">Layers</div><h2>4 Layers — Clean Architecture</h2></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Layer / Project</th><th>Vai trò</th><th>Files chính</th><th>Dependencies</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>VinhKhanh.API</code></td>
+            <td>Presentation — HTTP, DI, JWT, Swagger</td>
+            <td><code>Controllers.cs</code> (all controllers), <code>Middleware.cs</code>, <code>Program.cs</code></td>
+            <td>Application + Infrastructure (DI only)</td>
+          </tr>
+          <tr>
+            <td><code>VinhKhanh.Application</code></td>
+            <td>Use Cases — service interfaces, DTOs, validators</td>
+            <td><code>IServices.cs</code> (all interfaces), <code>DTOs.cs</code> (all DTOs), <code>Validators/</code></td>
+            <td>Domain only</td>
+          </tr>
+          <tr>
+            <td><code>VinhKhanh.Domain</code></td>
+            <td>Core — entities, enums, repository interfaces. <strong>Zero NuGet</strong></td>
+            <td><code>Entities.cs</code>, <code>Enums.cs</code>, <code>Interfaces.cs</code>, <code>BaseEntity.cs</code></td>
+            <td>None (zero deps)</td>
+          </tr>
+          <tr>
+            <td><code>VinhKhanh.Infrastructure</code></td>
+            <td>External — EF Core, repos, services implementation</td>
+            <td><code>AppDbContext.cs</code>, <code>Repositories/POIRepository.cs</code>, <code>Services/{Name}Service.cs</code> (1 file each)</td>
+            <td>Domain + Application</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="highlight warning">
+      <strong>Quy tắc bắt buộc:</strong> <code>VinhKhanh.Domain</code> KHÔNG được thêm bất kỳ NuGet package nào. File <code>.csproj</code> của Domain chỉ chứa <code>&lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;</code>. Vi phạm quy tắc này sẽ làm hỏng kiến trúc.
+    </div>
+  </div>
+
+  <!-- DATABASE SCHEMA -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">🗄️</div>
+      <div><div class="section-num">Database</div><h2>MySQL 8 — Database Schema</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="db-schema">🗄️ ER Diagram — Core Tables</button>
+    </div>
+    <p style="margin-bottom:1rem">Database: <code>vinhkhanh</code>. Engine: <code>InnoDB</code>. Collation: <code>utf8mb4_unicode_ci</code>. Quản lý schema bằng <strong>numbered SQL scripts</strong> (<code>Database/00N_*.sql</code>) — <strong>không dùng EF Core Migrations</strong>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Table</th><th>Mô tả</th><th>Key Fields</th></tr></thead>
+        <tbody>
+          <tr><td><code>POIs</code></td><td>Điểm ẩm thực — dữ liệu gốc</td><td>Latitude, Longitude, GeofenceRadius, Priority, VendorUserId, TotalVisits</td></tr>
+          <tr><td><code>POITranslations</code></td><td>1 row per POI per Language — tên, mô tả, NarrationText</td><td>POIId FK, LanguageId FK, Name, NarrationText, Highlights(JSON)</td></tr>
+          <tr><td><code>Users</code></td><td>Admin / Vendor / Customer — unified table</td><td>Email, PasswordHash (PBKDF2-SHA256, 100k iter), Role (enum), IsActive</td></tr>
+          <tr><td><code>AudioNarrations</code></td><td>MP3 files per POI per Language</td><td>POIId, LanguageId, FilePath (S3 or local), DurationSeconds, TTSGenerated</td></tr>
+          <tr><td><code>VisitHistory</code></td><td>Geofence trigger events — analytics + audit</td><td>POIId, UserId(nullable), TriggerType(enum), NarrationPlayed, ListenDuration</td></tr>
+          <tr><td><code>Categories</code></td><td>Phân loại POI (Bún Bò, Phở, Bánh Mì…)</td><td>Icon, Color, IsActive, SortOrder</td></tr>
+          <tr><td><code>Languages</code></td><td>Ngôn ngữ được hỗ trợ</td><td>Code (vi/en/zh…), NativeName, FlagEmoji, IsActive</td></tr>
+          <tr><td><code>MenuItems</code></td><td>Thực đơn của từng quán</td><td>POIId, Name, Price, Category, IsSignature, ImagePath</td></tr>
+          <tr><td><code>RefreshTokens</code></td><td>JWT refresh token store (SHA-256 hash)</td><td>UserId, Token(hashed), ExpiresAt, IsRevoked</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-grid" style="margin-top:1.2rem">
+      <div class="card">
+        <h3>📍 Spatial Index</h3>
+        <p><code>ST_Distance_Sphere(POINT(lng, lat), POINT(poi.Longitude, poi.Latitude))</code> — POINT nhận <strong>(longitude, latitude)</strong>, không phải (lat, lng). Dùng cho <code>GET /pois/nearby</code>.</p>
+      </div>
+      <div class="card">
+        <h3>🔢 TotalVisits Denormalized</h3>
+        <p>Trường <code>TotalVisits</code> trên bảng <code>POIs</code> là denormalized — tăng khi có VisitHistory mới, <strong>không dùng COUNT(*)</strong>. Tránh slow query trên bảng VisitHistory lớn.</p>
+      </div>
+      <div class="card">
+        <h3>📜 SQL Scripts</h3>
+        <ul>
+          <li><code>001</code> — Create database + user</li>
+          <li><code>002</code> — Create all tables</li>
+          <li><code>003</code> — Indexes + spatial indexes</li>
+          <li><code>004</code> — Stored procedures</li>
+          <li><code>005</code> — Seed data (admin, languages, categories)</li>
+          <li><code>006–009</code> — Phase 1 additions</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 ROLES -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(245,158,11,.1);color:var(--warning)">👥</div>
+      <div><div class="section-num">Roles</div><h2>3 User Roles</h2></div>
+    </div>
+    <div class="diagram-btns">
+      <button class="diagram-btn" data-diagram="phase-status">📈 Project Phase Status</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Role (enum)</th><th>Mô tả</th><th>Truy cập API</th><th>JWT claim</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Admin</strong></td>
+            <td>Quản trị viên hệ thống</td>
+            <td>Toàn bộ — POIs, Users, Settings, Analytics, Offline Packages</td>
+            <td><code>role=Admin</code></td>
+          </tr>
+          <tr>
+            <td><strong>Vendor</strong></td>
+            <td>Chủ quán</td>
+            <td>Chỉ POI của mình — listing, menu, audio, analytics riêng</td>
+            <td><code>role=Vendor</code> + <code>vendorPoiId</code></td>
+          </tr>
+          <tr>
+            <td><strong>Customer</strong></td>
+            <td>Du khách (mobile app)</td>
+            <td>Public endpoints (AllowAnonymous) — view POI, audio stream, sync</td>
+            <td><code>role=Customer</code> (optional, anonymous OK)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="highlight">
+      <strong>Default admin seed:</strong> Email <code>admin@vinhkhanh.app</code> · Password <code>Admin@123456</code> (thay đổi ngay trong staging/production). Seeded bởi <code>AuthService.EnsureDefaultAdmin()</code> khi startup.
+    </div>
+  </div>
+
+</div>
+
+<div class="sibling-nav">
+  <a href="index.html">← Home</a>
+  <a href="startup.html">Luồng Khởi Động →</a>
+</div>
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <p style="margin-top:.3rem">ASP.NET Core 10 · EF Core · MySQL 8 · React 19 · .NET MAUI · Azure TTS · AWS S3</p>
+  <div class="footer-links">
+    <a href="index.html">Home</a><a href="uml.html">UML</a><a href="appendix.html">Tech Stack</a><a href="auth.html">Auth</a>
+  </div>
+</footer>
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1rem;width:auto;padding:0 .6rem">✕ ESC</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+</body></html>

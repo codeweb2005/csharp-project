@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vinh Khanh Food Tour — Tài Liệu Kỹ Thuật</title>
+<meta name="description" content="Tài liệu kỹ thuật platform audio tour Vinh Khanh — ASP.NET Core 10, React 19, .NET MAUI, MySQL 8, Azure TTS.">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+.hero-home {
+    margin-top: 58px;
+    padding: 5rem 2rem 4rem;
+    background: var(--bg);
+    position: relative; overflow: hidden; text-align: center;
+}
+.hero-home::before {
+    content: '';
+    position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+    width: 800px; height: 500px;
+    background: radial-gradient(ellipse at 50% 50%, rgba(14,165,233,.1) 0%, rgba(20,184,166,.05) 40%, transparent 70%);
+    pointer-events: none;
+}
+.hero-home h1 {
+    font-size: 3rem; font-weight: 900; position: relative;
+    background: linear-gradient(135deg, var(--text) 30%, var(--primary-light) 70%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: .6rem;
+}
+.hero-home .tagline {
+    font-size: 1.05rem; color: var(--text-secondary);
+    max-width: 700px; margin: 0 auto 2rem; position: relative; line-height: 1.7;
+}
+.hero-cta { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; position: relative; }
+.btn { display: inline-flex; align-items: center; gap: .4rem;
+    padding: .65rem 1.5rem; border-radius: 8px; font-size: .9rem;
+    font-weight: 600; text-decoration: none; transition: all .2s; cursor: pointer; border: none; }
+.btn-primary {
+    background: var(--primary); color: white;
+    box-shadow: 0 4px 14px rgba(14,165,233,.3);
+}
+.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+.btn-outline {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border);
+}
+.btn-outline:hover { background: var(--surface-2); border-color: var(--primary); }
+.tech-stack-row {
+    display: flex; justify-content: center; gap: .5rem;
+    flex-wrap: wrap; margin: 2rem 0 0; position: relative;
+}
+.tech-tag {
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-secondary); padding: .3rem .8rem;
+    border-radius: 20px; font-size: .75rem; font-weight: 500;
+}
+</style>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav><div class="nav-inner">
+  <a href="index.html" class="logo"><span>🍜</span><span>Vinh Khanh<span class="logo-dot">.</span>docs</span></a>
+  <button class="nav-toggle">☰</button>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="overview.html">Kiến trúc</a></li>
+    <li><a href="startup.html">Khởi động</a></li>
+    <li><a href="geofence.html">Geofence</a></li>
+    <li><a href="content.html">POI & DB</a></li>
+    <li><a href="audio.html">Audio/TTS</a></li>
+    <li><a href="auth.html">Auth/JWT</a></li>
+    <li><a href="localization.html">i18n</a></li>
+    <li><a href="offline.html">Offline</a></li>
+    <li><a href="admin.html">Admin/Vendor</a></li>
+    <li><a href="patterns.html">Patterns</a></li>
+    <li><a href="uml.html">UML</a></li>
+    <li><a href="features.html">Chức năng</a></li><li><a href="appendix.html">Tech Stack</a></li>
+  </ul>
+</div></nav>
+
+<div class="hero-home">
+  <h1>Vinh Khanh Food Tour</h1>
+  <p class="tagline">Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM — tài liệu kỹ thuật đầy đủ cho backend ASP.NET Core 10, admin/vendor web panel React 19, và mobile app .NET MAUI.</p>
+  <div class="hero-cta">
+    <a href="overview.html" class="btn btn-primary">📖 Xem kiến trúc</a>
+    <a href="uml.html" class="btn btn-outline">📊 UML Diagrams</a>
+    <a href="appendix.html" class="btn btn-outline">🛠 Tech Stack</a>
+  </div>
+  <div class="tech-stack-row">
+    <span class="tech-tag">ASP.NET Core 10</span>
+    <span class="tech-tag">EF Core + MySQL 8</span>
+    <span class="tech-tag">React 19 + Vite 7</span>
+    <span class="tech-tag">Ant Design 6.3</span>
+    <span class="tech-tag">.NET MAUI</span>
+    <span class="tech-tag">Azure TTS</span>
+    <span class="tech-tag">AWS S3 / ECS Fargate</span>
+    <span class="tech-tag">JWT HMAC-SHA256</span>
+    <span class="tech-tag">Mapsui 5.x</span>
+  </div>
+</div>
+
+<div class="page-content">
+
+  <!-- STATS -->
+  <div class="section-block">
+    <div class="stats-row">
+      <div class="stat-card"><div class="value">3</div><div class="label">User Roles</div></div>
+      <div class="stat-card"><div class="value">4</div><div class="label">Clean Arch Layers</div></div>
+      <div class="stat-card"><div class="value">9</div><div class="label">DB Tables</div></div>
+      <div class="stat-card"><div class="value">40+</div><div class="label">REST Endpoints</div></div>
+      <div class="stat-card"><div class="value">2</div><div class="label">Web Panels</div></div>
+      <div class="stat-card"><div class="value">4</div><div class="label">Project Phases</div></div>
+    </div>
+  </div>
+
+  <!-- NAV CARDS -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">📚</div>
+      <div><div class="section-num">Documentation</div><h2>Danh Sách Tài Liệu</h2></div>
+    </div>
+    <div class="page-nav-grid">
+      <a href="overview.html" class="page-nav-card">
+        <div class="nav-icon">🏗️</div><div class="nav-title">Kiến Trúc Hệ Thống</div>
+        <div class="nav-desc">Clean Architecture (Onion), 4 layers, MySQL 8 DB schema</div>
+      </a>
+      <a href="startup.html" class="page-nav-card">
+        <div class="nav-icon">🚀</div><div class="nav-title">Khởi Động</div>
+        <div class="nav-desc">ASP.NET Core startup, DI, JWT middleware, seed defaults</div>
+      </a>
+      <a href="geofence.html" class="page-nav-card">
+        <div class="nav-icon">📡</div><div class="nav-title">GPS + Geofence</div>
+        <div class="nav-desc">MAUI GeofenceEngine, haversine, cooldown, narration trigger</div>
+      </a>
+      <a href="content.html" class="page-nav-card">
+        <div class="nav-icon">📍</div><div class="nav-title">POI & Database</div>
+        <div class="nav-desc">POI CRUD, ST_Distance_Sphere, data model, translations</div>
+      </a>
+      <a href="audio.html" class="page-nav-card">
+        <div class="nav-icon">🎧</div><div class="nav-title">Audio & Azure TTS</div>
+        <div class="nav-desc">MP3 upload, vi-VN-HoaiMyNeural, S3/local storage, streaming</div>
+      </a>
+      <a href="auth.html" class="page-nav-card">
+        <div class="nav-icon">🛡️</div><div class="nav-title">Auth & JWT</div>
+        <div class="nav-desc">Bearer JWT, PBKDF2-SHA256, refresh rotation, vendor scoping</div>
+      </a>
+      <a href="localization.html" class="page-nav-card">
+        <div class="nav-icon">🌐</div><div class="nav-title">Đa Ngôn Ngữ</div>
+        <div class="nav-desc">POITranslations, LanguageId FK, NarrationText per lang</div>
+      </a>
+      <a href="offline.html" class="page-nav-card">
+        <div class="nav-icon">📴</div><div class="nav-title">Offline Sync</div>
+        <div class="nav-desc">Delta sync, SQLite cache, offline packages ZIP, visit upload</div>
+      </a>
+      <a href="admin.html" class="page-nav-card">
+        <div class="nav-icon">👨‍💼</div><div class="nav-title">Admin & Vendor Portal</div>
+        <div class="nav-desc">Shared panel, role-gated sidebar, Vendor two-layer security</div>
+      </a>
+      <a href="patterns.html" class="page-nav-card">
+        <div class="nav-icon">⚡</div><div class="nav-title">Design Patterns</div>
+        <div class="nav-desc">One-file convention, ApiResponse envelope, DI patterns</div>
+      </a>
+      <a href="uml.html" class="page-nav-card">
+        <div class="nav-icon">📊</div><div class="nav-title">UML Diagrams</div>
+        <div class="nav-desc">Sequence, Activity, Use Case — toàn bộ flows với modal zoom</div>
+      </a>
+      <a href="appendix.html" class="page-nav-card">
+        <div class="nav-icon">🛠️</div><div class="nav-title">Tech Stack & Phases</div>
+        <div class="nav-desc">Libraries, AWS infrastructure, Phase 1–4 roadmap status</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- QUICK OVERVIEW -->
+  <div class="section-block">
+    <div class="section-header">
+      <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">💡</div>
+      <div><div class="section-num">Overview</div><h2>Tổng Quan Dự Án</h2></div>
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <h3>🎯 Mục tiêu</h3>
+        <p>Audio tour tự động cho du khách đến phố ẩm thực Vinh Khanh. Khi bước vào vùng geofence của quán, app MAUI phát thuyết minh MP3 (tiếng Việt, tiếng Anh…) về quán đó — không cần thao tác.</p>
+      </div>
+      <div class="card">
+        <h3>👥 3 User Roles</h3>
+        <ul>
+          <li><strong>Admin</strong> — quản lý toàn hệ thống, CRUD POI/User/Category</li>
+          <li><strong>Vendor</strong> — chủ quán, chỉ quản lý POI của mình (JWT-scoped)</li>
+          <li><strong>Customer</strong> — du khách dùng mobile app, anonymous hoặc register</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔐 Security Model</h3>
+        <ul>
+          <li>Bearer JWT (HMAC-SHA256), ClockSkew=Zero</li>
+          <li>PBKDF2-SHA256 100,000 iterations (OWASP)</li>
+          <li>Refresh token rotation + SHA-256 hash lưu DB</li>
+          <li>Vendor scoping qua <code>vendorPoiId</code> JWT claim</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📦 Cấu trúc codebase</h3>
+        <ul>
+          <li><code>backend/src/</code> — 4 projects (API/App/Domain/Infra)</li>
+          <li><code>admin-frontend/</code> — port 5173</li>
+          <li><code>vendor-frontend/</code> — port 5174</li>
+          <li><code>mobile/VinhKhanh.Mobile/</code> — .NET MAUI</li>
+          <li><code>Database/001–009_*.sql</code> — raw SQL migrations</li>
+        </ul>
+      </div>
+    </div>
+    <div class="highlight">
+      <strong>Convention đặc biệt:</strong> Dự án dùng pattern <em>"1 file cho mỗi loại"</em> — toàn bộ controllers trong <code>Controllers.cs</code>, DTOs trong <code>DTOs.cs</code>, interfaces trong <code>IServices.cs</code>. Chỉ service implementations trong <code>Infrastructure/Services/</code> mới có file riêng. Không dùng EF Migrations — chỉ raw SQL scripts.
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p><strong>Vinh Khanh Food Tour</strong> — Platform audio tour tuyến phố ẩm thực Vinh Khanh, TP.HCM</p>
+  <p style="margin-top:.3rem">ASP.NET Core 10 · EF Core · MySQL 8 · React 19 · .NET MAUI · Azure TTS · AWS S3</p>
+  <div class="footer-links">
+    <a href="overview.html">Architecture</a><a href="uml.html">UML</a>
+    <a href="appendix.html">Tech Stack</a><a href="auth.html">Auth</a>
+  </div>
+</footer>
+
+<div id="dgOverlay" class="diagram-overlay"><div class="diagram-modal">
+  <div class="dm-header"><h3 id="dgTitle">Sơ đồ</h3><div class="dm-ctrl">
+    <button id="zoomOut">−</button><span class="zpct" id="zpct">100%</span>
+    <button id="zoomIn">+</button><button id="zoomReset">⟲</button>
+    <button id="dgClose" style="font-size:1.1rem;width:auto;padding:0 .6rem">ESC / ✕</button>
+  </div></div>
+  <div class="dm-body" id="dgBody"><div class="vp" id="dgVp"></div></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="js/diagrams.js"></script><script src="js/main.js"></script>
+<script>
+  // Reading progress bar
+  window.addEventListener('scroll', () => {
+    const pct = (document.documentElement.scrollTop / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+    document.getElementById('progressBar').style.width = pct + '%';
+  });
+</script>
+</body></html>
