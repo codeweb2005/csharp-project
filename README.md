@@ -1,6 +1,6 @@
 # 🍜 Vinh Khanh Food Tour
 
-> **Audio tour platform cho tuyến phố ẩm thực Vinh Khanh, TP.HCM**
+> **GPS-based audio tour platform for the Vinh Khanh street food district, Ho Chi Minh City**
 
 [![Backend](https://img.shields.io/badge/Backend-ASP.NET_Core_10-512BD4?logo=dotnet)](https://dotnet.microsoft.com)
 [![Frontend](https://img.shields.io/badge/Frontend-React_19_/_Vite-61DAFB?logo=react)](https://react.dev)
@@ -9,42 +9,41 @@
 
 ---
 
-## Mục lục
+## Table of Contents
 
-1. [Tổng quan](#1-tổng-quan)
-2. [Kiến trúc hệ thống](#2-kiến-trúc-hệ-thống)
-3. [Cấu trúc Repository](#3-cấu-trúc-repository)
+1. [Overview](#1-overview)
+2. [System Architecture](#2-system-architecture)
+3. [Repository Structure](#3-repository-structure)
 4. [Quick Start — Local Dev](#4-quick-start--local-dev)
-5. [User Roles & Phân quyền](#5-user-roles--phân-quyền)
+5. [User Roles & Permissions](#5-user-roles--permissions)
 6. [Environment Variables](#6-environment-variables)
 7. [Database Setup](#7-database-setup)
-8. [Chạy toàn bộ stack](#8-chạy-toàn-bộ-stack)
+8. [Running the Full Stack](#8-running-the-full-stack)
 9. [Mobile App (MAUI)](#9-mobile-app-maui)
-10. [Trạng thái dự án](#10-trạng-thái-dự-án)
-11. [Tài liệu tham khảo](#11-tài-liệu-tham-khảo)
+10. [Reference Documents](#10-reference-documents)
 
 ---
 
-## 1. Tổng quan
+## 1. Overview
 
-**Vinh Khanh Food Tour** là platform audio tour định vị GPS cho tuyến phố ẩm thực Vinh Khanh.
+**Vinh Khanh Food Tour** is a GPS audio tour platform for the Vinh Khanh street food district in Ho Chi Minh City.
 
-Khi du khách bước vào vùng geofence của một quán ăn, app di động tự động phát thuyết minh âm thanh về quán đó — bằng ngôn ngữ du khách đã chọn (Tiếng Việt, Tiếng Anh, ...).
+When a tourist enters the geofence of a food stall, the mobile app automatically plays an audio narration about that venue in the tourist's chosen language (Vietnamese, English, etc.).
 
-### Tính năng chính
+### Key Features
 
-| Tính năng | Mô tả |
+| Feature | Description |
 |---|---|
-| **GPS Geofencing** | POI có bán kính trigger tùy chỉnh, phát narration tự động khi vào vùng |
-| **Đa ngôn ngữ** | MP3 thu âm sẵn hoặc Azure TTS per ngôn ngữ per POI |
-| **Offline-first** | Mobile sync toàn bộ POI + audio để dùng không cần mạng |
-| **Vendor Portal** | Chủ quán tự quản lý listing, menu, xem analytics của mình |
-| **Admin Panel** | Dashboard web quản lý POIs, users, categories, cài đặt hệ thống |
-| **Visit Analytics** | Theo dõi lượt ghé thăm, ngôn ngữ, thời gian nghe theo POI |
+| **GPS Geofencing** | Each POI has a configurable trigger radius; narration plays automatically on entry |
+| **Multilingual** | Pre-recorded MP3 or Azure TTS-generated narration per language per POI |
+| **Offline-first** | Mobile app syncs all POIs + audio for use without network |
+| **Vendor Portal** | Shop owners manage their own listing, menu, and view their analytics |
+| **Admin Panel** | Web dashboard for POIs, users, categories, and system settings |
+| **Visit Analytics** | Track visits, language preferences, and listening duration per POI |
 
 ---
 
-## 2. Kiến trúc hệ thống
+## 2. System Architecture
 
 ```
 Admin / Vendor Browser              Tourist Phone
@@ -61,7 +60,7 @@ Admin / Vendor Browser              Tourist Phone
   │            Clean Architecture (Onion)              │
   │   API → Application → Domain ← Infrastructure     │
   │                                                    │
-  │   JWT Auth (HMAC-SHA256) · BCrypt · Role-scoped    │
+  │   JWT Auth (HMAC-SHA256) · PBKDF2-SHA256 · Role-scoped    │
   └──────────────────────┬─────────────────────────────┘
                          │
           ┌──────────────┼──────────────┐
@@ -82,11 +81,11 @@ Internet → CloudFront (SPA) → S3 (admin/vendor frontend)
 Mobile → ALB API endpoint
 ```
 
-Xem chi tiết tại [`ARCHITECTURE.md`](ARCHITECTURE.md).
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for full details.
 
 ---
 
-## 3. Cấu trúc Repository
+## 3. Repository Structure
 
 ```
 c-sharp-au/
@@ -99,7 +98,7 @@ c-sharp-au/
 │
 ├── admin-frontend/                     ← Admin + Vendor panel (React 19 · Ant Design 6)
 │   └── src/
-│       ├── api.js                      ← HTTP client tập trung, auto token refresh
+│       ├── api.js                      ← Centralized HTTP client, auto token refresh
 │       ├── context/AuthContext.jsx
 │       ├── hooks/useCurrentUser.js     ← JWT decoder (role, vendorPOIId)
 │       ├── components/                 ← MapPicker, AudioPreview, POIForm, ...
@@ -127,45 +126,45 @@ c-sharp-au/
 │   ├── 008_MockData.sql
 │   └── 009_PasswordResetColumns.sql
 │
-├── test-plan/
-│   └── backend-mobile/                 ← Test scenarios, UAT checklists, execution guide
+├── docs/                               ← Technical documentation site (static HTML)
+│   └── README.md                       ← How to run the docs site
 │
-├── README.md                           ← File này
+├── test-plan/
+│   └── backend-mobile/                 ← Test scenarios, UAT checklists
+│
+├── README.md                           ← This file
 ├── ARCHITECTURE.md                     ← Clean Architecture, layer map, design decisions
-├── API_REFERENCE.md                    ← Toàn bộ REST endpoints
+├── API_REFERENCE.md                    ← All REST endpoints (mapped from Controllers.cs)
 ├── VENDOR_PORTAL.md                    ← Vendor role, JWT scoping, two-layer security
 ├── DEPLOYMENT.md                       ← Docker, AWS ECS, Nginx, mobile build
 ├── RUNBOOK.md                          ← Ops runbook (redeploy, rollback, logs)
-└── CLAUDE.md                           ← Quy tắc cho AI agents làm việc trên codebase
+└── CLAUDE.md                           ← Mandatory rules for AI agents on this codebase
 ```
 
 ---
 
 ## 4. Quick Start — Local Dev
 
-### Yêu cầu
+### Requirements
 
-| Tool | Version | Dùng cho |
+| Tool | Version | Used for |
 |---|---|---|
 | .NET SDK | 10.0 | Backend + Mobile |
 | Node.js | 20 LTS | Admin/Vendor Frontend |
 | MySQL | 8.0+ | Database |
-| Android SDK | API 26+ | MAUI Android build |
+| Android SDK | API 26+ | MAUI Android builds |
 
-### 4.1 Clone repo
+### 4.1 Clone the repo
 
 ```powershell
-git clone https://github.com/codeweb2005/c-sharp-au.git
-cd c-sharp-au
+git clone https://github.com/codeweb2005/csharp-project.git
+cd csharp-project
 ```
 
-### 4.2 Cài đặt database
+### 4.2 Database setup
 
 ```powershell
-$MYSQL = "mysql"   # hoặc đường dẫn đầy đủ tới mysql.exe
-$USER  = "root"
-
-# Chạy lần lượt từng script
+$MYSQL_USER = "root"
 $scripts = @(
     "Database/001_CreateDatabase.sql",
     "Database/002_CreateTables.sql",
@@ -177,7 +176,7 @@ $scripts = @(
     "Database/008_MockData.sql",
     "Database/009_PasswordResetColumns.sql"
 )
-foreach ($s in $scripts) { & $MYSQL -u $USER -p -e "source $s" }
+foreach ($s in $scripts) { mysql -u $MYSQL_USER -p VinhKhanhFoodTour < $s }
 ```
 
 ### 4.3 Backend
@@ -189,10 +188,17 @@ dotnet run
 # Swagger: http://localhost:5015/swagger
 ```
 
-Tạo file config local (không commit):
+Create a local config file (do not commit):
 
-```powershell
-# Tạo appsettings.Development.json với DB password và JWT key
+```json
+// backend/src/VinhKhanh.API/appsettings.Development.json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Port=3306;Database=VinhKhanhFoodTour;Uid=root;Pwd=<YOUR_PASSWORD>;CharSet=utf8mb4;"
+  },
+  "FileStorage": { "Provider": "local" },
+  "Email": { "Provider": "null" }
+}
 ```
 
 ### 4.4 Admin Frontend
@@ -200,13 +206,12 @@ Tạo file config local (không commit):
 ```powershell
 cd admin-frontend
 Copy-Item .env.example .env
-# Chỉnh VITE_API_BASE_URL nếu cần
 npm install
 npm run dev
 # http://localhost:5173
 ```
 
-### 4.5 Vendor Frontend (tuỳ chọn)
+### 4.5 Vendor Frontend (optional)
 
 ```powershell
 cd vendor-frontend
@@ -216,42 +221,42 @@ npm run dev
 # http://localhost:5174
 ```
 
-### Tài khoản admin mặc định (seed data)
+### Default admin account (from seed data)
 
 | Field | Value |
 |---|---|
 | Email | `admin@vinhkhanh.app` |
 | Password | `Admin@123456` |
 
-> ⚠️ Thay đổi ngay password này trong mọi môi trường staging/production.
+> ⚠️ Change this password immediately in any staging or production environment.
 
 ---
 
-## 5. User Roles & Phân quyền
+## 5. User Roles & Permissions
 
-Ba role được enforce tại **cả hai lớp**: JWT claim (backend) + UI gating (frontend).
+Three roles are enforced at **both layers**: JWT claim (backend) + UI gating (frontend).
 
-| Role | Mô tả | Truy cập |
+| Role | Description | Access |
 |---|---|---|
-| **Admin** | Quản trị viên hệ thống | Toàn bộ — POIs, Users, Settings, Analytics, Offline Packages |
-| **Vendor** | Chủ quán | Chỉ POI của mình — listing, menu, audio, analytics riêng |
-| **Customer** | Du khách (mobile app) | Xem POI công khai, phát audio, sync offline data |
+| **Admin** | System administrator | Full access — POIs, Users, Settings, Analytics, Offline Packages |
+| **Vendor** | Shop owner | Own POI only — listing, menu, audio, own analytics |
+| **Customer** | Tourist (mobile app) | Public POIs, audio playback, offline sync |
 
 ### Two-layer security
 
 ```
 Layer 1 (Frontend — UX only):
   useCurrentUser() → isVendor / isAdmin
-  → Ẩn/hiện buttons, route khác nhau
-  → Có thể bypass — KHÔNG tin tưởng
+  → Show/hide buttons and routes
+  → Can be bypassed — NEVER trust this alone
 
 Layer 2 (Backend — authoritative):
   [Authorize(Roles = "Admin")] / [Authorize(Roles = "Admin,Vendor")]
-  vendorPoiId JWT claim → scoped DB queries
-  Vendor write → ownership check (403 nếu không phải POI của họ)
+  Vendor POI IDs fetched fresh from DB (not JWT claim)
+  Vendor write → ownership check (403 if not their POI)
 ```
 
-Xem chi tiết tại [`VENDOR_PORTAL.md`](VENDOR_PORTAL.md).
+See [`VENDOR_PORTAL.md`](VENDOR_PORTAL.md) for details.
 
 ---
 
@@ -259,26 +264,26 @@ Xem chi tiết tại [`VENDOR_PORTAL.md`](VENDOR_PORTAL.md).
 
 ### Backend — `appsettings.json`
 
-| Key | Bắt buộc | Mô tả |
+| Key | Required | Description |
 |---|---|---|
 | `ConnectionStrings:DefaultConnection` | ✅ | MySQL connection string |
-| `Jwt:Key` | ✅ | HMAC-SHA256 signing key (≥ 32 ký tự) |
+| `Jwt:Key` | ✅ | HMAC-SHA256 signing key (≥ 32 chars) |
 | `Jwt:Issuer` | ✅ | Token issuer |
 | `Jwt:Audience` | ✅ | Token audience |
-| `Jwt:ExpiryMinutes` | ✅ | Access token TTL (mặc định: `60`) |
-| `Jwt:RefreshExpiryDays` | ✅ | Refresh token TTL (mặc định: `7`) |
-| `FileStorage:Provider` | ✅ | `local` hoặc `s3` |
-| `FileStorage:S3BucketName` | S3 only | Tên S3 bucket |
+| `Jwt:ExpiryMinutes` | ✅ | Access token TTL (default: `60`) |
+| `Jwt:RefreshExpiryDays` | ✅ | Refresh token TTL (default: `7`) |
+| `FileStorage:Provider` | ✅ | `local` or `s3` |
+| `FileStorage:S3BucketName` | S3 only | S3 bucket name |
 | `AzureTTS:SubscriptionKey` | ⚠️ | Azure Cognitive Services key |
-| `AzureTTS:Region` | ⚠️ | VD: `southeastasia` |
+| `AzureTTS:Region` | ⚠️ | e.g. `southeastasia` |
 | `CORS_ALLOWED_ORIGINS` | ✅ | Frontend URLs (comma-separated) |
 
 ### Frontend — `.env`
 
-| Variable | Bắt buộc | Mô tả |
+| Variable | Required | Description |
 |---|---|---|
-| `VITE_API_BASE_URL` | ✅ | VD: `http://localhost:5015/api/v1` |
-| `VITE_GOOGLE_MAPS_API_KEY` | ⚠️ | Google Maps JS API key cho MapPicker |
+| `VITE_API_BASE_URL` | ✅ | e.g. `http://localhost:5015/api/v1` |
+| `VITE_GOOGLE_MAPS_API_KEY` | ⚠️ | Google Maps JS API key for MapPicker |
 
 ### Mobile — `appsettings.json` (embedded resource)
 
@@ -289,33 +294,33 @@ Xem chi tiết tại [`VENDOR_PORTAL.md`](VENDOR_PORTAL.md).
 }
 ```
 
-> `10.0.2.2` = host machine IP từ Android Emulator. Dùng IP thật cho physical device.
+> `10.0.2.2` = host machine IP as seen from Android Emulator. Use the actual LAN IP for a physical device.
 
 ---
 
 ## 7. Database Setup
 
-Schema được quản lý bằng **numbered SQL scripts** trong `Database/` — không dùng EF Core Migrations.
+Schema is managed with **numbered SQL scripts** in `Database/` — EF Core Migrations are not used.
 
-| Script | Nội dung |
+| Script | Contents |
 |---|---|
-| `001_CreateDatabase.sql` | Tạo database + user |
-| `002_CreateTables.sql` | Toàn bộ tables |
+| `001_CreateDatabase.sql` | Create database + user |
+| `002_CreateTables.sql` | All tables |
 | `003_CreateIndexes.sql` | Indexes + spatial indexes |
 | `004_CreateStoredProcedures.sql` | Stored procedures |
-| `005_SeedData.sql` | Admin user, languages, categories mặc định |
+| `005_SeedData.sql` | Admin user, languages, default categories |
 | `006_AddPhase1Columns.sql` | Priority column, Phase 1 additions |
 | `007_ResetData.sql` | Reset data (dev/QA) |
-| `008_MockData.sql` | Mock POI data cho testing |
+| `008_MockData.sql` | Mock POI data for testing |
 | `009_PasswordResetColumns.sql` | Password reset flow columns |
 
-**Schema mới:** tạo file tiếp theo với số tăng dần — `010_MoTa.sql`, `011_MoTa.sql`, ...
+**New schema changes:** create the next file with an incremented number — `010_Description.sql`, `011_Description.sql`, etc.
 
-Xem hướng dẫn setup RDS tại [`DEPLOYMENT.md § 4`](DEPLOYMENT.md#4-database-setup).
+See [`DEPLOYMENT.md § 4`](DEPLOYMENT.md#4-database-setup) for RDS setup guide.
 
 ---
 
-## 8. Chạy toàn bộ stack
+## 8. Running the Full Stack
 
 ### Development (local)
 
@@ -326,32 +331,32 @@ cd backend/src/VinhKhanh.API; dotnet run
 # Terminal 2 — Admin Panel
 cd admin-frontend; npm run dev
 
-# Terminal 3 — Vendor Panel (tuỳ chọn)
+# Terminal 3 — Vendor Panel (optional)
 cd vendor-frontend; npm run dev
 ```
 
 ### Production (Docker)
 
 ```powershell
-# Build image từ repo root
+# Build image from repo root
 docker build -t vinhkhanh-api:latest .
 
-# Chạy với env vars
+# Run with env vars
 docker run -d --name vinhkhanh-api -p 8080:8080 `
   --env-file .env.docker `
   vinhkhanh-api:latest
 
-# Kiểm tra
+# Verify
 curl http://localhost:8080/swagger
 ```
 
-Xem đầy đủ tại [`DEPLOYMENT.md`](DEPLOYMENT.md). Ops runbook tại [`RUNBOOK.md`](RUNBOOK.md).
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the full guide. Ops runbook at [`RUNBOOK.md`](RUNBOOK.md).
 
 ---
 
 ## 9. Mobile App (MAUI)
 
-### Build & chạy Android (debug)
+### Build & run Android (debug)
 
 ```powershell
 cd mobile/VinhKhanh.Mobile
@@ -359,10 +364,10 @@ cd mobile/VinhKhanh.Mobile
 # Build APK
 dotnet build -f net10.0-android -c Debug
 
-# Cài lên emulator / device
+# Install on emulator / device
 adb install -r bin/Debug/net10.0-android/com.vinhkhanh.foodtour-Signed.apk
 
-# Hoặc chạy trực tiếp
+# Or run directly
 dotnet run -f net10.0-android -c Debug
 ```
 
@@ -370,12 +375,12 @@ dotnet run -f net10.0-android -c Debug
 
 ```bash
 adb emu geo fix 106.6932 10.7538   # Point A
-adb emu geo fix 106.6940 10.7544   # Point B (di chuyển vào geofence)
+adb emu geo fix 106.6940 10.7544   # Point B (move into geofence)
 ```
 
-### Cấu hình API URL
+### Configure API URL
 
-Trước khi build, cập nhật `mobile/VinhKhanh.Mobile/appsettings.json`:
+Update `mobile/VinhKhanh.Mobile/appsettings.json` before building:
 
 ```json
 {
@@ -384,7 +389,7 @@ Trước khi build, cập nhật `mobile/VinhKhanh.Mobile/appsettings.json`:
 }
 ```
 
-### Release build (Android AAB cho Google Play)
+### Release build (Android AAB for Google Play)
 
 ```powershell
 dotnet publish -f net10.0-android -c Release `
@@ -395,42 +400,19 @@ dotnet publish -f net10.0-android -c Release `
   /p:AndroidSigningStorePass=<PASSWORD>
 ```
 
-Xem đầy đủ tại [`DEPLOYMENT.md § 7`](DEPLOYMENT.md#7-mobile-app-deployment).
+See [`DEPLOYMENT.md § 7`](DEPLOYMENT.md#7-mobile-app-deployment) for the full guide.
 
 ---
 
-## 10. Trạng thái dự án
+## 10. Reference Documents
 
-| Phase | Trạng thái | Mô tả |
-|---|---|---|
-| **Phase 1** — Backend & Admin Panel | ✅ **Hoàn thành** | REST API, Google Maps POI editor, Vendor Portal, Audio TTS |
-| **Phase 2** — MAUI Mobile PoC | ✅ **Hoàn thành** | GPS geofencing, audio narration, map view, offline sync service |
-| **Phase 3** — MAUI Mobile MVP | 🚧 **Đang làm** | Background GPS, visit tracking, settings UI, delta sync |
-| **Phase 4** — AWS Production | ⬜ **Kế hoạch** | ECS Fargate, RDS Multi-AZ, S3, CloudFront |
-
-### Phase 3 — Các tính năng còn lại
-
-| Nhóm | Tính năng |
-|---|---|
-| 🔴 Critical | Background GPS (Android ForegroundService + iOS CLLocationManager) |
-| 🔴 Critical | Permission nâng cấp `LocationWhenInUse` → `LocationAlways` |
-| 🔴 Critical | Geofence cooldown per POI (tránh phát lại liên tục) |
-| 🟡 Medium | Visit tracking upload lên server (`POST /sync/visits`) |
-| 🟡 Medium | Settings UI (radius, cooldown, auto-play toggle) |
-| 🟡 Medium | Local notification khi geofence trigger ở background |
-| 🟠 Low | Delta sync (`GET /sync/delta`) để cập nhật POI sau khi cài app |
-| 🟠 Low | Narration error handling + TTS fallback |
-
----
-
-## 11. Tài liệu tham khảo
-
-| Tài liệu | Nội dung |
+| Document | Contents |
 |---|---|
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Clean Architecture layout, database design, auth flow, key decisions |
-| [`API_REFERENCE.md`](API_REFERENCE.md) | Toàn bộ REST endpoints — request/response/auth cho mọi route |
-| [`VENDOR_PORTAL.md`](VENDOR_PORTAL.md) | Vendor JWT scoping, two-layer security, tạo vendor user |
-| [`DEPLOYMENT.md`](DEPLOYMENT.md) | Docker, AWS ECS Fargate, RDS, S3, Nginx, mobile release |
-| [`RUNBOOK.md`](RUNBOOK.md) | Redeploy, rollback, xem logs, rotate secrets, incident checklist |
-| [`CLAUDE.md`](CLAUDE.md) | Quy tắc bắt buộc cho AI agents khi làm việc trên codebase |
+| [`API_REFERENCE.md`](API_REFERENCE.md) | All REST endpoints — request/response/auth for every route |
+| [`VENDOR_PORTAL.md`](VENDOR_PORTAL.md) | Vendor JWT scoping, two-layer security, creating vendor users |
+| [`DEPLOYMENT.md`](DEPLOYMENT.md) | Docker, AWS ECS Fargate, RDS, S3, Nginx, mobile release builds |
+| [`RUNBOOK.md`](RUNBOOK.md) | Redeploy, rollback, logs, rotate secrets, incident checklist |
+| [`CLAUDE.md`](CLAUDE.md) | Mandatory rules for AI agents working on this codebase |
+| [`docs/`](docs/README.md) | Technical documentation site — architecture diagrams, UML, feature reference |
 | [`test-plan/backend-mobile/`](test-plan/backend-mobile/) | Test scenarios, UAT checklists, execution guide |
