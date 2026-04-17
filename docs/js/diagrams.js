@@ -972,3 +972,329 @@ mermaid: `graph TB
 }
 
 }}; // end DIAGRAM_DATA
+
+/* ============================================================
+   Endpoint Sequences (73) - generated from Controllers.cs
+   ============================================================ */
+(function registerEndpointSequences() {
+  if (!window.DIAGRAM_DATA || !window.DIAGRAM_DATA.diagrams) return;
+
+  const endpointDefs = [
+    // Auth (8)
+    ["auth", "ep-auth-login", "POST", "/api/v1/auth/login", "AuthController", "IAuthService", "LoginAsync"],
+    ["auth", "ep-auth-refresh", "POST", "/api/v1/auth/refresh", "AuthController", "IAuthService", "RefreshTokenAsync"],
+    ["auth", "ep-auth-change-password", "POST", "/api/v1/auth/change-password", "AuthController", "IAuthService", "ChangePasswordAsync"],
+    ["auth", "ep-auth-me", "GET", "/api/v1/auth/me", "AuthController", "IAuthService", "GetCurrentUserAsync"],
+    ["auth", "ep-auth-register", "POST", "/api/v1/auth/register", "AuthController", "IAuthService", "RegisterAsync"],
+    ["auth", "ep-auth-forgot-password", "POST", "/api/v1/auth/forgot-password", "AuthController", "IAuthService", "ForgotPasswordAsync"],
+    ["auth", "ep-auth-reset-password", "POST", "/api/v1/auth/reset-password", "AuthController", "IAuthService", "ResetPasswordAsync"],
+    ["auth", "ep-auth-profile", "PUT", "/api/v1/auth/profile", "AuthController", "IAuthService", "UpdateProfileAsync"],
+
+    // POIs (10)
+    ["pois", "ep-pois-list", "GET", "/api/v1/pois", "POIsController", "IPOIService", "GetListAsync"],
+    ["pois", "ep-pois-detail", "GET", "/api/v1/pois/{id}", "POIsController", "IPOIService", "GetDetailAsync"],
+    ["pois", "ep-pois-create", "POST", "/api/v1/pois", "POIsController", "IPOIService", "CreateAsync"],
+    ["pois", "ep-pois-update", "PUT", "/api/v1/pois/{id}", "POIsController", "IPOIService", "UpdateAsync"],
+    ["pois", "ep-pois-delete", "DELETE", "/api/v1/pois/{id}", "POIsController", "IPOIService", "DeleteAsync"],
+    ["pois", "ep-pois-toggle", "PATCH", "/api/v1/pois/{id}/toggle", "POIsController", "IPOIService", "ToggleActiveAsync"],
+    ["pois", "ep-pois-featured", "PATCH", "/api/v1/pois/{id}/featured", "POIsController", "IPOIService", "ToggleFeaturedAsync"],
+    ["pois", "ep-pois-nearby", "GET", "/api/v1/pois/nearby", "POIsController", "IPOIService", "GetNearbyAsync"],
+    ["pois", "ep-pois-public", "GET", "/api/v1/pois/{id}/public", "POIsController", "IPOIService", "GetPublicDetailAsync"],
+    ["pois", "ep-pois-audio-queue", "GET", "/api/v1/pois/audio-queue", "POIsController", "IPOIService", "GetAudioQueueAsync"],
+
+    // Languages (1)
+    ["languages", "ep-languages-get-all", "GET", "/api/v1/languages", "LanguagesController", "ILanguageService", "GetAllActiveAsync"],
+
+    // Categories (6)
+    ["categories", "ep-categories-list", "GET", "/api/v1/categories", "CategoriesController", "ICategoryService", "GetAllAsync"],
+    ["categories", "ep-categories-detail", "GET", "/api/v1/categories/{id}", "CategoriesController", "ICategoryService", "GetByIdAsync"],
+    ["categories", "ep-categories-create", "POST", "/api/v1/categories", "CategoriesController", "ICategoryService", "CreateAsync"],
+    ["categories", "ep-categories-update", "PUT", "/api/v1/categories/{id}", "CategoriesController", "ICategoryService", "UpdateAsync"],
+    ["categories", "ep-categories-delete", "DELETE", "/api/v1/categories/{id}", "CategoriesController", "ICategoryService", "DeleteAsync"],
+    ["categories", "ep-categories-toggle", "PATCH", "/api/v1/categories/{id}/toggle", "CategoriesController", "ICategoryService", "ToggleActiveAsync"],
+
+    // Audio (7)
+    ["audio", "ep-audio-by-poi", "GET", "/api/v1/audio/poi/{poiId}", "AudioController", "IAudioService", "GetByPOIAsync"],
+    ["audio", "ep-audio-upload", "POST", "/api/v1/audio/poi/{poiId}/upload", "AudioController", "IAudioService", "UploadAsync"],
+    ["audio", "ep-audio-generate-tts", "POST", "/api/v1/audio/poi/{poiId}/generate-tts", "AudioController", "IAudioService", "GenerateTTSAsync"],
+    ["audio", "ep-audio-stream", "GET", "/api/v1/audio/{id}/stream", "AudioController", "IAudioService", "GetStreamAsync or GetFileKeyAsync"],
+    ["audio", "ep-audio-qr", "GET", "/api/v1/audio/{id}/qr", "AudioController", "IAudioQrService", "GetAudioQrPngAsync"],
+    ["audio", "ep-audio-delete", "DELETE", "/api/v1/audio/{id}", "AudioController", "IAudioService", "DeleteAsync"],
+    ["audio", "ep-audio-set-default", "PATCH", "/api/v1/audio/{id}/set-default", "AudioController", "IAudioService", "SetDefaultAsync"],
+
+    // Media (5)
+    ["media", "ep-media-by-poi", "GET", "/api/v1/media/poi/{poiId}", "MediaController", "IMediaService", "GetByPOIAsync"],
+    ["media", "ep-media-upload", "POST", "/api/v1/media/poi/{poiId}/upload", "MediaController", "IMediaService", "UploadAsync"],
+    ["media", "ep-media-delete", "DELETE", "/api/v1/media/{id}", "MediaController", "IMediaService", "DeleteAsync"],
+    ["media", "ep-media-set-primary", "PATCH", "/api/v1/media/{id}/set-primary", "MediaController", "IMediaService", "SetPrimaryAsync"],
+    ["media", "ep-media-reorder", "PUT", "/api/v1/media/poi/{poiId}/reorder", "MediaController", "IMediaService", "ReorderAsync"],
+
+    // Menu (7)
+    ["menu", "ep-menu-by-poi", "GET", "/api/v1/menu/poi/{poiId}", "MenuController", "IMenuService", "GetByPOIAsync"],
+    ["menu", "ep-menu-create", "POST", "/api/v1/menu/poi/{poiId}", "MenuController", "IMenuService", "CreateAsync"],
+    ["menu", "ep-menu-update", "PUT", "/api/v1/menu/{id}", "MenuController", "IMenuService", "UpdateAsync"],
+    ["menu", "ep-menu-delete", "DELETE", "/api/v1/menu/{id}", "MenuController", "IMenuService", "DeleteAsync"],
+    ["menu", "ep-menu-toggle-available", "PATCH", "/api/v1/menu/{id}/toggle-available", "MenuController", "IMenuService", "ToggleAvailableAsync"],
+    ["menu", "ep-menu-toggle-signature", "PATCH", "/api/v1/menu/{id}/toggle-signature", "MenuController", "IMenuService", "ToggleSignatureAsync"],
+    ["menu", "ep-menu-upload-image", "POST", "/api/v1/menu/{id}/upload-image", "MenuController", "IMenuService", "UploadImageAsync"],
+
+    // Users (7)
+    ["users", "ep-users-list", "GET", "/api/v1/users", "UsersController", "IUserService", "GetListAsync"],
+    ["users", "ep-users-detail", "GET", "/api/v1/users/{id}", "UsersController", "IUserService", "GetByIdAsync"],
+    ["users", "ep-users-create", "POST", "/api/v1/users", "UsersController", "IUserService", "CreateAsync"],
+    ["users", "ep-users-update", "PUT", "/api/v1/users/{id}", "UsersController", "IUserService", "UpdateAsync"],
+    ["users", "ep-users-delete", "DELETE", "/api/v1/users/{id}", "UsersController", "IUserService", "DeleteAsync"],
+    ["users", "ep-users-toggle", "PATCH", "/api/v1/users/{id}/toggle", "UsersController", "IUserService", "ToggleActiveAsync"],
+    ["users", "ep-users-reset-password", "POST", "/api/v1/users/{id}/reset-password", "UsersController", "IUserService", "ResetPasswordAsync"],
+
+    // Dashboard (5)
+    ["dashboard", "ep-dashboard-stats", "GET", "/api/v1/dashboard/stats", "DashboardController", "IDashboardService", "GetStatsAsync"],
+    ["dashboard", "ep-dashboard-top-pois", "GET", "/api/v1/dashboard/top-pois", "DashboardController", "IDashboardService", "GetTopPOIsAsync"],
+    ["dashboard", "ep-dashboard-visits-chart", "GET", "/api/v1/dashboard/visits-chart", "DashboardController", "IDashboardService", "GetVisitsChartAsync"],
+    ["dashboard", "ep-dashboard-language-stats", "GET", "/api/v1/dashboard/language-stats", "DashboardController", "IDashboardService", "GetLanguageStatsAsync"],
+    ["dashboard", "ep-dashboard-recent-activity", "GET", "/api/v1/dashboard/recent-activity", "DashboardController", "IDashboardService", "GetRecentActivityAsync"],
+
+    // Analytics (4)
+    ["analytics", "ep-analytics-trends", "GET", "/api/v1/analytics/trends", "AnalyticsController", "IAnalyticsService", "GetTrendsAsync"],
+    ["analytics", "ep-analytics-visits-by-day", "GET", "/api/v1/analytics/visits-by-day", "AnalyticsController", "IAnalyticsService", "GetVisitsByDayAsync"],
+    ["analytics", "ep-analytics-visits-by-hour", "GET", "/api/v1/analytics/visits-by-hour", "AnalyticsController", "IAnalyticsService", "GetVisitsByHourAsync"],
+    ["analytics", "ep-analytics-language-distribution", "GET", "/api/v1/analytics/language-distribution", "AnalyticsController", "IAnalyticsService", "GetLanguageDistributionAsync"],
+
+    // Offline Packages (7)
+    ["offlinepackages", "ep-offline-catalog", "GET", "/api/v1/offlinepackages/catalog", "OfflinePackagesController", "IOfflinePackageService", "GetPublicCatalogAsync"],
+    ["offlinepackages", "ep-offline-list", "GET", "/api/v1/offlinepackages", "OfflinePackagesController", "IOfflinePackageService", "GetAllAsync"],
+    ["offlinepackages", "ep-offline-create", "POST", "/api/v1/offlinepackages", "OfflinePackagesController", "IOfflinePackageService", "CreateAsync"],
+    ["offlinepackages", "ep-offline-build", "POST", "/api/v1/offlinepackages/{id}/build", "OfflinePackagesController", "IOfflinePackageService", "BuildAsync"],
+    ["offlinepackages", "ep-offline-status", "GET", "/api/v1/offlinepackages/{id}/status", "OfflinePackagesController", "IOfflinePackageService", "GetStatusAsync"],
+    ["offlinepackages", "ep-offline-download", "GET", "/api/v1/offlinepackages/{id}/download", "OfflinePackagesController", "IOfflinePackageService", "GetStatusAsync then DownloadAsync"],
+    ["offlinepackages", "ep-offline-delete", "DELETE", "/api/v1/offlinepackages/{id}", "OfflinePackagesController", "IOfflinePackageService", "DeleteAsync"],
+
+    // Settings (4)
+    ["settings", "ep-settings-get-all", "GET", "/api/v1/settings", "SettingsController", "ISettingsService", "GetAllAsync"],
+    ["settings", "ep-settings-update", "PUT", "/api/v1/settings", "SettingsController", "ISettingsService", "UpdateAsync"],
+    ["settings", "ep-settings-maintenance", "PUT", "/api/v1/settings/maintenance", "SettingsController", "ISettingsService", "SetMaintenanceModeAsync"],
+    ["settings", "ep-settings-generate-api-key", "POST", "/api/v1/settings/generate-api-key", "SettingsController", "ISettingsService", "GenerateApiKeyAsync"],
+
+    // Sync (2)
+    ["sync", "ep-sync-delta", "GET", "/api/v1/sync/delta", "SyncController", "ISyncService", "GetDeltaAsync"],
+    ["sync", "ep-sync-visits", "POST", "/api/v1/sync/visits", "SyncController", "ISyncService", "UploadVisitsAsync"]
+  ];
+
+  const groupLabels = {
+    auth: "Auth",
+    pois: "POIs",
+    languages: "Languages",
+    categories: "Categories",
+    audio: "Audio",
+    media: "Media",
+    menu: "Menu",
+    users: "Users",
+    dashboard: "Dashboard",
+    analytics: "Analytics",
+    offlinepackages: "OfflinePackages",
+    settings: "Settings",
+    sync: "Sync"
+  };
+
+  const allowAnonymousRoutes = new Set([
+    "/api/v1/auth/login",
+    "/api/v1/auth/refresh",
+    "/api/v1/auth/register",
+    "/api/v1/auth/forgot-password",
+    "/api/v1/auth/reset-password",
+    "/api/v1/pois/nearby",
+    "/api/v1/pois/{id}/public",
+    "/api/v1/pois/audio-queue",
+    "/api/v1/languages",
+    "/api/v1/categories",
+    "/api/v1/audio/{id}/stream",
+    "/api/v1/audio/{id}/qr",
+    "/api/v1/offlinepackages/catalog",
+    "/api/v1/offlinepackages/{id}/download"
+  ]);
+
+  function resolveAuthNote(route, method) {
+    if (allowAnonymousRoutes.has(route)) return "AllowAnonymous";
+    if (route === "/api/v1/auth/profile") return "Authorize Roles: Customer,Vendor";
+    if (route === "/api/v1/settings" || route === "/api/v1/settings/maintenance" || route === "/api/v1/settings/generate-api-key") {
+      return "Authorize Roles: Admin";
+    }
+    if (route.startsWith("/api/v1/users")) return "Authorize Roles: Admin";
+    if (route.startsWith("/api/v1/dashboard") || route.startsWith("/api/v1/analytics")) return "Authorize Roles: Admin,Vendor";
+    if (route === "/api/v1/offlinepackages" || route === "/api/v1/offlinepackages/{id}/build" || route === "/api/v1/offlinepackages/{id}/status" || route === "/api/v1/offlinepackages/{id}") {
+      return "Authorize Roles: Admin";
+    }
+    if (route === "/api/v1/pois/{id}/toggle" || route === "/api/v1/pois/{id}/featured") return "Authorize Roles: Admin";
+    if (route === "/api/v1/pois" && method === "POST") return "Authorize Roles: Admin,Vendor";
+    if (route === "/api/v1/pois/{id}" && method === "DELETE") return "Authorize Roles: Admin,Vendor";
+    if (route === "/api/v1/audio/poi/{poiId}/generate-tts" || route === "/api/v1/audio/{id}" && method === "DELETE") {
+      return "Authorize Roles: Admin,Vendor";
+    }
+    if (route.startsWith("/api/v1/sync/")) return "Authorize";
+    return "Authorize";
+  }
+
+  function buildDetailedMermaid(controller, service, method, route, operation) {
+    const authNote = resolveAuthNote(route, method);
+    const hasVendorScope = route.startsWith("/api/v1/pois") || route.startsWith("/api/v1/audio") || route.startsWith("/api/v1/dashboard") || route.startsWith("/api/v1/analytics");
+    const hasCoordinatesValidation = route === "/api/v1/pois/nearby" || route === "/api/v1/pois/audio-queue";
+
+    const isUpload = route.includes("/upload") || route.includes("/upload-image");
+    const isStream = route === "/api/v1/audio/{id}/stream";
+    const isQr = route === "/api/v1/audio/{id}/qr";
+    const isNearby = route === "/api/v1/pois/nearby" || route === "/api/v1/pois/audio-queue";
+    const isOfflineDownload = route === "/api/v1/offlinepackages/{id}/download";
+    const isSyncVisits = route === "/api/v1/sync/visits";
+    const isPagedList = (method === "GET" && (route === "/api/v1/pois" || route === "/api/v1/users"));
+
+    const lines = [
+      "sequenceDiagram",
+      "    autonumber",
+      "    participant Client",
+      "    participant Controller as " + controller,
+      "    participant Service as " + service,
+      "    participant Repository",
+      "    participant DB",
+      "",
+      "    Client->>Controller: " + method + " " + route,
+      "    Note over Controller: " + authNote
+    ];
+
+    if (isUpload) {
+      lines.push("    Note over Controller: Request content-type is multipart/form-data");
+    }
+    if (isPagedList) {
+      lines.push("    Note over Controller: Read page/size/filter query params");
+    }
+    if (hasCoordinatesValidation) {
+      lines.push("    Note over Controller: Validate lat/lng ranges before service call");
+    }
+    if (hasVendorScope) {
+      lines.push("    Note over Controller: Vendor flows may resolve vendor POI scope from DB");
+    }
+    if (isSyncVisits) {
+      lines.push("    Note over Controller: Attach authenticated userId to visit batch");
+    }
+
+    lines.push(
+      "    alt AuthN/AuthZ failed",
+      "        Controller-->>Client: 401 Unauthorized or 403 Forbidden",
+      "    else AuthN/AuthZ passed",
+      "        Controller->>Service: " + operation,
+      "        Service->>Repository: Execute business rules",
+      "        Repository->>DB: Execute SQL query or command",
+      "        DB-->>Repository: Data rows or affected count",
+      "        Repository-->>Service: Domain result",
+      "",
+      "        alt Validation/business error",
+      "            Service-->>Controller: ApiResponse<T> Success=false with Error.Code",
+      "            Note over Controller: ApiResult maps NOT_FOUND/FORBIDDEN/UNAUTHORIZED/VALIDATION_ERROR",
+      "            Controller-->>Client: 4xx with ApiResponse<T>",
+      "        else Success path",
+      "            Service-->>Controller: ApiResponse<T> Success=true",
+      "            Controller-->>Client: 200 OK with ApiResponse<T>",
+      "        end",
+      "    end"
+    );
+
+    if (isStream) {
+      lines.push(
+        "",
+        "    Note over Service: Stream endpoint may return redirect or audio stream",
+        "    alt Cloud mode and proxy disabled",
+        "        Controller-->>Client: 302 Redirect to signed URL",
+        "    else Proxy mode or local storage",
+        "        Controller-->>Client: 200 audio/mpeg stream (range enabled)",
+        "    end"
+      );
+    }
+
+    if (isQr) {
+      lines.push(
+        "",
+        "    Note over Service: Build stream URL then generate QR PNG",
+        "    alt Audio not found",
+        "        Controller-->>Client: 404 NotFound",
+        "    else Found",
+        "        Controller-->>Client: 200 image/png file",
+        "    end"
+      );
+    }
+
+    if (isOfflineDownload) {
+      lines.push(
+        "",
+        "    Note over Service: Check package status before download",
+        "    alt Cloud storage active",
+        "        Controller-->>Client: 302 Redirect signed URL",
+        "    else Local storage",
+        "        Controller-->>Client: 200 application/zip stream",
+        "    end"
+      );
+    }
+
+    if (isNearby) {
+      lines.push(
+        "",
+        "    alt Invalid coordinates",
+        "        Controller-->>Client: 400 VALIDATION_ERROR",
+        "    else Valid coordinates",
+        "        Note over Repository: Spatial query and ordered results by distance/priority",
+        "    end"
+      );
+    }
+
+    if (isSyncVisits) {
+      lines.push(
+        "",
+        "    Note over Service: Upsert visits and update denormalized counters"
+      );
+    }
+
+    lines.push(
+      "",
+      "    Note over Controller,Client: Response envelope is always ApiResponse<T>"
+    );
+
+    return lines.join("\n");
+  }
+
+  endpointDefs.forEach(function(def) {
+    const group = def[0];
+    const key = def[1];
+    const method = def[2];
+    const route = def[3];
+    const controller = def[4];
+    const service = def[5];
+    const operation = def[6];
+
+    window.DIAGRAM_DATA.diagrams[key] = {
+      title: "Sequence: " + method + " " + route,
+      mermaid: buildDetailedMermaid(controller, service, method, route, operation)
+    };
+
+    window.DIAGRAM_DATA.endpointSequenceItems = window.DIAGRAM_DATA.endpointSequenceItems || [];
+    window.DIAGRAM_DATA.endpointSequenceItems.push({
+      key: key,
+      group: group,
+      label: "[" + groupLabels[group] + "] " + method + " " + route
+    });
+  });
+})();
+
+/* Render endpoint sequence buttons into docs/uml.html section */
+document.addEventListener("DOMContentLoaded", function() {
+  const host = document.getElementById("endpoint-sequence-buttons");
+  const data = window.DIAGRAM_DATA;
+  if (!host || !data || !Array.isArray(data.endpointSequenceItems)) return;
+
+  const frag = document.createDocumentFragment();
+  data.endpointSequenceItems.forEach(function(item) {
+    const btn = document.createElement("button");
+    btn.className = "diagram-btn";
+    btn.setAttribute("data-diagram", item.key);
+    btn.textContent = item.label;
+    frag.appendChild(btn);
+  });
+  host.appendChild(frag);
+});
