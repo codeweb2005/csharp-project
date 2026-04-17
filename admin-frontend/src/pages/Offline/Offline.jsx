@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { PlusOutlined, DownloadOutlined, SyncOutlined, DeleteOutlined, CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined, WarningOutlined } from '@ant-design/icons'
-import { Card, Modal, Form, Input, Select, Button, Tag, Progress, Space, Typography, Tooltip, Statistic, Row, Col, message, Popconfirm, Spin } from 'antd'
+import { App, Card, Modal, Form, Input, Select, Button, Tag, Progress, Space, Typography, Tooltip, Statistic, Row, Col, Popconfirm, Spin } from 'antd'
 import { offlinePackages as pkgApi, API_BASE } from '../../api.js'
 
 const { Title, Text } = Typography
@@ -24,6 +24,7 @@ function formatSize(bytes) {
 }
 
 export default function Offline() {
+    const { message } = App.useApp()
     const [packages, setPackages] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -107,6 +108,10 @@ export default function Offline() {
     }
 
     const totalDownloads = packages.reduce((sum, p) => sum + (p.downloadCount || 0), 0)
+    const handleCloseModal = () => {
+        setIsModalVisible(false)
+        form.resetFields()
+    }
 
     return (
         <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
@@ -210,10 +215,8 @@ export default function Offline() {
             <Modal
                 title="Create Offline Package"
                 open={isModalVisible}
-                onCancel={() => setIsModalVisible(false)}
+                onCancel={handleCloseModal}
                 footer={null}
-                destroyOnHidden
-                forceRender
             >
                 <Form layout="vertical" form={form} onFinish={handleCreate} initialValues={{ languageId: '1', version: '1.0' }}>
                     <Form.Item name="name" label="Package Name" rules={[{ required: true, message: 'Please enter package name!' }]}>
@@ -235,7 +238,7 @@ export default function Offline() {
                     </Form.Item>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
-                        <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
+                        <Button onClick={handleCloseModal}>Cancel</Button>
                         <Button type="primary" htmlType="submit" loading={createLoading}>
                             Create
                         </Button>

@@ -1,6 +1,6 @@
 import { SaveOutlined, ReloadOutlined, WarningOutlined, CopyOutlined, SyncOutlined, EnvironmentOutlined, SoundOutlined, RetweetOutlined, ApiOutlined } from '@ant-design/icons'
 import { useState, useEffect } from 'react'
-import { Card, Form, Input, InputNumber, Select, Slider, Switch, Button, Typography, Space, Row, Col, Alert, Divider, Modal, message } from 'antd'
+import { App, Card, Form, Input, InputNumber, Select, Slider, Switch, Button, Typography, Space, Row, Col, Alert, Divider } from 'antd'
 import { settings as settingsApi } from '../../api.js'
 
 const { Title, Text } = Typography
@@ -12,7 +12,27 @@ const defaultSettings = {
     api: { apiKey: '', maintenanceMode: false },
 }
 
+function flattenSettings(data) {
+    return {
+        geofence_defaultRadius: data.geofence.defaultRadius,
+        geofence_gpsUpdateFrequency: data.geofence.gpsUpdateFrequency,
+        geofence_gpsAccuracy: data.geofence.gpsAccuracy,
+        narration_defaultCooldown: data.narration.defaultCooldown,
+        narration_defaultMode: data.narration.defaultMode,
+        narration_ttsVoiceVi: data.narration.ttsVoiceVi,
+        narration_ttsVoiceEn: data.narration.ttsVoiceEn,
+        narration_ttsSpeed: data.narration.ttsSpeed,
+        narration_autoGenerateTTS: data.narration.autoGenerateTTS,
+        sync_syncFrequency: data.sync.syncFrequency,
+        sync_batchSize: data.sync.batchSize,
+        sync_compressData: data.sync.compressData,
+        sync_wifiOnly: data.sync.wifiOnly,
+        api_apiKey: data.api.apiKey,
+    }
+}
+
 export default function Settings() {
+    const { message, modal } = App.useApp()
     const [form] = Form.useForm()
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -24,23 +44,7 @@ export default function Settings() {
                 const res = await settingsApi.getAll()
                 const data = res.data ? { ...defaultSettings, ...res.data } : defaultSettings
                 
-                // Flatten structural data for Ant Design form
-                form.setFieldsValue({
-                    geofence_defaultRadius: data.geofence.defaultRadius,
-                    geofence_gpsUpdateFrequency: data.geofence.gpsUpdateFrequency,
-                    geofence_gpsAccuracy: data.geofence.gpsAccuracy,
-                    narration_defaultCooldown: data.narration.defaultCooldown,
-                    narration_defaultMode: data.narration.defaultMode,
-                    narration_ttsVoiceVi: data.narration.ttsVoiceVi,
-                    narration_ttsVoiceEn: data.narration.ttsVoiceEn,
-                    narration_ttsSpeed: data.narration.ttsSpeed,
-                    narration_autoGenerateTTS: data.narration.autoGenerateTTS,
-                    sync_syncFrequency: data.sync.syncFrequency,
-                    sync_batchSize: data.sync.batchSize,
-                    sync_compressData: data.sync.compressData,
-                    sync_wifiOnly: data.sync.wifiOnly,
-                    api_apiKey: data.api.apiKey,
-                })
+                form.setFieldsValue(flattenSettings(data))
                 setIsMaintenance(data.api.maintenanceMode)
             } catch (err) {
                 console.error('[Settings] load error:', err)
@@ -103,7 +107,7 @@ export default function Settings() {
     }
 
     const handleGenerateApiKey = () => {
-        Modal.confirm({
+        modal.confirm({
             title: 'Generate new API key?',
             content: 'The old API key will be invalidated immediately.',
             okText: 'Generate',
@@ -132,7 +136,7 @@ export default function Settings() {
     }
 
     const handleReset = () => {
-        Modal.confirm({
+        modal.confirm({
             title: 'Reset to defaults?',
             content: 'All settings will return to system defaults.',
             okText: 'Reset',
@@ -157,18 +161,22 @@ export default function Settings() {
         })
     }
 
-    if (loading) {
-        return <div style={{ padding: 40, textAlign: 'center' }}><SyncOutlined spin style={{ fontSize: 24 }} /></div>
-    }
-
     return (
         <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
-            <Form 
-                form={form} 
-                layout="vertical" 
+            <Form
+                form={form}
+                layout="vertical"
                 onFinish={handleSave}
                 requiredMark={false}
+                initialValues={flattenSettings(defaultSettings)}
             >
+            <div style={{ position: 'relative' }}>
+            {loading && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+                    <SyncOutlined spin style={{ fontSize: 24 }} />
+                </div>
+            )}
+            <div style={{ display: loading ? 'none' : 'block' }}>
                 <Row gutter={[24, 24]}>
                     <Col xs={24} lg={12}>
                         {/* Geofence */}
@@ -194,7 +202,7 @@ export default function Settings() {
                                     </Form.Item>
                                 </Col>
                             </Row>
-                            <Alert type="info" message="Smaller radius triggers more accurately but consumes more device battery" showIcon />
+                            <Alert type="info" title="Smaller radius triggers more accurately but consumes more device battery" showIcon />
                         </Card>
 
                         {/* Sync */}
@@ -319,7 +327,7 @@ export default function Settings() {
                             </div>
 
                             {isMaintenance && (
-                                <Alert type="error" message="Maintenance mode is ON — All mobile app APIs are suspended!" banner />
+                                <Alert type="error" title="Maintenance mode is ON. All mobile app APIs are suspended." banner />
                             )}
                         </Card>
                     </Col>
@@ -333,6 +341,8 @@ export default function Settings() {
                         Reset to defaults
                     </Button>
                 </div>
+            </div>
+            </div>
             </Form>
         </div>
     )

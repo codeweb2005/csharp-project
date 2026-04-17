@@ -59,7 +59,7 @@ public class AudioService : IAudioService
             LanguageId = languageId,
             FilePath = filePath,
             VoiceType = VoiceType.Recorded,
-            Duration = 0, // Would be calculated from file in production
+            Duration = 1, // Fallback to satisfy DB constraint until real metadata extraction is added
             FileSize = file.Length,
             IsDefault = !hasExisting,
             IsActive = true
@@ -110,7 +110,7 @@ public class AudioService : IAudioService
             FilePath = filePath,
             VoiceType = VoiceType.TTS,
             VoiceName = request.VoiceName,
-            Duration = ttsResult.DurationSeconds,
+            Duration = Math.Max(1, ttsResult.DurationSeconds),
             FileSize = ttsResult.AudioData.Length,
             IsDefault = !hasExisting,
             IsActive = true

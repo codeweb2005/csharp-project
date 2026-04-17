@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using System;
 using System.IO;
 
@@ -231,12 +231,9 @@ Console.WriteLine("\n🌱 Đang chèn dữ liệu mẫu...");
 Execute(@"
 INSERT INTO Languages (Id, Code, Name, NativeName, TtsCode, SortOrder) VALUES
     (1, 'vi', 'Vietnamese', 'Tiếng Việt',  'vi-VN', 1),
-    (2, 'en', 'English',    'English',      'en-US', 2),
-    (3, 'zh', 'Chinese',    '中文',          'zh-CN', 3),
-    (4, 'ja', 'Japanese',   '日本語',        'ja-JP', 4),
-    (5, 'ko', 'Korean',     '한국어',        'ko-KR', 5);
+    (2, 'en', 'English',    'English',      'en-US', 2);
 ");
-Console.WriteLine("  ✅ 5 ngôn ngữ");
+Console.WriteLine("  ✅ 2 ngôn ngữ (VI + EN)");
 
 // --- Categories ---
 Execute(@"
@@ -247,7 +244,10 @@ INSERT INTO Categories (Id, Icon, Color, SortOrder) VALUES
     (4, '🧋', '#FF9F1C', 4),
     (5, '🍰', '#CB997E', 5),
     (6, '🍲', '#6A4C93', 6),
-    (7, '🔥', '#F25C54', 7);
+    (7, '🔥', '#F25C54', 7),
+    (8, '🍤', '#43AA8B', 8),
+    (9, '🍔', '#F3722C', 9),
+    (10, '🥘', '#4D908E', 10);
 ");
 
 Execute(@"
@@ -259,15 +259,21 @@ INSERT INTO CategoryTranslations (CategoryId, LanguageId, Name, Description) VAL
     (5, 1, 'Tráng miệng',   'Chè, bánh, kem'),
     (6, 1, 'Lẩu',           'Lẩu các loại'),
     (7, 1, 'Nướng & BBQ',   'Nướng, xiên que, BBQ'),
+    (8, 1, 'Tôm & Hải sản', 'Tôm hùm, tôm tươi và các món hải sản theo set'),
+    (9, 1, 'Burgers & Sandwich', 'Burgers, sandwich và món ăn nhanh kiểu Mỹ'),
+    (10, 1, 'Món Á đặc sắc', 'Những món ăn Á có hương vị đậm đà, dễ ghiền'),
     (1, 2, 'Restaurant',     'Street food stalls and restaurants'),
     (2, 2, 'Seafood & Snails','Fresh seafood and snail restaurants'),
     (3, 2, 'Bar & Grill',    'Bars, draft beer, snack shops'),
     (4, 2, 'Drinks',         'Bubble tea, juice, smoothies'),
     (5, 2, 'Dessert',        'Sweet soup, cakes, ice cream'),
     (6, 2, 'Hot Pot',        'Various hot pot styles'),
-    (7, 2, 'BBQ & Grill',   'BBQ, skewers, grilled food');
+    (7, 2, 'BBQ & Grill',   'BBQ, skewers, grilled food'),
+    (8, 2, 'Shrimp & Seafood', 'Lobster, fresh shrimp, and curated seafood dishes'),
+    (9, 2, 'Burgers & Sandwich', 'Burgers, sandwiches, and American-style fast food'),
+    (10, 2, 'Signature Asian', 'Bold-flavored Asian dishes you can’t get enough of');
 ");
-Console.WriteLine("  ✅ 7 danh mục (VI + EN)");
+Console.WriteLine("  ✅ 10 danh mục (VI + EN)");
 
 // --- POIs ---
 Execute(@"
@@ -284,6 +290,22 @@ INSERT INTO POIs (Id, VendorId, CategoryId, Latitude, Longitude, GeofenceRadiusM
     (10, NULL, 4, 10.7542000, 106.6938000, 15, '30 Vĩnh Khánh, P.10, Q.4, TP.HCM',  NULL,            20000,  55000,  4.25, 1, 0);
 ");
 Console.WriteLine("  ✅ 10 điểm POI");
+
+// --- POI Media (thumbnails) ---
+Execute(@"
+INSERT INTO POIMedia (POIId, MediaType, FileUrl, FileName, FileSize, MimeType, Width, Height, Caption, SortOrder, IsPrimary) VALUES
+    (1, 0, '/images/poi-01.jpg', 'poi-01.jpg', 120000, 'image/jpeg', 800, 600, 'POI 01 thumbnail', 0, 1),
+    (2, 0, '/images/poi-02.jpg', 'poi-02.jpg', 110000, 'image/jpeg', 800, 600, 'POI 02 thumbnail', 0, 1),
+    (3, 0, '/images/poi-03.jpg', 'poi-03.jpg', 130000, 'image/jpeg', 800, 600, 'POI 03 thumbnail', 0, 1),
+    (4, 0, '/images/poi-04.jpg', 'poi-04.jpg', 140000, 'image/jpeg', 800, 600, 'POI 04 thumbnail', 0, 1),
+    (5, 0, '/images/poi-05.jpg', 'poi-05.jpg', 125000, 'image/jpeg', 800, 600, 'POI 05 thumbnail', 0, 1),
+    (6, 0, '/images/poi-06.jpg', 'poi-06.jpg', 150000, 'image/jpeg', 800, 600, 'POI 06 thumbnail', 0, 1),
+    (7, 0, '/images/poi-07.jpg', 'poi-07.jpg', 115000, 'image/jpeg', 800, 600, 'POI 07 thumbnail', 0, 1),
+    (8, 0, '/images/poi-08.jpg', 'poi-08.jpg', 135000, 'image/jpeg', 800, 600, 'POI 08 thumbnail', 0, 1),
+    (9, 0, '/images/poi-09.jpg', 'poi-09.jpg', 145000, 'image/jpeg', 800, 600, 'POI 09 thumbnail', 0, 1),
+    (10, 0, '/images/poi-10.jpg', 'poi-10.jpg', 160000, 'image/jpeg', 800, 600, 'POI 10 thumbnail', 0, 1);
+");
+Console.WriteLine("  ✅ 10 POI media");
 
 // --- POI Translations (VI + EN) ---
 Execute(@"
@@ -435,16 +457,42 @@ INSERT INTO AudioNarrations (POIId, LanguageId, FileUrl, FileName, FileSize, Dur
     (6, 1, '/audio/vi/bun-rieu-recorded.mp3',  'bun-rieu-recorded.mp3',  2150400, 42, 0, NULL,                  1, 1),
     (6, 2, '/audio/en/bun-rieu-en.mp3',        'bun-rieu-en.mp3',        2355200, 50, 1, 'en-US-JennyNeural',   1, 1),
     (9, 1, '/audio/vi/che-ba-tu-recorded.mp3', 'che-ba-tu-recorded.mp3', 1638400, 35, 0, NULL,                  1, 1),
-    (9, 2, '/audio/en/che-ba-tu-en.mp3',       'che-ba-tu-en.mp3',       1536000, 36, 1, 'en-US-JennyNeural',   1, 1);
+    (9, 2, '/audio/en/che-ba-tu-en.mp3',       'che-ba-tu-en.mp3',       1536000, 36, 1, 'en-US-JennyNeural',   1, 1),
+    (3, 1, '/audio/vi/long-uong-40-recorded.mp3', 'long-uong-40-recorded.mp3', 2016000, 41, 0, NULL,          1, 1);
 ");
-Console.WriteLine("  ✅ 9 file audio metadata");
+Console.WriteLine("  ✅ 10 file audio metadata");
 
 // --- Default UserSettings ---
 Execute(@"
-INSERT INTO UserSettings (PreferredLanguageId, NarrationMode, AutoPlayEnabled, CooldownMinutes, GeofenceSensitivity, Volume, PlaybackSpeed) VALUES
-    (1, 0, 1, 30, 1, 0.8, 1.0);
+INSERT INTO UserSettings (PreferredLanguageId, NarrationMode, AutoPlayEnabled, CooldownMinutes, GeofenceSensitivity, Volume, PlaybackSpeed, ShowNotifications, VibrationEnabled) VALUES
+    (1, 0, 1, 20, 1, 0.75, 1.00, 1, 1),
+    (1, 1, 1, 30, 1, 0.80, 1.05, 1, 1),
+    (2, 0, 0, 30, 2, 0.70, 1.00, 0, 1),
+    (2, 2, 1, 45, 1, 0.85, 1.10, 1, 0),
+    (1, 3, 0, 60, 2, 0.65, 0.95, 0, 0),
+    (2, 1, 1, 25, 0, 0.90, 1.20, 1, 1),
+    (1, 2, 1, 40, 1, 0.60, 1.00, 1, 1),
+    (2, 3, 0, 35, 2, 0.78, 1.15, 0, 1),
+    (1, 0, 1, 28, 1, 0.82, 1.00, 1, 0),
+    (2, 0, 1, 22, 0, 0.73, 1.05, 1, 1);
 ");
-Console.WriteLine("  ✅ Cài đặt mặc định");
+Console.WriteLine("  ✅ 10 user settings rows");
+
+// --- VisitHistory ---
+Execute(@"
+INSERT INTO VisitHistory (POIId, VisitedAt, TriggerType, NarrationPlayed, NarrationType, AudioNarrationId, DurationListened, UserLatitude, UserLongitude, DeviceInfo, IsSynced) VALUES
+    (1,  '2026-04-16T10:10:00Z', 0, 1, 0, 1,  45, 10.7538000, 106.6932000, 'Android (seed)', 1),
+    (1,  '2026-04-16T10:30:00Z', 2, 1, 1, 3,  48, 10.7538500, 106.6932500, 'iOS (seed)',     0),
+    (2,  '2026-04-16T11:00:00Z', 0, 1, 0, 4,  38, 10.7535000, 106.6928000, 'Android (seed)', 1),
+    (2,  '2026-04-16T11:25:00Z', 2, 1, 1, 5,  40, 10.7535200, 106.6928200, 'iOS (seed)',     0),
+    (3,  '2026-04-16T12:10:00Z', 3, 1, 0, 10, 41, 10.7540000, 106.6935000, 'Android (seed)', 1),
+    (6,  '2026-04-16T13:00:00Z', 0, 1, 0, 6,  42, 10.7541000, 106.6937000, 'Android (seed)', 0),
+    (6,  '2026-04-16T13:20:00Z', 1, 1, 7,  50, 10.7541200, 106.6937200, 'iOS (seed)',     1),
+    (9,  '2026-04-16T14:00:00Z', 2, 1, 0, 8,  35, 10.7534000, 106.6927500, 'Android (seed)', 0),
+    (9,  '2026-04-16T14:15:00Z', 1, 1, 9,  36, 10.7534200, 106.6927700, 'iOS (seed)',     1),
+    (10, '2026-04-16T15:00:00Z', 2, 0, NULL, NULL, NULL, 10.7542000, 106.6938000, 'Android (seed)', 0);
+");
+Console.WriteLine("  ✅ 10 visit history rows");
 
 // ===================== VERIFY =====================
 Console.WriteLine("\n🔍 Kiểm tra dữ liệu...\n");

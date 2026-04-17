@@ -94,6 +94,16 @@ public interface IAudioService
     Task<string?> GetFileKeyAsync(int id);
 }
 
+// ============ Audio QR Service ============
+public interface IAudioQrService
+{
+    /// <summary>
+    /// Generates a PNG QR code for a given <paramref name="audioId"/> and QR payload URL (<paramref name="streamUrl"/>).
+    /// Returns null when the audio does not exist or is inactive.
+    /// </summary>
+    Task<byte[]?> GetAudioQrPngAsync(int audioId, string streamUrl, int pixels = 512);
+}
+
 // ============ Media Service ============
 public interface IMediaService
 {

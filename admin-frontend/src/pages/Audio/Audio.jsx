@@ -290,6 +290,9 @@ export default function Audio() {
                     <Tooltip title="Download">
                         <Button type="text" icon={<DownloadOutlined />} href={`${API_BASE}/audio/${record.id}/stream`} download target="_blank" />
                     </Tooltip>
+                    <Tooltip title="Download QR">
+                        <Button type="text" icon={<DownloadOutlined />} href={`${API_BASE}/audio/${record.id}/qr`} download target="_blank" />
+                    </Tooltip>
                     <Tooltip title="Delete">
                         <Popconfirm title="Delete this audio file?" onConfirm={() => handleDeleteAudio(record.id)} okText="Delete" cancelText="Cancel" okButtonProps={{ danger: true }}>
                             <Button type="text" danger icon={<DeleteOutlined />} />

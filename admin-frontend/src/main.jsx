@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { ConfigProvider } from 'antd'
+import { App as AntdApp, ConfigProvider } from 'antd'
 import { AuthProvider } from './context/AuthContext'
 import App from './App.jsx'
 
@@ -29,9 +29,11 @@ createRoot(document.getElementById('root')).render(
         },
       }}
     >
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <AntdApp>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </AntdApp>
     </ConfigProvider>
   </StrictMode>,
 )

@@ -9,6 +9,10 @@ const { Title, Text } = Typography
 
 const COLORS = ['#00246a', '#22c55e', '#5c3800', '#4059aa', '#ba1a1a', '#06b6d4']
 
+function getRecentActivityKey(item, index) {
+    return item.id ?? `${item.userName}-${item.poiName}-${item.visitedAt}-${index}`
+}
+
 const statConfig = [
     { key: 'activePOIs', label: 'Active POIs', icon: MapPin, color: '#00246a', bg: '#dbe1ff' },
     { key: 'totalVisits', label: 'Total Visits', icon: Eye, color: '#22c55e', bg: '#d1fae5', changeKey: 'totalVisitsChange' },
@@ -96,7 +100,7 @@ export default function Dashboard() {
 
             {/* Charts Row */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                <Col xs={24} lg={16}>
+                <Col xs={24} lg={16} style={{ minWidth: 0 }}>
                     <Card variant="borderless" style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                             <Title level={5} style={{ margin: 0 }}>Visits by Day</Title>
@@ -127,7 +131,7 @@ export default function Dashboard() {
                     </Card>
                 </Col>
 
-                <Col xs={24} lg={8}>
+                <Col xs={24} lg={8} style={{ minWidth: 0 }}>
                     <Card title={<Title level={5} style={{ margin: 0 }}>Top Locations</Title>} variant="borderless" style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         {topPOIs.length === 0 && <Text type="secondary">No data yet</Text>}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
@@ -153,7 +157,7 @@ export default function Dashboard() {
 
             {/* Bottom Row */}
             <Row gutter={[16, 16]}>
-                <Col xs={24} lg={8}>
+                <Col xs={24} lg={8} style={{ minWidth: 0 }}>
                     <Card title={<Title level={5} style={{ margin: 0 }}>Language Distribution</Title>} variant="borderless" style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         <ResponsiveContainer width="100%" height={200}>
                             <PieChart>
@@ -188,13 +192,13 @@ export default function Dashboard() {
                     </Card>
                 </Col>
 
-                <Col xs={24} lg={16}>
+                <Col xs={24} lg={16} style={{ minWidth: 0 }}>
                     <Card title={<Title level={5} style={{ margin: 0 }}>Recent Activity</Title>} variant="borderless" style={{ borderRadius: 16, boxShadow: '0 4px 12px rgba(0,36,106,0.06)', height: '100%', border: 'none' }}>
                         {recentActivity.length === 0 ? (
                             <Text type="secondary">No recent activity</Text>
                         ) : (
-                            recentActivity.map(item => (
-                                <div key={item.id ?? `${item.userName}-${item.visitedAt}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+                            recentActivity.map((item, index) => (
+                                <div key={getRecentActivityKey(item, index)} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
                                     <Avatar style={{ backgroundColor: 'rgba(143,167,254,0.15)' }}>{item.flagEmoji || '🌐'}</Avatar>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div>

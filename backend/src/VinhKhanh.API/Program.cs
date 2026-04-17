@@ -79,6 +79,7 @@ else
 builder.Services.AddScoped<IPOIService, POIService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IAudioService, AudioService>();
+builder.Services.AddScoped<IAudioQrService, AudioQrService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IUserService, UserService>();

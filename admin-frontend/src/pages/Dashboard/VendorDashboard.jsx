@@ -39,6 +39,10 @@ const periods = [
 ]
 function daysFrom(period) { return period === '7d' ? 7 : period === '90d' ? 90 : 30 }
 
+function getRecentActivityKey(item, index) {
+    return item.id ?? `${item.userName}-${item.poiName}-${item.visitedAt}-${index}`
+}
+
 export default function VendorDashboard() {
     const { name, vendorPOIIds } = useCurrentUser()
     const [period, setPeriod] = useState('30d')
@@ -179,7 +183,7 @@ export default function VendorDashboard() {
             {/* Charts Row */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 {/* Visits/day Area Chart */}
-                <Col xs={24} lg={16}>
+                <Col xs={24} lg={16} style={{ minWidth: 0 }}>
                     <Card
                         title={<Title level={5} style={{ margin: 0 }}>Visits by Day</Title>}
                         variant="borderless"
@@ -206,7 +210,7 @@ export default function VendorDashboard() {
                 </Col>
 
                 {/* Hourly Bar Chart */}
-                <Col xs={24} lg={8}>
+                <Col xs={24} lg={8} style={{ minWidth: 0 }}>
                     <Card
                         title={<Title level={5} style={{ margin: 0 }}>Visits by Hour (Today)</Title>}
                         variant="borderless"
@@ -234,7 +238,7 @@ export default function VendorDashboard() {
             {/* Bottom Row */}
             <Row gutter={[16, 16]}>
                 {/* Language Pie */}
-                <Col xs={24} lg={8}>
+                <Col xs={24} lg={8} style={{ minWidth: 0 }}>
                     <Card
                         title={<Title level={5} style={{ margin: 0 }}>Language Distribution</Title>}
                         variant="borderless"
@@ -271,7 +275,7 @@ export default function VendorDashboard() {
                 </Col>
 
                 {/* Top POIs */}
-                <Col xs={24} lg={8}>
+                <Col xs={24} lg={8} style={{ minWidth: 0 }}>
                     <Card
                         title={<Title level={5} style={{ margin: 0 }}>Top Visited POIs</Title>}
                         variant="borderless"
@@ -299,7 +303,7 @@ export default function VendorDashboard() {
                 </Col>
 
                 {/* Recent Activity */}
-                <Col xs={24} lg={8}>
+                <Col xs={24} lg={8} style={{ minWidth: 0 }}>
                     <Card
                         title={<Title level={5} style={{ margin: 0 }}>Recent Activity</Title>}
                         variant="borderless"
@@ -308,8 +312,8 @@ export default function VendorDashboard() {
                         {recentActivity.length === 0 ? (
                             <Text type="secondary">No recent activity</Text>
                         ) : (
-                            recentActivity.map(item => (
-                                <div key={item.id ?? `${item.userName}-${item.visitedAt}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                            recentActivity.map((item, index) => (
+                                <div key={getRecentActivityKey(item, index)} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
                                     <Avatar size="small" style={{ backgroundColor: '#f8fafc', fontSize: 14 }}>{item.flagEmoji || '🌐'}</Avatar>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <Text strong style={{ fontSize: 13 }}>{item.userName}</Text>

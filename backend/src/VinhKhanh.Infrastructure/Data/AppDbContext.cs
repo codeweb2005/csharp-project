@@ -102,6 +102,7 @@ public class AppDbContext : DbContext
         {
             e.Property(x => x.FilePath).HasMaxLength(500);
             e.Property(x => x.VoiceName).HasMaxLength(100);
+            e.Property(x => x.Duration).HasColumnName("DurationSeconds");
             e.HasIndex(x => new { x.POIId, x.LanguageId });
             e.HasOne(x => x.POI).WithMany(p => p.AudioNarrations).HasForeignKey(x => x.POIId);
             e.HasOne(x => x.Language).WithMany().HasForeignKey(x => x.LanguageId);
@@ -142,7 +143,10 @@ public class AppDbContext : DbContext
         mb.Entity<OfflinePackage>(e =>
         {
             e.Property(x => x.Name).HasMaxLength(200);
-            e.Property(x => x.Version).HasMaxLength(20);
+            e.Property(x => x.Version)
+                .HasConversion(
+                    v => ParseOfflinePackageVersion(v),
+                    v => v.ToString());
             e.Property(x => x.FilePath).HasMaxLength(500);
             e.Property(x => x.Checksum).HasMaxLength(100);
             e.Property(x => x.CurrentStep).HasMaxLength(200);
@@ -168,4 +172,7 @@ public class AppDbContext : DbContext
         }
         return base.SaveChangesAsync(ct);
     }
+
+    private static int ParseOfflinePackageVersion(string? version)
+        => int.TryParse(version, out var parsed) ? parsed : 1;
 }

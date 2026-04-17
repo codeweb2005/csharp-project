@@ -292,7 +292,7 @@ public class CategoriesController(ICategoryService svc) : BaseApiController
 // Audio Controller
 // ================================
 [Authorize]
-public class AudioController(IAudioService svc, IFileStorageService fileStorage, IUserService userSvc) : BaseApiController
+public class AudioController(IAudioService svc, IFileStorageService fileStorage, IUserService userSvc, IAudioQrService qrSvc) : BaseApiController
 {
     [HttpGet("poi/{poiId}")]
     public async Task<IActionResult> GetByPOI(int poiId, [FromQuery] string? lang = null)
@@ -344,6 +344,20 @@ public class AudioController(IAudioService svc, IFileStorageService fileStorage,
         var localStream = await svc.GetStreamAsync(id);
         if (localStream == null) return NotFound();
         return File(localStream, "audio/mpeg", enableRangeProcessing: true);
+    }
+
+    [HttpGet("{id}/qr")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Qr(int id, [FromQuery] int pixels = 512)
+    {
+        var streamUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}/api/v1/audio/{id}/stream";
+        if (fileStorage.IsCloudStorage)
+            streamUrl += "?proxy=1";
+
+        var png = await qrSvc.GetAudioQrPngAsync(id, streamUrl, pixels);
+        if (png == null) return NotFound();
+
+        return File(png, "image/png", $"audio-{id}-qr.png");
     }
 
     [HttpDelete("{id}")]
