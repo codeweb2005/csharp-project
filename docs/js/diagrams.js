@@ -1259,6 +1259,116 @@ mermaid: `graph TB
     return lines.join("\n");
   }
 
+  function buildEndpointActivityMermaid(controller, service, method, route, operation) {
+    function quoteLabel(text) {
+      return String(text).replace(/"/g, '\\"');
+    }
+
+    const authNote = resolveAuthNote(route, method);
+    const hasVendorScope = route.startsWith("/api/v1/pois") || route.startsWith("/api/v1/audio") || route.startsWith("/api/v1/dashboard") || route.startsWith("/api/v1/analytics");
+    const hasCoordinatesValidation = route === "/api/v1/pois/nearby" || route === "/api/v1/pois/audio-queue";
+    const isUpload = route.includes("/upload") || route.includes("/upload-image");
+    const isStream = route === "/api/v1/audio/{id}/stream";
+    const isQr = route === "/api/v1/audio/{id}/qr";
+    const isOfflineDownload = route === "/api/v1/offlinepackages/{id}/download";
+    const isSyncVisits = route === "/api/v1/sync/visits";
+    const isPagedList = method === "GET" && (route === "/api/v1/pois" || route === "/api/v1/users");
+
+    const lines = [
+      "flowchart TD",
+      "    startNode([Receive HTTP request]) --> routeNode[\"" + quoteLabel(method + " " + route) + "\"]",
+      "    routeNode --> authNode{\"Auth check\"}",
+      "    authNode -->|Fail| failAuth[Return 401 or 403]",
+      "    authNode -->|Pass| controllerNode[\"" + quoteLabel(controller + " action invoked") + "\"]",
+      "    controllerNode --> authzNode[\"" + quoteLabel(authNote) + "\"]"
+    ];
+
+    if (isUpload) {
+      lines.push("    authzNode --> contentTypeNode{multipart form-data?}");
+      lines.push("    contentTypeNode -->|No| failContentType[Return 400 VALIDATION_ERROR]");
+      lines.push("    contentTypeNode -->|Yes| validationNode[Request payload validation]");
+    } else {
+      lines.push("    authzNode --> validationNode[Request payload validation]");
+    }
+
+    if (isPagedList) {
+      lines.push("    validationNode --> pagingNode[Parse page size filter sort params]");
+      lines.push("    pagingNode --> coordNode");
+    }
+
+    if (hasCoordinatesValidation) {
+      if (!isPagedList) {
+        lines.push("    validationNode --> coordNode");
+      }
+      lines.push("    coordNode{Coordinates valid?}");
+      lines.push("    coordNode -->|No| failCoord[Return 400 VALIDATION_ERROR]");
+      lines.push("    coordNode -->|Yes| scopeNode");
+    } else {
+      lines.push("    validationNode --> scopeNode");
+    }
+
+    if (hasVendorScope) {
+      lines.push("    scopeNode{Vendor scope needed?}");
+      lines.push("    scopeNode -->|Yes| vendorScopeNode[Load vendor POI IDs from DB]");
+      lines.push("    scopeNode -->|No| serviceNode");
+      lines.push("    vendorScopeNode --> serviceNode[\"" + quoteLabel(service + "." + operation) + "\"]");
+    } else {
+      lines.push("    scopeNode --> serviceNode[\"" + quoteLabel(service + "." + operation) + "\"]");
+    }
+
+    lines.push(
+      "    serviceNode --> repoNode[Repository and data access]",
+      "    repoNode --> dbNode[(MySQL and storage)]",
+      "    dbNode --> serviceResultNode{Service result success?}",
+      "    serviceResultNode -->|No| errorMapNode[Map Error.Code to ApiResult status]",
+      "    errorMapNode --> failBusiness[Return 4xx ApiResponse]",
+      "    serviceResultNode -->|Yes| successNode[Return 200 ApiResponse]"
+    );
+
+    if (isStream) {
+      lines.push("    successNode --> streamModeNode{Cloud signed URL or proxy stream?}");
+      lines.push("    streamModeNode -->|Signed URL| streamRedirectNode[Return 302 Redirect]");
+      lines.push("    streamModeNode -->|Proxy or local| streamFileNode[Return 200 audio/mpeg stream]");
+    }
+
+    if (isQr) {
+      lines.push("    successNode --> qrNode{Audio exists?}");
+      lines.push("    qrNode -->|No| qrNotFoundNode[Return 404 NotFound]");
+      lines.push("    qrNode -->|Yes| qrPngNode[Return 200 image/png]");
+    }
+
+    if (isOfflineDownload) {
+      lines.push("    successNode --> offlineModeNode{Cloud storage enabled?}");
+      lines.push("    offlineModeNode -->|Yes| offlineRedirectNode[Return 302 signed URL]");
+      lines.push("    offlineModeNode -->|No| offlineStreamNode[Return 200 application/zip stream]");
+    }
+
+    if (isSyncVisits) {
+      lines.push("    serviceNode --> visitsNode[Attach userId and process visit batch]");
+      lines.push("    visitsNode --> repoNode");
+    }
+
+    lines.push("    failAuth --> endNode([Done])");
+    lines.push("    failContentType --> endNode");
+    lines.push("    failCoord --> endNode");
+    lines.push("    failBusiness --> endNode");
+    lines.push("    successNode --> endNode");
+    if (isStream) {
+      lines.push("    streamRedirectNode --> endNode");
+      lines.push("    streamFileNode --> endNode");
+    }
+    if (isQr) {
+      lines.push("    qrNotFoundNode --> endNode");
+      lines.push("    qrPngNode --> endNode");
+    }
+    if (isOfflineDownload) {
+      lines.push("    offlineRedirectNode --> endNode");
+      lines.push("    offlineStreamNode --> endNode");
+    }
+
+    return lines.join("\n");
+  }
+
   endpointDefs.forEach(function(def) {
     const group = def[0];
     const key = def[1];
@@ -1279,22 +1389,50 @@ mermaid: `graph TB
       group: group,
       label: "[" + groupLabels[group] + "] " + method + " " + route
     });
+
+    const activityKey = key.replace("ep-", "epa-");
+    window.DIAGRAM_DATA.diagrams[activityKey] = {
+      title: "Activity: " + method + " " + route,
+      mermaid: buildEndpointActivityMermaid(controller, service, method, route, operation)
+    };
+
+    window.DIAGRAM_DATA.endpointActivityItems = window.DIAGRAM_DATA.endpointActivityItems || [];
+    window.DIAGRAM_DATA.endpointActivityItems.push({
+      key: activityKey,
+      group: group,
+      label: "[" + groupLabels[group] + "] " + method + " " + route
+    });
   });
 })();
 
 /* Render endpoint sequence buttons into docs/uml.html section */
 document.addEventListener("DOMContentLoaded", function() {
   const host = document.getElementById("endpoint-sequence-buttons");
+  const activityHost = document.getElementById("endpoint-activity-buttons");
   const data = window.DIAGRAM_DATA;
-  if (!host || !data || !Array.isArray(data.endpointSequenceItems)) return;
+  if (!data) return;
 
-  const frag = document.createDocumentFragment();
-  data.endpointSequenceItems.forEach(function(item) {
-    const btn = document.createElement("button");
-    btn.className = "diagram-btn";
-    btn.setAttribute("data-diagram", item.key);
-    btn.textContent = item.label;
-    frag.appendChild(btn);
-  });
-  host.appendChild(frag);
+  if (host && Array.isArray(data.endpointSequenceItems)) {
+    const frag = document.createDocumentFragment();
+    data.endpointSequenceItems.forEach(function(item) {
+      const btn = document.createElement("button");
+      btn.className = "diagram-btn";
+      btn.setAttribute("data-diagram", item.key);
+      btn.textContent = item.label;
+      frag.appendChild(btn);
+    });
+    host.appendChild(frag);
+  }
+
+  if (activityHost && Array.isArray(data.endpointActivityItems)) {
+    const frag = document.createDocumentFragment();
+    data.endpointActivityItems.forEach(function(item) {
+      const btn = document.createElement("button");
+      btn.className = "diagram-btn";
+      btn.setAttribute("data-diagram", item.key);
+      btn.textContent = item.label;
+      frag.appendChild(btn);
+    });
+    activityHost.appendChild(frag);
+  }
 });
