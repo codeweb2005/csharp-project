@@ -1,7 +1,0 @@
-🔐 Đăng nhập & JWT — Login → Validate → Generate token → Refresh flow
-📍 Tạo POI mới — Full workflow: form → map → translations → images → auto TTS
-🔊 Tạo TTS — API → Azure Speech → Save file → Stream cho nghe thử
-📦 Build gói Offline — Async background job với progress polling
-🔄 Mobile Sync — Delta sync + offline visit upload
-📈 Analytics Pipeline — Visit data → Aggregation queries → Charts
-👥 Vendor Management — Create account → Link to POI → Scoped data access

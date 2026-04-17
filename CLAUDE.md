@@ -51,7 +51,7 @@ admin-frontend/src/           ← Admin + Vendor shared panel (port 5173)
 
 vendor-frontend/src/          ← Vendor-only panel (port 5174)
 
-Database/                     ← SQL migration scripts (001_*.sql — 006_*.sql)
+Database/                     ← SQL migration scripts (001_*.sql — 009_*.sql)
 ```
 
 ---

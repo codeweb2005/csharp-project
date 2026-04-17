@@ -1,21 +1,23 @@
 # 🔌 Vinh Khanh Food Tour — API Reference
 
+> **Source of truth:** All schemas mapped directly from
+> [`Controllers.cs`](backend/src/VinhKhanh.API/Controllers/Controllers.cs) and
+> [`DTOs.cs`](backend/src/VinhKhanh.Application/DTOs/DTOs.cs)
+>
 > **Base URL (dev):** `http://localhost:5015/api/v1`  
-> **Base URL (prod):** `https://api.vinhkhanh.com/api/v1`  
-> **Auth:** `Authorization: Bearer <access_token>`  
-> **Content-Type:** `application/json` (except multipart uploads)
+> **Auth header:** `Authorization: Bearer <accessToken>`  
+> **Content-Type:** `application/json` (except multipart endpoints)
 
 ---
 
-## Response Envelope
-
-Every endpoint returns the same wrapper:
+## Response Envelope — `ApiResponse<T>`
 
 ```json
 {
   "success": true,
-  "data": { ... },
-  "error": null
+  "data": { },
+  "error": null,
+  "traceId": "optional"
 }
 ```
 
@@ -27,19 +29,33 @@ On failure:
   "data": null,
   "error": {
     "code": "NOT_FOUND",
-    "message": "Human-readable message"
+    "message": "Human-readable message",
+    "details": [{ "field": "email", "message": "Required" }]
   }
 }
 ```
 
-| Error Code | HTTP Status | Meaning |
+| Error Code | HTTP | When |
 |---|---|---|
 | `NOT_FOUND` | 404 | Resource does not exist |
-| `FORBIDDEN` | 403 | Valid auth but insufficient permissions |
-| `UNAUTHORIZED` | 401 | Missing or expired JWT |
-| `VALIDATION_ERROR` | 400 | Request body failed validation |
+| `FORBIDDEN` | 403 | Valid auth, insufficient permissions |
+| `UNAUTHORIZED` | 401 | Missing/expired JWT |
+| `VALIDATION_ERROR` | 400 | Request body/params failed validation |
 | `ACCOUNT_DISABLED` | 403 | Account deactivated |
-| *(any other)* | 400 | General client error |
+
+## Pagination — `PagedResult<T>`
+
+```json
+{
+  "items": [],
+  "pagination": {
+    "page": 1,
+    "size": 10,
+    "totalItems": 42,
+    "totalPages": 5
+  }
+}
+```
 
 ---
 
@@ -47,19 +63,14 @@ On failure:
 
 ### POST `/auth/login`
 
-Authenticate with email and password. Returns JWT access + refresh tokens.
-
 **Auth:** ❌ None  
-**Body:**
+**Request:** `LoginRequest`
 
 ```json
-{
-  "email": "admin@vinhkhanh.app",
-  "password": "Admin@123456"
-}
+{ "email": "admin@vinhkhanh.app", "password": "Admin@123456" }
 ```
 
-**Response `data`:**
+**Response `data`:** `LoginResponse`
 
 ```json
 {
@@ -70,7 +81,13 @@ Authenticate with email and password. Returns JWT access + refresh tokens.
     "id": 1,
     "email": "admin@vinhkhanh.app",
     "fullName": "Administrator",
-    "role": "Admin"
+    "role": "Admin",
+    "phone": null,
+    "avatarUrl": null,
+    "isActive": true,
+    "lastLoginAt": "2026-04-15T09:00:00Z",
+    "shopName": null,
+    "vendorPOIIds": []
   }
 }
 ```
@@ -79,53 +96,45 @@ Authenticate with email and password. Returns JWT access + refresh tokens.
 
 ### POST `/auth/refresh`
 
-Exchange a refresh token for a new access token + refresh token pair (rotation).
-
 **Auth:** ❌ None  
-**Body:** `"<refresh_token>"` ← plain string, not an object
-
-**Response `data`:** Same shape as `/auth/login`
+**Body:** `"<refresh_token>"` — plain string (not an object)  
+**Response `data`:** `LoginResponse` (same as login)
 
 ---
 
 ### POST `/auth/register`
 
-Tourist self-registration. Creates a `Customer`-role account and returns JWT immediately.
+Tourist self-registration → Customer role, returns JWT immediately.
 
 **Auth:** ❌ None  
-**Body:**
+**Request:** `RegisterRequest`
 
 ```json
 {
+  "username": "nguyen_van_a",
   "email": "tourist@example.com",
   "password": "Tourist@123",
-  "fullName": "Nguyễn Văn A"
+  "fullName": "Nguyễn Văn A",
+  "preferredLanguageId": 1
 }
 ```
 
-**Response `data`:** Same shape as `/auth/login`
+**Response `data`:** `LoginResponse`
 
 ---
 
 ### POST `/auth/change-password`
 
-Change password for the current authenticated user.
-
 **Auth:** ✅ Any authenticated user  
-**Body:**
+**Request:** `ChangePasswordRequest`
 
 ```json
-{
-  "currentPassword": "OldPassword@123",
-  "newPassword": "NewPassword@456"
-}
+{ "currentPassword": "OldPass@123", "newPassword": "NewPass@456" }
 ```
 
 ---
 
 ### GET `/auth/me`
-
-Get the current authenticated user's profile.
 
 **Auth:** ✅ Any authenticated user  
 **Response `data`:** `UserDto`
@@ -134,33 +143,36 @@ Get the current authenticated user's profile.
 
 ### POST `/auth/forgot-password`
 
-Request a password reset email. Response shape is always identical regardless of whether the email exists (prevents email enumeration).
+No email enumeration — response shape always identical.
 
 **Auth:** ❌ None  
-**Body:**
+**Request:** `ForgotPasswordRequest`
+
+```json
+{ "email": "user@example.com" }
+```
+
+**Response `data`:** `ForgotPasswordResponse`
 
 ```json
 {
-  "email": "user@example.com"
+  "message": "If that address exists, a reset link has been sent.",
+  "resetToken": "<only in dev when PasswordReset:ReturnTokenInResponse=true>"
 }
 ```
-
-> In dev mode (`PasswordReset:ReturnTokenInResponse = true`), the `resetToken` may be returned directly in the response for testing.
 
 ---
 
 ### POST `/auth/reset-password`
 
-Reset password using a token received via email.
-
 **Auth:** ❌ None  
-**Body:**
+**Request:** `ResetPasswordRequest`
 
 ```json
 {
   "email": "user@example.com",
   "token": "<reset_token>",
-  "newPassword": "NewPassword@123"
+  "newPassword": "NewPass@456"
 }
 ```
 
@@ -168,188 +180,17 @@ Reset password using a token received via email.
 
 ### PUT `/auth/profile`
 
-Self-service profile update for Customer and Vendor accounts.
-
-**Auth:** ✅ `Customer` or `Vendor` only (Admin not permitted)  
-**Body:**
+**Auth:** ✅ `Customer` or `Vendor` only  
+**Request:** `UpdateProfileRequest`
 
 ```json
 {
   "fullName": "Nguyễn Văn A",
-  "email": "newemail@example.com"
+  "phone": "0901234567",
+  "preferredLanguageId": 1,
+  "avatarUrl": "https://..."
 }
 ```
-
----
-
-## Points of Interest — `api/v1/pois`
-
-### GET `/pois`
-
-Paginated, filtered list of POIs.
-
-**Auth:** ✅ Admin or Vendor  
-**Vendor note:** Backend scopes results to the Vendor's own POI(s) via a **fresh DB query** (`GetVendorPOIIdsAsync`) — not the JWT claim.
-
-**Query params:**
-
-| Param | Type | Default | Description |
-|---|---|---|---|
-| `page` | int | 1 | Page number |
-| `size` | int | 10 | Page size |
-| `search` | string | — | Filter by name (partial match) |
-| `categoryId` | int | — | Filter by category |
-| `isActive` | bool | — | Filter by active status |
-| `sortBy` | string | `name` | Sort field |
-| `order` | string | `asc` | `asc` or `desc` |
-
-**Response `data`:** `PagedResult<POIListDto>`
-
-```json
-{
-  "items": [
-    {
-      "id": 1,
-      "name": "Quán Bún Bò Cô Linh",
-      "categoryId": 2,
-      "categoryName": "Bún Bò",
-      "categoryIcon": "🍜",
-      "address": "123 Vinh Khanh, Q4",
-      "latitude": 10.7553,
-      "longitude": 106.7017,
-      "geofenceRadius": 50,
-      "priority": 1,
-      "isActive": true,
-      "isFeatured": false,
-      "totalVisits": 1234,
-      "rating": 4.8
-    }
-  ],
-  "totalCount": 42,
-  "page": 1,
-  "pageSize": 10
-}
-```
-
----
-
-### GET `/pois/{id}`
-
-Get full POI detail including translations.
-
-**Auth:** ✅ Admin or Vendor  
-**Response `data`:** `POIDetailDto` (includes `translations` array)
-
----
-
-### POST `/pois`
-
-Create a new POI.
-
-**Auth:** ✅ Admin or Vendor  
-**Vendor note:** `VendorUserId` is auto-set to the calling vendor's own ID.
-
-**Body:** `CreatePOIRequest`
-
-```json
-{
-  "categoryId": 2,
-  "latitude": 10.7553,
-  "longitude": 106.7017,
-  "address": "123 Vinh Khanh, Q4",
-  "geofenceRadius": 50,
-  "priority": 1,
-  "vendorUserId": null,
-  "translations": [
-    {
-      "languageId": 1,
-      "name": "Quán Bún Bò Cô Linh",
-      "description": "...",
-      "highlights": ["Đặc sản", "Ngon"]
-    }
-  ]
-}
-```
-
----
-
-### PUT `/pois/{id}`
-
-Update an existing POI.
-
-**Auth:** ✅ Authorized (any)  
-**Vendor note:** Returns `403` if `POI.VendorUserId ≠ callerId`.  
-**Vendor note:** Cannot reassign `VendorUserId` (Admin only).
-
-**Body:** `UpdatePOIRequest` (same shape as Create)
-
----
-
-### DELETE `/pois/{id}`
-
-Delete a POI (cascades to translations, audio, media, menu items).
-
-**Auth:** ✅ Admin or Vendor  
-**Vendor note:** Returns `403` if Vendor does not own the POI.
-
----
-
-### PATCH `/pois/{id}/toggle`
-
-Toggle POI `IsActive` on/off.
-
-**Auth:** ✅ Admin only
-
----
-
-### PATCH `/pois/{id}/featured`
-
-Toggle POI `IsFeatured` on/off.
-
-**Auth:** ✅ Admin only
-
----
-
-### GET `/pois/nearby`
-
-Returns active POIs within a GPS radius. Used by the mobile app to bootstrap the local geofence engine on startup.
-
-**Auth:** ❌ Anonymous  
-**Query params:**
-
-| Param | Type | Default | Required | Description |
-|---|---|---|---|---|
-| `lat` | double | — | ✅ | Latitude (-90 to 90) |
-| `lng` | double | — | ✅ | Longitude (-180 to 180) |
-| `radiusMeters` | int | 500 | — | Max 5000 |
-| `langId` | int | — | — | Filter translations to one language |
-
-**Response `data`:** Array of `POIDetailDto`
-
----
-
-### GET `/pois/{id}/public`
-
-Full public detail for a single active POI. Used by the mobile app tourist flow. Returns `404` if POI is inactive.
-
-**Auth:** ❌ Anonymous  
-**Query params:** `?langId=1` (optional — filter translations and audio to one language)
-
----
-
-### GET `/pois/audio-queue`
-
-Returns an ordered audio playback queue based on GPS position. When multiple POIs are within range, narrations are queued sequentially sorted by `Priority DESC, Distance ASC`.
-
-**Auth:** ❌ Anonymous  
-**Query params:**
-
-| Param | Type | Default | Required | Description |
-|---|---|---|---|---|
-| `lat` | double | — | ✅ | Latitude |
-| `lng` | double | — | ✅ | Longitude |
-| `radiusMeters` | int | 500 | — | Max 5000 |
-| `langId` | int | — | — | Filter audio to one language |
 
 ---
 
@@ -357,16 +198,20 @@ Returns an ordered audio playback queue based on GPS position. When multiple POI
 
 ### GET `/languages`
 
-Returns all active languages sorted by `SortOrder`. Used by mobile app language picker on first run.
-
-**Auth:** ❌ Anonymous
-
-**Response `data`:** Array of `LanguageDto`
+**Auth:** ❌ None  
+**Response `data`:** `LanguageDto[]`
 
 ```json
 [
-  { "id": 1, "code": "vi", "name": "Tiếng Việt", "nativeName": "Tiếng Việt" },
-  { "id": 2, "code": "en", "name": "English",   "nativeName": "English" }
+  {
+    "id": 1,
+    "code": "vi",
+    "name": "Vietnamese",
+    "nativeName": "Tiếng Việt",
+    "ttsCode": "vi-VN",
+    "flagEmoji": "🇻🇳",
+    "sortOrder": 1
+  }
 ]
 ```
 
@@ -376,68 +221,272 @@ Returns all active languages sorted by `SortOrder`. Used by mobile app language 
 
 ### GET `/categories`
 
-**Auth:** ❌ Anonymous
+**Auth:** ❌ None  
+**Response `data`:** `CategoryDto[]`
 
-**Response `data`:** Array of `CategoryDto`
-
----
+```json
+[
+  {
+    "id": 1,
+    "icon": "🍜",
+    "color": "#3b82f6",
+    "sortOrder": 1,
+    "isActive": true,
+    "poiCount": 5,
+    "translations": [
+      { "languageId": 1, "languageCode": "vi", "flagEmoji": "🇻🇳", "name": "Bún Bò" }
+    ]
+  }
+]
+```
 
 ### GET `/categories/{id}`
 
 **Auth:** ✅ Admin only
 
----
-
 ### POST `/categories`
 
 **Auth:** ✅ Admin only  
-**Body:**
+**Request:** `CreateCategoryRequest`
 
 ```json
 {
-  "name": "Bún Bò",
   "icon": "🍜",
-  "description": "..."
+  "color": "#3b82f6",
+  "sortOrder": 1,
+  "isActive": true,
+  "translations": [
+    { "languageId": 1, "name": "Bún Bò" }
+  ]
 }
 ```
 
----
-
 ### PUT `/categories/{id}`
 
-**Auth:** ✅ Admin only  
-**Body:** Same as Create
-
----
+**Auth:** ✅ Admin only — same body as Create
 
 ### DELETE `/categories/{id}`
 
 **Auth:** ✅ Admin only
 
----
-
 ### PATCH `/categories/{id}/toggle`
-
-Toggle category `IsActive`.
 
 **Auth:** ✅ Admin only
 
 ---
 
-## Audio Narrations — `api/v1/audio`
+## Points of Interest — `api/v1/pois`
 
-### GET `/audio/poi/{poiId}`
+### GET `/pois`
 
-Get all audio narrations for a POI.
+**Auth:** ✅ Admin or Vendor (Vendor auto-scoped to own POIs via DB query)
 
-**Auth:** ✅ Any authenticated user  
-**Query params:** `?lang=vi` (optional — filter by language code)
+**Query params:**
+
+| Param | Type | Default | Description |
+|---|---|---|---|
+| `page` | int | 1 | Page number |
+| `size` | int | 10 | Page size |
+| `search` | string | — | Name filter |
+| `categoryId` | int | — | Filter by category |
+| `isActive` | bool | — | Filter by status |
+| `sortBy` | string | `name` | Sort field |
+| `order` | string | `asc` | `asc` or `desc` |
+
+**Response `data`:** `PagedResult<POIListDto>`
+
+```json
+{
+  "items": [{
+    "id": 1,
+    "name": "Quán Bún Bò Cô Linh",
+    "categoryId": 2,
+    "categoryName": "Bún Bò",
+    "categoryIcon": "🍜",
+    "categoryColor": "#3b82f6",
+    "address": "123 Vinh Khanh, Q4",
+    "latitude": 10.7553,
+    "longitude": 106.7017,
+    "geofenceRadius": 25,
+    "priority": 0,
+    "rating": 4.8,
+    "totalVisits": 1234,
+    "isActive": true,
+    "isFeatured": false,
+    "primaryImageUrl": "https://...",
+    "audioCount": 2,
+    "translationCount": 2,
+    "createdAt": "2026-01-01T00:00:00Z"
+  }],
+  "pagination": { "page": 1, "size": 10, "totalItems": 42, "totalPages": 5 }
+}
+```
+
+### GET `/pois/{id}`
+
+**Auth:** ✅ Admin or Vendor  
+**Response `data`:** `POIDetailDto` (extends `POIListDto`)
+
+```json
+{
+  "id": 1,
+  "phone": "0901234567",
+  "website": "https://...",
+  "priceRangeMin": 30000,
+  "priceRangeMax": 80000,
+  "openingHours": "06:00–22:00",
+  "vendorUserId": 5,
+  "vendorName": "Trần Thị B",
+  "translations": [
+    {
+      "id": 1,
+      "languageId": 1,
+      "name": "Quán Bún Bò Cô Linh",
+      "shortDescription": "...",
+      "fullDescription": "...",
+      "narrationText": "...",
+      "highlights": ["Đặc sản", "Ngon"],
+      "languageCode": "vi",
+      "languageName": "Vietnamese",
+      "flagEmoji": "🇻🇳"
+    }
+  ],
+  "media": [],
+  "audio": [],
+  "menuItems": []
+}
+```
+
+### POST `/pois`
+
+**Auth:** ✅ Admin or Vendor  
+**Note:** Vendor → `vendorUserId` is auto-set to caller's ID  
+**Request:** `CreatePOIRequest`
+
+```json
+{
+  "categoryId": 2,
+  "address": "123 Vinh Khanh, Q4",
+  "phone": "0901234567",
+  "website": null,
+  "latitude": 10.7553,
+  "longitude": 106.7017,
+  "geofenceRadius": 25,
+  "priority": 0,
+  "priceRangeMin": 30000,
+  "priceRangeMax": 80000,
+  "openingHours": "06:00–22:00",
+  "vendorUserId": null,
+  "isFeatured": false,
+  "translations": [
+    {
+      "languageId": 1,
+      "name": "Quán Bún Bò Cô Linh",
+      "shortDescription": "...",
+      "fullDescription": "...",
+      "narrationText": "...",
+      "highlights": ["Đặc sản"]
+    }
+  ]
+}
+```
+
+### PUT `/pois/{id}`
+
+**Auth:** ✅ Any authorized, Vendor ownership checked (403 if not owner)  
+**Body:** Same as Create (`UpdatePOIRequest` extends `CreatePOIRequest`)
+
+### DELETE `/pois/{id}`
+
+**Auth:** ✅ Admin or Vendor (ownership checked)
+
+### PATCH `/pois/{id}/toggle`
+
+**Auth:** ✅ Admin only — toggles `IsActive`
+
+### PATCH `/pois/{id}/featured`
+
+**Auth:** ✅ Admin only — toggles `IsFeatured`
+
+### GET `/pois/nearby`
+
+**Auth:** ❌ None  
+**Query params:** `lat` ✅, `lng` ✅, `radiusMeters` (default 500, max 5000), `langId`  
+**Response `data`:** `NearbyPOIDto[]`
+
+```json
+[{
+  "id": 1,
+  "distanceMeters": 45.2,
+  "audio": [{ "id": 3, "languageId": 1, "isDefault": true, ... }],
+  "translations": [{ "languageId": 1, "name": "...", ... }]
+}]
+```
+
+### GET `/pois/{id}/public`
+
+**Auth:** ❌ None  
+**Query params:** `?langId=1` (optional)  
+**Response `data`:** `POIDetailDto` — 404 if inactive
+
+### GET `/pois/audio-queue`
+
+Ordered playback queue sorted by `Priority DESC, Distance ASC`.
+
+**Auth:** ❌ None  
+**Query params:** `lat` ✅, `lng` ✅, `radiusMeters` (default 500), `langId`  
+**Response `data`:** `AudioQueueResponse`
+
+```json
+{
+  "queue": [{
+    "order": 1,
+    "poiId": 3,
+    "poiName": "Quán Bún Bò Cô Linh",
+    "categoryName": "Bún Bò",
+    "categoryIcon": "🍜",
+    "categoryColor": "#3b82f6",
+    "primaryImageUrl": "https://...",
+    "distanceMeters": 38.1,
+    "priority": 10,
+    "latitude": 10.7553,
+    "longitude": 106.7017,
+    "audio": { "id": 3, "languageId": 1, "duration": 45, ... },
+    "shortDescription": "...",
+    "narrationText": "..."
+  }],
+  "totalDurationSeconds": 180,
+  "poiCount": 3
+}
+```
 
 ---
 
-### POST `/audio/poi/{poiId}/upload`
+## Audio — `api/v1/audio`
 
-Upload an MP3/WAV audio file for a POI + language.
+### GET `/audio/poi/{poiId}`
+
+**Auth:** ✅ Any authenticated user  
+**Query params:** `?lang=vi` (optional — filter by language code)  
+**Response `data`:** `AudioDto[]`
+
+```json
+[{
+  "id": 1,
+  "poiId": 3,
+  "languageId": 1,
+  "languageName": "Vietnamese",
+  "flagEmoji": "🇻🇳",
+  "filePath": "audio/poi-3-vi.mp3",
+  "voiceType": "TTS",
+  "voiceName": "vi-VN-HoaiMyNeural",
+  "duration": 45,
+  "fileSize": 720000,
+  "isDefault": true
+}]
+```
+
+### POST `/audio/poi/{poiId}/upload`
 
 **Auth:** ✅ Any authenticated user  
 **Content-Type:** `multipart/form-data`
@@ -447,52 +496,34 @@ Upload an MP3/WAV audio file for a POI + language.
 | `file` | file | Audio file (`.mp3`, `.wav`, `.ogg`) |
 | `languageId` | int | Language this narration belongs to |
 
----
-
 ### POST `/audio/poi/{poiId}/generate-tts`
 
-Generate audio narration using Azure Cognitive Services TTS.
-
-**Auth:** ✅ Admin or Vendor  
-**Vendor note:** Scoped — returns `403` if Vendor does not own the POI.
-
-**Body:**
+**Auth:** ✅ Admin or Vendor (Vendor: ownership checked)  
+**Request:** `GenerateTTSRequest`
 
 ```json
 {
   "languageId": 1,
   "text": "Chào mừng đến Quán Bún Bò Cô Linh...",
-  "voiceName": "vi-VN-HoaiMyNeural"
+  "voiceName": "vi-VN-HoaiMyNeural",
+  "speed": 1.0
 }
 ```
 
----
-
 ### GET `/audio/{id}/stream`
 
-Stream or redirect audio content.
+**Auth:** ❌ None  
+**Query params:** `?proxy=1` (optional — proxy stream instead of redirect)
 
-**Auth:** ❌ Anonymous
-
-**Behavior:**
-- **S3 provider** (default): Returns `302 Redirect` to a presigned S3 URL
-- **S3 + `?proxy=1`**: API proxies the S3 stream — use when client cannot follow redirects (e.g. `MediaElement` on some platforms)
-- **Local provider**: Always streams `audio/mpeg` through the API
-
-**Query params:** `?proxy=1` (optional)
-
----
+- **S3:** `302 Redirect` to presigned URL
+- **S3 + `?proxy=1`:** streams `audio/mpeg` via API
+- **Local:** always streams `audio/mpeg`
 
 ### DELETE `/audio/{id}`
 
-**Auth:** ✅ Admin or Vendor  
-**Vendor note:** Scoped via `GetVendorPOIIdsAsync` — returns `403` if not the owner.
-
----
+**Auth:** ✅ Admin or Vendor (Vendor: ownership checked via vendor POI IDs)
 
 ### PATCH `/audio/{id}/set-default`
-
-Set this narration as the default for its language on the POI.
 
 **Auth:** ✅ Any authenticated user
 
@@ -502,44 +533,42 @@ Set this narration as the default for its language on the POI.
 
 ### GET `/media/poi/{poiId}`
 
-Get all media items (photos) for a POI.
+**Auth:** ✅ Any authenticated user  
+**Response `data`:** `MediaDto[]`
 
-**Auth:** ✅ Any authenticated user
-
----
+```json
+[{
+  "id": 1,
+  "filePath": "media/poi-3-1.jpg",
+  "url": "https://...",
+  "caption": "Entrance",
+  "mediaType": "Image",
+  "isPrimary": true,
+  "sortOrder": 0,
+  "fileSize": 245000
+}]
+```
 
 ### POST `/media/poi/{poiId}/upload`
-
-Upload a photo for a POI.
 
 **Auth:** ✅ Any authenticated user  
 **Content-Type:** `multipart/form-data`
 
 | Field | Type | Description |
 |---|---|---|
-| `file` | file | Image file (`.jpg`, `.jpeg`, `.png`, `.webp`) |
+| `file` | file | Image (`.jpg`, `.jpeg`, `.png`, `.webp`) |
 | `caption` | string | Optional caption |
 | `isPrimary` | bool | Set as primary photo (default `false`) |
-
----
 
 ### DELETE `/media/{id}`
 
 **Auth:** ✅ Any authenticated user
 
----
-
 ### PATCH `/media/{id}/set-primary`
-
-Set a media item as the primary photo for the POI.
 
 **Auth:** ✅ Any authenticated user
 
----
-
 ### PUT `/media/poi/{poiId}/reorder`
-
-Reorder media items for a POI.
 
 **Auth:** ✅ Any authenticated user  
 **Body:** `[3, 1, 4, 2]` — ordered array of media IDs
@@ -550,87 +579,67 @@ Reorder media items for a POI.
 
 ### GET `/menu/poi/{poiId}`
 
-Get all menu items for a POI.
-
-**Auth:** ✅ Any authenticated user
-
-**Response `data`:** Array of `MenuItemDto`
+**Auth:** ✅ Any authenticated user  
+**Response `data`:** `MenuItemDto[]`
 
 ```json
-[
-  {
-    "id": 1,
-    "name": "Bún Bò Huế",
-    "price": 45000,
-    "description": "...",
-    "isSignature": true,
-    "isAvailable": true,
-    "imageUrl": "https://..."
-  }
-]
+[{
+  "id": 1,
+  "poiId": 3,
+  "price": 45000,
+  "imageUrl": "https://...",
+  "isSignature": true,
+  "isAvailable": true,
+  "sortOrder": 0,
+  "name": "Bún Bò Huế",
+  "description": "...",
+  "translations": [
+    { "languageId": 1, "name": "Bún Bò Huế", "description": "..." }
+  ]
+}]
 ```
-
----
 
 ### POST `/menu/poi/{poiId}`
 
-Create a new menu item.
-
 **Auth:** ✅ Any authenticated user  
-**Body:**
+**Request:** `CreateMenuItemRequest`
 
 ```json
 {
-  "name": "Bún Bò Huế",
   "price": 45000,
-  "description": "...",
-  "isSignature": false
+  "isSignature": false,
+  "isAvailable": true,
+  "sortOrder": 0,
+  "translations": [
+    { "languageId": 1, "name": "Bún Bò Huế", "description": "..." }
+  ]
 }
 ```
 
----
-
 ### PUT `/menu/{id}`
 
-Update a menu item.
-
-**Auth:** ✅ Any authenticated user  
-**Body:** Same shape as Create
-
----
+**Auth:** ✅ Any authenticated user — same body as Create
 
 ### DELETE `/menu/{id}`
 
 **Auth:** ✅ Any authenticated user
 
----
-
 ### PATCH `/menu/{id}/toggle-available`
 
-Toggle menu item `IsAvailable`.
-
 **Auth:** ✅ Any authenticated user
-
----
 
 ### PATCH `/menu/{id}/toggle-signature`
 
-Toggle menu item `IsSignature` (signature dish marker).
-
 **Auth:** ✅ Any authenticated user
 
----
-
 ### POST `/menu/{id}/upload-image`
-
-Upload image for a menu item.
 
 **Auth:** ✅ Any authenticated user  
 **Content-Type:** `multipart/form-data`
 
-| Field | Type | Description |
-|---|---|---|
-| `file` | file | Image file |
+| Field | Type |
+|---|---|
+| `file` | Image file |
 
 ---
 
@@ -638,153 +647,181 @@ Upload image for a menu item.
 
 ### GET `/users`
 
-Paginated user list.
-
 **Auth:** ✅ Admin only  
-**Query params:** `page`, `size`, `search` (email/name), `role` (Admin/Vendor/Customer)
-
+**Query params:** `page`, `size`, `search` (email/name), `role` (Admin/Vendor/Customer)  
 **Response `data`:** `PagedResult<UserDto>`
-
----
 
 ### GET `/users/{id}`
 
-**Auth:** ✅ Admin only
+**Auth:** ✅ Admin only  
+**Response `data`:** `UserDto`
 
----
+```json
+{
+  "id": 5,
+  "email": "vendor@restaurant.com",
+  "fullName": "Trần Thị B",
+  "role": "Vendor",
+  "phone": "0901234567",
+  "avatarUrl": null,
+  "isActive": true,
+  "lastLoginAt": "2026-04-15T09:00:00Z",
+  "shopName": "Quán Bún Bò Cô Linh",
+  "vendorPOIIds": [3, 7]
+}
+```
 
 ### POST `/users`
 
-Create a new user (Admin or Vendor).
-
 **Auth:** ✅ Admin only  
-**Body:**
+**Request:** `CreateUserRequest`
 
 ```json
 {
   "email": "vendor@restaurant.com",
   "fullName": "Trần Thị B",
+  "password": "Temp@12345",
   "role": "Vendor",
-  "vendorPoiId": 7
+  "phone": "0901234567",
+  "poiIds": [3, 7]
 }
 ```
 
-> When `role = "Vendor"` and `vendorPoiId` is set, the backend automatically links `POI.VendorUserId` to the new user.
-
-**Response `data`:** `{ "id": 12, "tempPassword": "..." }`
-
----
+> `poiIds`: POIs to link to this Vendor on creation — each POI's `VendorUserId` is set to the new user ID.
 
 ### PUT `/users/{id}`
 
-Update user info.
-
 **Auth:** ✅ Admin only  
-**Body:** `UpdateUserRequest`
+**Request:** `UpdateUserRequest`
 
----
+```json
+{
+  "fullName": "Trần Thị B",
+  "phone": "0901234567",
+  "preferredLanguageId": 1,
+  "poiIds": [3, 7]
+}
+```
+
+> `poiIds` for Vendor: service diffs against current assignments — adds new links, removes old ones.
 
 ### DELETE `/users/{id}`
 
 **Auth:** ✅ Admin only
 
----
-
 ### PATCH `/users/{id}/toggle`
 
-Toggle user `IsActive`.
-
-**Auth:** ✅ Admin only
-
----
+**Auth:** ✅ Admin only — toggles `IsActive`
 
 ### POST `/users/{id}/reset-password`
 
-Admin-initiated password reset for a user (generates a new temp password).
-
-**Auth:** ✅ Admin only
+**Auth:** ✅ Admin only — generates a new temp password
 
 ---
 
 ## Dashboard — `api/v1/dashboard`
 
-All endpoints support Vendor scoping: Admin gets system-wide data, Vendor gets their own POI(s) only via fresh DB query.
+> Admin gets system-wide data. Vendor gets own POI(s) data — scoped via fresh DB query.
 
 ### GET `/dashboard/stats`
 
-**Auth:** ✅ Admin or Vendor
-
+**Auth:** ✅ Admin or Vendor  
 **Response `data`:** `DashboardStatsDto`
 
 ```json
 {
-  "totalPOIs": 12,
   "activePOIs": 10,
-  "totalVisits30d": 1523,
-  "totalUsers": 45
+  "totalVisits": 1523,
+  "totalVisitsChange": 12.5,
+  "languages": 2,
+  "audioFiles": 18,
+  "totalUsers": 45,
+  "totalVendors": 8
 }
 ```
-
----
 
 ### GET `/dashboard/top-pois`
 
 **Auth:** ✅ Admin or Vendor  
-**Query params:** `?count=5` (default 5)
+**Query params:** `?count=5` (default 5)  
+**Response `data`:** `TopPOIDto[]`
 
-**Response `data`:** Array of `POIVisitDto`
-
----
+```json
+[{ "id": 3, "name": "Quán Bún Bò Cô Linh", "icon": "🍜", "visits": 432 }]
+```
 
 ### GET `/dashboard/visits-chart`
 
 **Auth:** ✅ Admin or Vendor  
-**Query params:** `?from=2026-01-01&to=2026-04-01`
+**Query params:** `?from=2026-01-01&to=2026-04-01`  
+**Response `data`:** `VisitChartDto[]`
 
----
+```json
+[{ "date": "01/04", "visits": 45, "narrations": 38 }]
+```
 
 ### GET `/dashboard/language-stats`
 
-**Auth:** ✅ Admin or Vendor
+**Auth:** ✅ Admin or Vendor  
+**Response `data`:** `LanguageStatDto[]`
 
----
+```json
+[{ "name": "Tiếng Việt", "flagEmoji": "🇻🇳", "count": 820, "percentage": 72.5 }]
+```
 
 ### GET `/dashboard/recent-activity`
 
 **Auth:** ✅ Admin or Vendor  
-**Query params:** `?count=10` (default 10)
+**Query params:** `?count=10` (default 10)  
+**Response `data`:** `RecentActivityDto[]`
+
+```json
+[{
+  "userName": "Nguyễn Văn A",
+  "poiName": "Quán Bún Bò Cô Linh",
+  "triggerType": "Geofence",
+  "flagEmoji": "🇻🇳",
+  "visitedAt": "2026-04-15T08:45:00Z"
+}]
+```
 
 ---
 
 ## Analytics — `api/v1/analytics`
 
-All endpoints support Vendor scoping (same as Dashboard).
+> Admin: system-wide. Vendor: own POI(s) only.
 
 ### GET `/analytics/trends`
 
 **Auth:** ✅ Admin or Vendor  
-**Query params:** `?period=30d` (e.g. `7d`, `30d`, `90d`)
+**Query params:** `?period=30d`  
+**Response `data`:** `TrendDto`
 
----
+```json
+{ "value": 1523, "changePercent": 12.5 }
+```
 
 ### GET `/analytics/visits-by-day`
 
 **Auth:** ✅ Admin or Vendor  
-**Query params:** `?from=2026-01-01&to=2026-04-01`
-
----
+**Query params:** `?from=2026-01-01&to=2026-04-01`  
+**Response `data`:** `VisitChartDto[]`
 
 ### GET `/analytics/visits-by-hour`
 
 **Auth:** ✅ Admin or Vendor  
-**Query params:** `?date=2026-04-15`
+**Query params:** `?date=2026-04-15`  
+**Response `data`:** `HourlyVisitDto[]`
 
----
+```json
+[{ "hour": 8, "visits": 12 }, { "hour": 9, "visits": 28 }]
+```
 
 ### GET `/analytics/language-distribution`
 
 **Auth:** ✅ Admin or Vendor  
-**Query params:** `?from=2026-01-01&to=2026-04-01`
+**Query params:** `?from=2026-01-01&to=2026-04-01`  
+**Response `data`:** `LanguageStatDto[]`
 
 ---
 
@@ -792,71 +829,73 @@ All endpoints support Vendor scoping (same as Dashboard).
 
 ### GET `/offlinepackages/catalog`
 
-Public catalog of `Active` packages available for mobile download.
+**Auth:** ❌ None  
+**Response `data`:** `OfflinePackageCatalogItemDto[]`
 
-**Auth:** ❌ Anonymous
-
-**Response `data`:** Array of `OfflinePackageDto`
-
----
+```json
+[{
+  "id": 1,
+  "languageId": 1,
+  "languageName": "Vietnamese",
+  "flagEmoji": "🇻🇳",
+  "name": "Vinh Khanh v2",
+  "version": "2.0",
+  "fileSize": 45678900,
+  "checksum": "sha256:...",
+  "poiCount": 25,
+  "audioCount": 48,
+  "updatedAt": "2026-04-01T10:00:00Z"
+}]
+```
 
 ### GET `/offlinepackages`
 
-Admin list of all packages (including Building/Failed states).
-
-**Auth:** ✅ Admin only
-
----
+**Auth:** ✅ Admin only  
+**Response `data`:** `OfflinePackageDto[]` (includes `progress`, `currentStep`, `status`)
 
 ### POST `/offlinepackages`
 
-Create a new offline package definition.
-
 **Auth:** ✅ Admin only  
-**Body:** `CreatePackageRequest`
+**Request:** `CreatePackageRequest`
 
----
+```json
+{ "languageId": 1, "name": "Vinh Khanh v2", "version": "2.0" }
+```
 
 ### POST `/offlinepackages/{id}/build`
 
-Trigger a background build of the ZIP package (POIs + audio + metadata).
-
-**Auth:** ✅ Admin only
-
----
+**Auth:** ✅ Admin only — triggers background ZIP build
 
 ### GET `/offlinepackages/{id}/status`
 
-Poll build status.
-
-**Auth:** ✅ Admin only
-
+**Auth:** ✅ Admin only  
 **Response `data`:** `OfflinePackageDto`
 
 ```json
 {
   "id": 1,
   "name": "Vinh Khanh v2",
+  "version": "2.0",
   "status": "Active",
+  "progress": 100,
+  "currentStep": null,
+  "fileSize": 45678900,
   "filePath": "offline/vk-v2.zip",
-  "fileSizeBytes": 45678900,
-  "builtAt": "2026-04-01T10:00:00Z"
+  "checksum": "sha256:...",
+  "downloadCount": 312,
+  "poiCount": 25,
+  "audioCount": 48,
+  "imageCount": 75,
+  "updatedAt": "2026-04-01T10:00:00Z"
 }
 ```
 
----
-
 ### GET `/offlinepackages/{id}/download`
 
-Download the offline ZIP package.
+**Auth:** ❌ None
 
-**Auth:** ❌ Anonymous
-
-**Behavior:**
-- **S3 provider:** Returns `302 Redirect` to a 60-minute presigned download URL
-- **Local provider:** Streams `application/zip` as `vk-offline-{id}.zip`
-
----
+- **S3:** `302 Redirect` to 60-min presigned URL
+- **Local:** streams `application/zip` as `vk-offline-{id}.zip`
 
 ### DELETE `/offlinepackages/{id}`
 
@@ -868,35 +907,46 @@ Download the offline ZIP package.
 
 ### GET `/settings`
 
-Get all system settings.
-
-**Auth:** ✅ Admin only
-
+**Auth:** ✅ Admin only  
 **Response `data`:** `SystemSettingsDto`
 
----
+```json
+{
+  "geofence": {
+    "defaultRadius": 30,
+    "gpsUpdateFrequency": 5,
+    "gpsAccuracy": "High"
+  },
+  "narration": {
+    "defaultCooldown": 30,
+    "defaultMode": "Auto",
+    "ttsVoiceVi": "vi-VN-HoaiMyNeural",
+    "ttsVoiceEn": "en-US-JennyNeural",
+    "ttsSpeed": 1.0,
+    "autoGenerateTTS": true
+  },
+  "sync": {
+    "syncFrequency": 15,
+    "batchSize": 50,
+    "compressData": true,
+    "wifiOnly": false
+  },
+  "api": {
+    "apiKey": "...",
+    "maintenanceMode": false
+  }
+}
+```
 
 ### PUT `/settings`
 
-Update system settings.
-
-**Auth:** ✅ Admin only  
-**Body:** `SystemSettingsDto`
-
----
+**Auth:** ✅ Admin only — body: `SystemSettingsDto`
 
 ### PUT `/settings/maintenance`
 
-Enable or disable maintenance mode.
-
-**Auth:** ✅ Admin only  
-**Body:** `true` or `false` (plain boolean)
-
----
+**Auth:** ✅ Admin only — body: `true` or `false` (plain boolean)
 
 ### POST `/settings/generate-api-key`
-
-Generate a new API key for the system.
 
 **Auth:** ✅ Admin only
 
@@ -906,117 +956,112 @@ Generate a new API key for the system.
 
 ### GET `/sync/delta`
 
-Returns only changed POIs, categories, audio, and menu items since a given timestamp. Used by mobile app for incremental updates after initial install.
+Returns only changed POIs / categories / audio / menu since a given timestamp.
 
-**Auth:** ✅ Any authenticated user (typically Customer)  
-**Query params:**
-
-| Param | Type | Required | Description |
-|---|---|---|---|
-| `since` | DateTime | ✅ | ISO 8601 UTC timestamp of last sync |
-| `langId` | int | ✅ | Only return content for this language |
-
+**Auth:** ✅ Any authenticated user  
+**Query params:** `since` ✅ (ISO 8601 UTC), `langId` ✅  
 **Response `data`:** `SyncDeltaResponse`
 
 ```json
 {
-  "pois": [...],
-  "categories": [...],
-  "audio": [...],
-  "menu": [...]
+  "serverTime": "2026-04-15T09:00:00Z",
+  "pois":       { "updated": [...], "deleted": [12, 13] },
+  "categories": { "updated": [...], "deleted": [] },
+  "audio":      { "updated": [...], "deleted": [5] },
+  "menu":       { "updated": [...], "deleted": [] }
 }
 ```
-
----
 
 ### POST `/sync/visits`
 
-Batch upload visit records collected while offline.
+Batch upload visit records collected offline.
 
 **Auth:** ✅ Any authenticated user  
-**Body:** `VisitBatchRequest`
+**Request:** `VisitBatchRequest`
 
 ```json
 {
-  "visits": [
-    {
-      "poiId": 3,
-      "visitedAt": "2026-04-15T09:00:00Z",
-      "languageId": 1,
-      "durationSeconds": 120
-    }
-  ]
+  "visits": [{
+    "poiId": 3,
+    "languageId": 1,
+    "triggerType": "Geofence",
+    "narrationPlayed": true,
+    "listenDuration": 42,
+    "visitedAt": "2026-04-15T08:45:00Z",
+    "latitude": 10.7553,
+    "longitude": 106.7017
+  }]
 }
 ```
 
-**Response `data`:** `int` — count of accepted visits
+**Response `data`:** `int` — count of accepted visit records
 
 ---
 
 ## Quick Reference Table
 
-| Method | Endpoint | Auth | Notes |
-|---|---|---|---|
-| POST | `/auth/login` | ❌ | Returns JWT |
-| POST | `/auth/refresh` | ❌ | Token rotation |
-| POST | `/auth/register` | ❌ | Customer self-registration |
-| POST | `/auth/forgot-password` | ❌ | No email enumeration |
-| POST | `/auth/reset-password` | ❌ | Requires reset token |
-| POST | `/auth/change-password` | ✅ Any | |
-| GET | `/auth/me` | ✅ Any | Current user profile |
-| PUT | `/auth/profile` | ✅ Customer,Vendor | Self-service update |
-| GET | `/languages` | ❌ | Mobile language picker |
-| GET | `/categories` | ❌ | |
-| POST/PUT/DELETE | `/categories/{id}` | ✅ Admin | |
-| GET | `/pois` | ✅ Admin,Vendor | Vendor-scoped via DB |
-| POST | `/pois` | ✅ Admin,Vendor | |
-| PUT/DELETE | `/pois/{id}` | ✅ Admin,Vendor | Ownership guard |
-| PATCH | `/pois/{id}/toggle` | ✅ Admin | |
-| PATCH | `/pois/{id}/featured` | ✅ Admin | |
-| GET | `/pois/nearby` | ❌ | Mobile geofence bootstrap |
-| GET | `/pois/{id}/public` | ❌ | Mobile tourist flow |
-| GET | `/pois/audio-queue` | ❌ | Priority-sorted queue |
-| GET | `/audio/poi/{poiId}` | ✅ Any | |
-| POST | `/audio/poi/{poiId}/upload` | ✅ Any | multipart |
-| POST | `/audio/poi/{poiId}/generate-tts` | ✅ Admin,Vendor | Azure TTS |
-| GET | `/audio/{id}/stream` | ❌ | S3 redirect or proxy |
-| DELETE | `/audio/{id}` | ✅ Admin,Vendor | Vendor-scoped |
-| PATCH | `/audio/{id}/set-default` | ✅ Any | |
-| GET | `/media/poi/{poiId}` | ✅ Any | |
-| POST | `/media/poi/{poiId}/upload` | ✅ Any | multipart |
-| DELETE | `/media/{id}` | ✅ Any | |
-| PATCH | `/media/{id}/set-primary` | ✅ Any | |
-| PUT | `/media/poi/{poiId}/reorder` | ✅ Any | body: int[] |
-| GET | `/menu/poi/{poiId}` | ✅ Any | |
-| POST | `/menu/poi/{poiId}` | ✅ Any | |
-| PUT/DELETE | `/menu/{id}` | ✅ Any | |
-| PATCH | `/menu/{id}/toggle-available` | ✅ Any | |
-| PATCH | `/menu/{id}/toggle-signature` | ✅ Any | |
-| POST | `/menu/{id}/upload-image` | ✅ Any | multipart |
-| GET | `/users` | ✅ Admin | |
-| POST | `/users` | ✅ Admin | Creates Vendor/Admin |
-| PUT/DELETE | `/users/{id}` | ✅ Admin | |
-| PATCH | `/users/{id}/toggle` | ✅ Admin | |
-| POST | `/users/{id}/reset-password` | ✅ Admin | Admin-initiated |
-| GET | `/dashboard/stats` | ✅ Admin,Vendor | Vendor-scoped |
-| GET | `/dashboard/top-pois` | ✅ Admin,Vendor | `?count=5` |
-| GET | `/dashboard/visits-chart` | ✅ Admin,Vendor | `?from=&to=` |
-| GET | `/dashboard/language-stats` | ✅ Admin,Vendor | |
-| GET | `/dashboard/recent-activity` | ✅ Admin,Vendor | `?count=10` |
-| GET | `/analytics/trends` | ✅ Admin,Vendor | `?period=30d` |
-| GET | `/analytics/visits-by-day` | ✅ Admin,Vendor | `?from=&to=` |
-| GET | `/analytics/visits-by-hour` | ✅ Admin,Vendor | `?date=` |
-| GET | `/analytics/language-distribution` | ✅ Admin,Vendor | `?from=&to=` |
-| GET | `/offlinepackages/catalog` | ❌ | Mobile download catalog |
-| GET | `/offlinepackages` | ✅ Admin | |
-| POST | `/offlinepackages` | ✅ Admin | |
-| POST | `/offlinepackages/{id}/build` | ✅ Admin | Trigger build |
-| GET | `/offlinepackages/{id}/status` | ✅ Admin | Poll build |
-| GET | `/offlinepackages/{id}/download` | ❌ | S3 redirect or stream |
-| DELETE | `/offlinepackages/{id}` | ✅ Admin | |
-| GET | `/settings` | ✅ Admin | |
-| PUT | `/settings` | ✅ Admin | |
-| PUT | `/settings/maintenance` | ✅ Admin | body: bool |
-| POST | `/settings/generate-api-key` | ✅ Admin | |
-| GET | `/sync/delta` | ✅ Any | `?since=&langId=` |
-| POST | `/sync/visits` | ✅ Any | Batch upload visits |
+| Method | Endpoint | Auth |
+|---|---|---|
+| POST | `/auth/login` | ❌ |
+| POST | `/auth/refresh` | ❌ |
+| POST | `/auth/register` | ❌ |
+| POST | `/auth/forgot-password` | ❌ |
+| POST | `/auth/reset-password` | ❌ |
+| POST | `/auth/change-password` | ✅ Any |
+| GET | `/auth/me` | ✅ Any |
+| PUT | `/auth/profile` | ✅ Customer, Vendor |
+| GET | `/languages` | ❌ |
+| GET | `/categories` | ❌ |
+| GET/POST | `/categories`, `/categories/{id}` | ✅ Admin |
+| PATCH | `/categories/{id}/toggle` | ✅ Admin |
+| GET | `/pois` | ✅ Admin, Vendor |
+| POST | `/pois` | ✅ Admin, Vendor |
+| GET/PUT/DELETE | `/pois/{id}` | ✅ Admin, Vendor |
+| PATCH | `/pois/{id}/toggle` | ✅ Admin |
+| PATCH | `/pois/{id}/featured` | ✅ Admin |
+| GET | `/pois/nearby` | ❌ |
+| GET | `/pois/{id}/public` | ❌ |
+| GET | `/pois/audio-queue` | ❌ |
+| GET | `/audio/poi/{poiId}` | ✅ Any |
+| POST | `/audio/poi/{poiId}/upload` | ✅ Any |
+| POST | `/audio/poi/{poiId}/generate-tts` | ✅ Admin, Vendor |
+| GET | `/audio/{id}/stream` | ❌ |
+| DELETE | `/audio/{id}` | ✅ Admin, Vendor |
+| PATCH | `/audio/{id}/set-default` | ✅ Any |
+| GET | `/media/poi/{poiId}` | ✅ Any |
+| POST | `/media/poi/{poiId}/upload` | ✅ Any |
+| DELETE | `/media/{id}` | ✅ Any |
+| PATCH | `/media/{id}/set-primary` | ✅ Any |
+| PUT | `/media/poi/{poiId}/reorder` | ✅ Any |
+| GET | `/menu/poi/{poiId}` | ✅ Any |
+| POST | `/menu/poi/{poiId}` | ✅ Any |
+| PUT/DELETE | `/menu/{id}` | ✅ Any |
+| PATCH | `/menu/{id}/toggle-available` | ✅ Any |
+| PATCH | `/menu/{id}/toggle-signature` | ✅ Any |
+| POST | `/menu/{id}/upload-image` | ✅ Any |
+| GET | `/users` | ✅ Admin |
+| POST | `/users` | ✅ Admin |
+| GET/PUT/DELETE | `/users/{id}` | ✅ Admin |
+| PATCH | `/users/{id}/toggle` | ✅ Admin |
+| POST | `/users/{id}/reset-password` | ✅ Admin |
+| GET | `/dashboard/stats` | ✅ Admin, Vendor |
+| GET | `/dashboard/top-pois` | ✅ Admin, Vendor |
+| GET | `/dashboard/visits-chart` | ✅ Admin, Vendor |
+| GET | `/dashboard/language-stats` | ✅ Admin, Vendor |
+| GET | `/dashboard/recent-activity` | ✅ Admin, Vendor |
+| GET | `/analytics/trends` | ✅ Admin, Vendor |
+| GET | `/analytics/visits-by-day` | ✅ Admin, Vendor |
+| GET | `/analytics/visits-by-hour` | ✅ Admin, Vendor |
+| GET | `/analytics/language-distribution` | ✅ Admin, Vendor |
+| GET | `/offlinepackages/catalog` | ❌ |
+| GET/POST | `/offlinepackages` | ✅ Admin |
+| POST | `/offlinepackages/{id}/build` | ✅ Admin |
+| GET | `/offlinepackages/{id}/status` | ✅ Admin |
+| GET | `/offlinepackages/{id}/download` | ❌ |
+| DELETE | `/offlinepackages/{id}` | ✅ Admin |
+| GET | `/settings` | ✅ Admin |
+| PUT | `/settings` | ✅ Admin |
+| PUT | `/settings/maintenance` | ✅ Admin |
+| POST | `/settings/generate-api-key` | ✅ Admin |
+| GET | `/sync/delta` | ✅ Any |
+| POST | `/sync/visits` | ✅ Any |

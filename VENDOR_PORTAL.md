@@ -79,7 +79,7 @@ The Vendor Portal uses **two independent security layers**. Never rely on only o
 
 ## 3. JWT Vendor Claim
 
-When a Vendor logs in, their JWT includes an extra claim:
+When a Vendor logs in, their JWT contains only identity claims — **Vendor POI IDs are NOT stored in the token**:
 
 ```json
 {
@@ -87,11 +87,14 @@ When a Vendor logs in, their JWT includes an extra claim:
   "email": "vendor@example.com",
   "name": "Trần Thị B",
   "role": "Vendor",
-  "vendorPoiId": "3",     ← only present for Vendor role
   "jti": "...",
   "iat": 1742549000
 }
 ```
+
+> **Design decision:** POI IDs are intentionally excluded from the JWT.
+> This ensures that if an Admin reassigns a shop, the Vendor sees the change immediately
+> on the next request — without needing to log out and log back in.
 
 ### How it gets there
 
@@ -108,17 +111,18 @@ if (user.Role == UserRole.Vendor && user.VendorPOI is not null)
 }
 ```
 
-### How controllers read it
+### How controllers resolve Vendor POI IDs
 
-**`BaseApiController.GetVendorPOIId()`:**
+**`BaseApiController.GetVendorPOIIdsAsync(IUserService)`:**
 
 ```csharp
-/// Returns the Vendor's linked POI ID from the JWT vendorPoiId claim.
-/// Returns null for Admin and Customer users (claim not present in their tokens).
-protected int? GetVendorPOIId()
+/// Queries the database to get the list of POI IDs this vendor manages.
+/// Returns null for Admin and Customer users.
+/// Always fresh — bypasses the JWT so admin changes are reflected immediately.
+protected async Task<List<int>?> GetVendorPOIIdsAsync(IUserService userService)
 {
-    var raw = User.FindFirst("vendorPoiId")?.Value;
-    return raw != null && int.TryParse(raw, out var id) ? id : null;
+    if (GetUserRole() != "Vendor") return null;
+    return await userService.GetVendorPOIIdsAsync(GetUserId());
 }
 ```
 
@@ -126,27 +130,27 @@ protected int? GetVendorPOIId()
 
 ## 4. Backend Data Scoping
 
-All Dashboard and Analytics methods accept an optional `vendorPOIId` parameter.
+All Dashboard and Analytics methods accept an optional `vendorPOIIds` (`List<int>?`) parameter.
 
 ```
 Controller action calls:
-  svc.GetStatsAsync(GetVendorPOIId())
+  svc.GetStatsAsync(await GetVendorPOIIdsAsync(userSvc))
 
 Service receives:
-  vendorPOIId = 3   (Vendor)    → WHERE POIId = 3
-  vendorPOIId = null (Admin)    → No filter (system-wide)
+  vendorPOIIds = [3]      (Vendor)  → WHERE POIId IN (3)
+  vendorPOIIds = null     (Admin)   → No filter (system-wide)
 ```
 
 ### DashboardService example
 
 ```csharp
-public async Task<ApiResponse<DashboardStatsDto>> GetStatsAsync(int? vendorPOIId = null)
+public async Task<ApiResponse<DashboardStatsDto>> GetStatsAsync(List<int>? vendorPOIIds = null)
 {
-    if (vendorPOIId.HasValue)
+    if (vendorPOIIds != null)
     {
-        // Vendor mode: stats for their POI only
+        // Vendor mode: stats for their POI(s) only
         var visits = await _db.VisitHistory
-            .CountAsync(v => v.POIId == vendorPOIId.Value && v.VisitedAt >= thirtyDaysAgo);
+            .CountAsync(v => vendorPOIIds.Contains(v.POIId) && v.VisitedAt >= thirtyDaysAgo);
         ...
     }
     // Admin mode: system-wide stats
