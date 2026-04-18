@@ -28,7 +28,8 @@ namespace VinhKhanh.Mobile.Platforms.Android;
 ///   OnStartCommand and location callbacks run on the main Looper.
 ///   StopSelf is called when the cancellation token is cancelled.
 /// </summary>
-[Service(Enabled = true, ForegroundServiceType = ForegroundService.TypeLocation)]
+// ForegroundServiceType is declared in AndroidManifest.xml (API 29+). Min SDK is 26.
+[Service(Enabled = true)]
 public class GpsTrackerService : Service
 {
     // ── Constants ──────────────────────────────────────────────────────────────
@@ -64,7 +65,10 @@ public class GpsTrackerService : Service
         var pollMs = intent?.GetIntExtra(ExtraPollMs, 5000) ?? 5000;
 
         EnsureNotificationChannel();
-        StartForeground(NotificationId, BuildNotification(), ForegroundService.TypeLocation);
+        if (OperatingSystem.IsAndroidVersionAtLeast(29))
+            StartForeground(NotificationId, BuildNotification(), ForegroundService.TypeLocation);
+        else
+            StartForeground(NotificationId, BuildNotification());
 
         _cts = new CancellationTokenSource();
         _isRunning = true;

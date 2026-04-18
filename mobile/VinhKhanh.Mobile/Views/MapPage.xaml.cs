@@ -9,6 +9,8 @@ using VinhKhanh.Mobile.Models;
 using VinhKhanh.Mobile.Services;
 using VinhKhanh.Mobile.ViewModels;
 using Color = Mapsui.Styles.Color;
+using MBrush = Mapsui.Styles.Brush;
+using MFont = Mapsui.Styles.Font;
 using MPoint = Mapsui.MPoint;
 
 namespace VinhKhanh.Mobile.Views;
@@ -73,9 +75,11 @@ public partial class MapPage : ContentPage
         map.Layers.Add(_poisLayer);
         map.Layers.Add(_userLayer);
 
-        // Centre on Vinh Khanh Street
+        // Centre on Vinh Khanh Street (v5: Navigator defers until viewport is ready; Home was removed)
         var (cx, cy) = SphericalMercator.FromLonLat(DefaultLng, DefaultLat);
-        map.Home = n => n.CenterOnAndZoomTo(new MPoint(cx, cy), n.Resolutions[(int)DefaultZoom]);
+        var center = new MPoint(cx, cy);
+        var zoomIdx = Math.Min((int)DefaultZoom, map.Navigator.Resolutions.Count - 1);
+        map.Navigator.CenterOnAndZoomTo(center, map.Navigator.Resolutions[zoomIdx]);
 
         TourMapControl.Map = map;
     }
@@ -117,7 +121,7 @@ public partial class MapPage : ContentPage
         var f = new PointFeature(new MPoint(x, y));
         f.Styles.Add(new SymbolStyle
         {
-            Fill            = new Brush(new Color(99, 102, 241)),   // indigo-500
+            Fill            = new MBrush(new Color(99, 102, 241)),   // indigo-500
             Outline         = new Pen(Color.White, 2.5),
             SymbolType      = SymbolType.Ellipse,
             SymbolScale     = 0.5
@@ -136,7 +140,7 @@ public partial class MapPage : ContentPage
 
         f.Styles.Add(new SymbolStyle
         {
-            Fill        = new Brush(new Color(99, 102, 241)),   // indigo-500
+            Fill        = new MBrush(new Color(99, 102, 241)),   // indigo-500
             Outline     = new Pen(Color.White, 2),
             SymbolType  = SymbolType.Ellipse,
             SymbolScale = 0.6
@@ -149,8 +153,8 @@ public partial class MapPage : ContentPage
             {
                 Text            = poi.Name,
                 ForeColor       = Color.White,
-                BackColor       = new Brush(new Color(30, 41, 59, 200)), // slate-800 semi-transparent
-                Font            = new Font { Size = 11 },
+                BackColor       = new MBrush(new Color(30, 41, 59, 200)), // slate-800 semi-transparent
+                Font            = new MFont { Size = 11 },
                 Offset          = new Offset(0, 18),
                 HorizontalAlignment = LabelStyle.HorizontalAlignmentEnum.Center
             });
@@ -170,7 +174,7 @@ public partial class MapPage : ContentPage
 
         f.Styles.Add(new SymbolStyle
         {
-            Fill            = new Brush(new Color(99, 102, 241, 30)),   // very transparent indigo
+            Fill            = new MBrush(new Color(99, 102, 241, 30)),   // very transparent indigo
             Outline         = new Pen(new Color(99, 102, 241, 140), 1.5),
             SymbolType      = SymbolType.Ellipse,
             SymbolScale     = radiusPx / 32.0   // SymbolStyle default bitmap size is 32px
@@ -183,7 +187,9 @@ public partial class MapPage : ContentPage
 
     private async void OnMapInfo(object? sender, MapInfoEventArgs e)
     {
-        var feature = e.MapInfo?.Feature;
+        // v5: pass layers to query (replaces ILayer.IsMapInfoLayer)
+        var mapInfo = e.GetMapInfo(new[] { _poisLayer });
+        var feature = mapInfo.Feature;
         if (feature is null || !feature.Fields.Contains("PoiId")) return;
 
         var id  = (int)feature["PoiId"]!;
