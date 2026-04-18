@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
 
   # ── Backend API ──────────────────────────────────────────────────────────────
@@ -11,13 +9,14 @@ services:
     restart: unless-stopped
     ports:
       - "${API_PORT:-8080}:8080"
-    volumes:
-      - ./backend/src/VinhKhanh.API/appsettings.json:/app/appsettings.json:ro
+    # Do not bind-mount appsettings.json: if the host file is missing, Docker creates a directory and breaks config.
+    # appsettings.json is gitignored; on a fresh clone use .env (see .env.example) or bake config at build time.
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
       DOTNET_RUNNING_IN_CONTAINER: "true"
-      # RDS (or any external MySQL): set RDS_HOST, MYSQL_USER, MYSQL_PASSWORD in a .env file next to this compose file on the server.
+      ConnectionStrings__DefaultConnection: ${CONNECTION_STRING:-}
+      Jwt__Key: ${JWT_KEY:-}
     networks:
       - vinhkhanh
 
