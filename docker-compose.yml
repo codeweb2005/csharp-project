@@ -1,33 +1,6 @@
 version: "3.8"
 
 services:
-  # ── MySQL 8 ──────────────────────────────────────────────────────────────────
-  mysql:
-    image: mysql:8.0
-    container_name: vinhkhanh-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-VinhKhanhFoodTour}
-      MYSQL_USER: ${MYSQL_USER:-vkapp}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me-app}
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./Database:/docker-entrypoint-initdb.d:ro
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --default-authentication-plugin=mysql_native_password
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-change-me-root}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    networks:
-      - vinhkhanh
 
   # ── Backend API ──────────────────────────────────────────────────────────────
   backend:
@@ -44,10 +17,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
       DOTNET_RUNNING_IN_CONTAINER: "true"
-      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:-VinhKhanhFoodTour};Uid=${MYSQL_USER:-vkapp};Pwd=${MYSQL_PASSWORD:-change-me-app};CharSet=utf8mb4;"
-    depends_on:
-      mysql:
-        condition: service_healthy
+      # RDS (or any external MySQL): set RDS_HOST, MYSQL_USER, MYSQL_PASSWORD in a .env file next to this compose file on the server.
+      ConnectionStrings__DefaultConnection: "Server=${RDS_HOST};Port=${RDS_PORT:-3306};Database=${MYSQL_DATABASE:-VinhKhanhFoodTour};Uid=${MYSQL_USER};Pwd=${MYSQL_PASSWORD};CharSet=utf8mb4;SslMode=${MYSQL_SSL_MODE:-Required};"
     networks:
       - vinhkhanh
 
@@ -90,7 +61,6 @@ services:
       - vinhkhanh
 
 volumes:
-  mysql_data:
   admin_node_modules:
   vendor_node_modules:
 

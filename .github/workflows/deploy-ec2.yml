@@ -1,0 +1,131 @@
+# Deploy docker-compose stack to AWS EC2 (backend + Vite dev frontends).
+# Database: Amazon RDS — credentials come from GitHub Secrets and are written to .env on the server (not committed).
+#
+# Secrets (Settings → Actions → Secrets):
+#   EC2_HOST, EC2_USER, EC2_SSH_KEY  — SSH access
+#   RDS_HOST, MYSQL_USER, MYSQL_PASSWORD — required for bootstrap .env (and deploy if you only use bootstrap once)
+# Optional secrets:
+#   MYSQL_DATABASE, RDS_PORT, MYSQL_SSL_MODE, VITE_API_BASE_URL — passed to .env on bootstrap
+#   GH_PAT — GitHub PAT with repo scope; required to clone a private repository over HTTPS
+#
+# Variables (optional):
+#   DEPLOY_PATH — default /opt/vinhkhanh
+#   EC2_SSH_PORT — default 22
+#
+# Manual "Run workflow": enable "bootstrap" to install Docker + Compose v2, clone repo, and create .env on EC2.
+
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: "Bootstrap server (install Docker + Compose v2, clone repo, write .env)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-ec2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bootstrap-ec2:
+    if: github.event_name == 'workflow_dispatch' && inputs.bootstrap
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Docker, clone repo, write .env
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          RDS_HOST: ${{ secrets.RDS_HOST }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+          RDS_PORT: ${{ secrets.RDS_PORT }}
+          MYSQL_SSL_MODE: ${{ secrets.MYSQL_SSL_MODE }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ vars.EC2_SSH_PORT || 22 }}
+          command_timeout: 30m
+          envs: RDS_HOST,MYSQL_USER,MYSQL_PASSWORD,MYSQL_DATABASE,RDS_PORT,MYSQL_SSL_MODE,VITE_API_BASE_URL,GH_PAT,GITHUB_REPOSITORY
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ vars.DEPLOY_PATH }}"
+            DEPLOY_PATH="${DEPLOY_PATH:-/opt/vinhkhanh}"
+
+            if [ -z "${RDS_HOST:-}" ] || [ -z "${MYSQL_USER:-}" ] || [ -z "${MYSQL_PASSWORD:-}" ]; then
+              echo "ERROR: Set secrets RDS_HOST, MYSQL_USER, and MYSQL_PASSWORD before bootstrap."
+              exit 1
+            fi
+
+            if ! command -v docker >/dev/null 2>&1; then
+              curl -fsSL https://get.docker.com | sudo sh
+            fi
+            sudo systemctl enable --now docker
+            sudo usermod -aG docker "$USER" 2>/dev/null || true
+            sudo docker compose version
+
+            sudo mkdir -p "$DEPLOY_PATH"
+            sudo chown -R "$USER:$USER" "$DEPLOY_PATH"
+
+            if [ ! -d "$DEPLOY_PATH/.git" ]; then
+              if [ -d "$DEPLOY_PATH" ] && [ "$(ls -A "$DEPLOY_PATH" 2>/dev/null || true)" ]; then
+                echo "ERROR: $DEPLOY_PATH exists, is not empty, and is not a git clone. Fix manually."
+                exit 1
+              fi
+              CLONE_URL="https://github.com/${GITHUB_REPOSITORY}.git"
+              if [ -n "${GH_PAT:-}" ]; then
+                CLONE_URL="https://x-access-token:${GH_PAT}@github.com/${GITHUB_REPOSITORY}.git"
+              fi
+              git clone "$CLONE_URL" "$DEPLOY_PATH"
+            fi
+
+            cd "$DEPLOY_PATH"
+            git config --global --add safe.directory "$DEPLOY_PATH" || true
+
+            MD="${MYSQL_DATABASE:-}"
+            [ -z "$MD" ] && MD="VinhKhanhFoodTour"
+            RP="${RDS_PORT:-}"
+            [ -z "$RP" ] && RP="3306"
+            SM="${MYSQL_SSL_MODE:-}"
+            [ -z "$SM" ] && SM="Required"
+            umask 077
+            : > .env
+            printf '%s\n' "RDS_HOST=$RDS_HOST" >> .env
+            printf '%s\n' "RDS_PORT=$RP" >> .env
+            printf '%s\n' "MYSQL_DATABASE=$MD" >> .env
+            printf '%s\n' "MYSQL_USER=$MYSQL_USER" >> .env
+            printf '%s\n' "MYSQL_PASSWORD=$MYSQL_PASSWORD" >> .env
+            printf '%s\n' "MYSQL_SSL_MODE=$SM" >> .env
+            if [ -n "${VITE_API_BASE_URL:-}" ]; then printf '%s\n' "VITE_API_BASE_URL=$VITE_API_BASE_URL" >> .env; fi
+            chmod 600 .env
+
+  deploy:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.bootstrap)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ vars.EC2_SSH_PORT || 22 }}
+          command_timeout: 45m
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ vars.DEPLOY_PATH }}"
+            DEPLOY_PATH="${DEPLOY_PATH:-/opt/vinhkhanh}"
+            cd "$DEPLOY_PATH"
+            git config --global --add safe.directory "$DEPLOY_PATH" || true
+            git fetch origin
+            git checkout "${{ github.ref_name }}"
+            git pull --ff-only origin "${{ github.ref_name }}"
+            sudo docker compose up -d --build
