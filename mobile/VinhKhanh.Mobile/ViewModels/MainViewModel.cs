@@ -206,11 +206,11 @@ public partial class MainViewModel : ObservableObject
                 ErrorMessage = "No network. Install an offline package on the Offline tab, or try again when online.";
         }
 
-        // Update observable list on main thread for safe UI binding
+        // Replace the whole collection on the main thread (Clear+Add can trip Android RecyclerView
+        // while the Shell tab ViewPager is laying out).
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            NearbyPois.Clear();
-            foreach (var p in pois) NearbyPois.Add(p);
+            NearbyPois = new ObservableCollection<PoiLocal>(pois);
         });
 
         // Tell geofence engine about the new watch list

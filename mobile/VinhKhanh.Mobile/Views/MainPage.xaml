@@ -88,6 +88,7 @@
             <!-- POI list -->
             <CollectionView
                 ItemsSource="{Binding NearbyPois}"
+                ItemsUpdatingScrollMode="KeepScrollOffset"
                 SelectionMode="Single"
                 SelectionChanged="OnPoiSelected"
                 IsVisible="{Binding IsBusy, Converter={StaticResource InvertBool}}"

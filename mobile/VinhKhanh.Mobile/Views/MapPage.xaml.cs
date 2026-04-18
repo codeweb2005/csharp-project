@@ -38,25 +38,69 @@ public partial class MapPage : ContentPage
     private const double DefaultLng = 106.7017;
     private const double DefaultZoom = 15;
 
+    private bool _mapReady;
+
     public MapPage(MapViewModel vm, ILocationService location)
     {
         InitializeComponent();
         _vm = vm;
         _location = location;
         BindingContext = vm;
-
-        InitMap();
-
-        // Refresh pins whenever the nearby POI list changes
-        vm.NearbyPois.CollectionChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RefreshMapLayers);
-
-        // Navigate to detail page when user taps a POI pin
-        TourMapControl.Map.Info += OnMapInfo;
+        // Map assignment happens in OnAppearing after the control has a non-zero layout size.
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        if (!_mapReady)
+        {
+            await TryInitializeMapWhenSizedAsync();
+            return;
+        }
+
+        await _vm.InitializeCommand.ExecuteAsync(null);
+        RefreshMapLayers();
+    }
+
+    /// <summary>
+    /// Mapsui assigns Skia surfaces when <see cref="MapControl.Map"/> is set. On Android + Shell tabs,
+    /// that must happen after <see cref="MapControl"/> has real width/height; otherwise the native layer
+    /// can crash inside RecyclerView/ViewPager2 layout.
+    /// </summary>
+    private async Task TryInitializeMapWhenSizedAsync()
+    {
+        // Wait until layout gives the control a usable size (up to ~2s).
+        for (var i = 0; i < 40; i++)
+        {
+            if (TourMapControl.Width > 1 && TourMapControl.Height > 1)
+                break;
+            await Task.Delay(50);
+        }
+
+        if (TourMapControl.Width <= 1 || TourMapControl.Height <= 1)
+        {
+            _vm.ErrorMessage = "Map could not be laid out. Try rotating the device or reopening the tab.";
+            return;
+        }
+
+        await Task.Delay(48);
+
+        try
+        {
+            InitMap();
+        }
+        catch (Exception ex)
+        {
+            _vm.ErrorMessage = $"Map init failed: {ex.Message}";
+            return;
+        }
+
+        _mapReady = true;
+        _vm.NearbyPois.CollectionChanged += (_, _) =>
+            MainThread.BeginInvokeOnMainThread(RefreshMapLayers);
+        TourMapControl.Map!.Info += OnMapInfo;
+
         await _vm.InitializeCommand.ExecuteAsync(null);
         RefreshMapLayers();
     }
@@ -78,8 +122,15 @@ public partial class MapPage : ContentPage
         // Centre on Vinh Khanh Street (v5: Navigator defers until viewport is ready; Home was removed)
         var (cx, cy) = SphericalMercator.FromLonLat(DefaultLng, DefaultLat);
         var center = new MPoint(cx, cy);
-        var zoomIdx = Math.Min((int)DefaultZoom, map.Navigator.Resolutions.Count - 1);
-        map.Navigator.CenterOnAndZoomTo(center, map.Navigator.Resolutions[zoomIdx]);
+        if (map.Navigator.Resolutions.Count > 0)
+        {
+            var zoomIdx = Math.Min((int)DefaultZoom, map.Navigator.Resolutions.Count - 1);
+            map.Navigator.CenterOnAndZoomTo(center, map.Navigator.Resolutions[zoomIdx]);
+        }
+        else
+        {
+            map.Navigator.CenterOn(center);
+        }
 
         TourMapControl.Map = map;
     }
@@ -88,6 +139,7 @@ public partial class MapPage : ContentPage
 
     private void RefreshMapLayers()
     {
+        if (TourMapControl.Map is null) return;
         UpdatePoisLayer();
         UpdateGeofenceLayer();
         UpdateUserLayer();
