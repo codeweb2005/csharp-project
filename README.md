@@ -46,15 +46,15 @@ When a tourist enters the geofence of a food stall, the mobile app automatically
 ## 2. System Architecture
 
 ```
-Admin / Vendor Browser              Tourist Phone
-┌─────────────────────────┐    ┌───────────────────────────┐
-│  React 19 Admin Panel   │    │  .NET MAUI Mobile App     │
-│  Ant Design 6 · Vite 7  │    │  Android / iOS            │
-│  port 5173 (admin)      │    │  GPS · Geofence · Audio   │
-│  port 5174 (vendor)     │    │  Offline SQLite cache     │
-└──────────┬──────────────┘    └──────────┬────────────────┘
-           │ HTTPS / REST                  │ HTTPS / REST
-           ▼                               ▼
+Admin / Vendor / Visitor (browser)   Tourist Phone
+┌──────────────────────────────┐    ┌───────────────────────────┐
+│  React 19 · Ant Design 6     │    │  .NET MAUI Mobile App     │
+│  Vite 7                      │    │  Android / iOS            │
+│  5173 admin · 5174 vendor    │    │  GPS · Geofence · Audio     │
+│  5175 visitor (public SPA)   │    │  Offline SQLite cache       │
+└──────────┬───────────────────┘    └──────────┬────────────────┘
+           │ HTTPS / REST                       │ HTTPS / REST
+           ▼                                    ▼
   ┌────────────────────────────────────────────────────┐
   │              ASP.NET Core 10 REST API              │
   │            Clean Architecture (Onion)              │
@@ -74,7 +74,7 @@ Admin / Vendor Browser              Tourist Phone
 **Production infrastructure:**
 
 ```
-Internet → CloudFront (SPA) → S3 (admin/vendor frontend)
+Internet → CloudFront (SPA) → S3 (admin/vendor/visitor frontends)
          → ALB (HTTPS 443) → ECS Fargate → VinhKhanh.API
                                          → RDS MySQL 8.0
                                          → S3 (audio/zip)
@@ -105,6 +105,12 @@ c-sharp-au/
 │       └── pages/                      ← Dashboard, POI, Analytics, Users, ...
 │
 ├── vendor-frontend/                    ← Vendor-only panel (port 5174)
+│
+├── visitor-frontend/                   ← Public visitor site (port 5175, no auth)
+│   └── src/
+│       ├── api.js                      ← Anonymous API only (languages, nearby, …)
+│       ├── context/LanguageContext.jsx
+│       └── pages/                      ← Home, POI detail, queue, offline
 │
 ├── mobile/
 │   └── VinhKhanh.Mobile/              ← .NET MAUI (Android + iOS)
@@ -150,7 +156,7 @@ c-sharp-au/
 | Tool | Version | Used for |
 |---|---|---|
 | .NET SDK | 10.0 | Backend + Mobile |
-| Node.js | 20 LTS | Admin/Vendor Frontend |
+| Node.js | 20 LTS | Admin, vendor, and visitor frontends |
 | MySQL | 8.0+ | Database |
 | Android SDK | API 26+ | MAUI Android builds |
 
@@ -221,6 +227,16 @@ npm run dev
 # http://localhost:5174
 ```
 
+### 4.6 Visitor Frontend (optional)
+
+```powershell
+cd visitor-frontend
+Copy-Item .env.example .env
+npm install
+npm run dev
+# http://localhost:5175
+```
+
 ### Default admin account (from seed data)
 
 | Field | Value |
@@ -282,8 +298,8 @@ See [`VENDOR_PORTAL.md`](VENDOR_PORTAL.md) for details.
 
 | Variable | Required | Description |
 |---|---|---|
-| `VITE_API_BASE_URL` | ✅ | e.g. `http://localhost:5015/api/v1` |
-| `VITE_GOOGLE_MAPS_API_KEY` | ⚠️ | Google Maps JS API key for MapPicker |
+| `VITE_API_BASE_URL` | ✅ | e.g. `http://localhost:5015/api/v1` (admin, vendor, visitor) |
+| `VITE_GOOGLE_MAPS_API_KEY` | ⚠️ | Google Maps JS API key for MapPicker (admin/vendor only) |
 
 ### Mobile — `appsettings.json` (embedded resource)
 
@@ -333,9 +349,27 @@ cd admin-frontend; npm run dev
 
 # Terminal 3 — Vendor Panel (optional)
 cd vendor-frontend; npm run dev
+
+# Terminal 4 — Visitor site (optional)
+cd visitor-frontend; npm run dev
 ```
 
-### Production (Docker)
+### Docker Compose (API + three Vite dev servers)
+
+From the repo root, after creating `.env` with at least `CONNECTION_STRING` and `JWT_KEY` (see [`.env.example`](.env.example)):
+
+```powershell
+docker compose up -d --build
+```
+
+- API: `http://localhost:8080` (or `API_PORT`)
+- Admin: `http://localhost:5173`
+- Vendor: `http://localhost:5174`
+- Visitor: `http://localhost:5175`
+
+Set `VITE_API_BASE_URL` in `.env` to an API URL the **browser** can call (typically `http://localhost:8080/api/v1` when the API port is published on the host). See [`DEPLOYMENT.md` §6.4](DEPLOYMENT.md#64-visitor-ec2-compose-and-optional-ci) for EC2 and security-group notes.
+
+### Production (Docker — API image only)
 
 ```powershell
 # Build image from repo root

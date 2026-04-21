@@ -22,6 +22,8 @@
 6. [Frontend Deployment](#6-frontend-deployment)
    - 6.1 [Admin Panel](#61-admin-panel-port-5173)
    - 6.2 [Vendor Panel](#62-vendor-panel-port-5174)
+   - 6.3 [Visitor site](#63-visitor-site-port-5175)
+   - 6.4 [Visitor: EC2 compose and optional CI](#64-visitor-ec2-compose-and-optional-ci)
 7. [Mobile App Deployment](#7-mobile-app-deployment)
    - 7.1 [Android debug APK (staging)](#71-android-debug-apk-staging)
    - 7.2 [Android release AAB (production)](#72-android-release-aab-production)
@@ -84,6 +86,9 @@ mysql --version        # add to PATH if missing — see Section 4.2
 ├── vendor-frontend/
 │   ├── .env.example                  ← Copy to .env or .env.production
 │   └── src/
+├── visitor-frontend/
+│   ├── .env.example                  ← Copy to .env or .env.production
+│   └── src/                          ← Public visitor SPA (no JWT)
 ├── mobile/
 │   └── VinhKhanh.Mobile/
 │       └── appsettings.json          ← API base URL for mobile app
@@ -110,6 +115,7 @@ The following files **must never be committed** to Git:
 - `backend/src/VinhKhanh.API/appsettings.json` (if it contains real values)
 - `admin-frontend/.env` / `.env.production`
 - `vendor-frontend/.env` / `.env.production`
+- `visitor-frontend/.env` / `.env.production` / `.env.staging`
 
 Use the `.example` files as templates. All secrets are injected via environment variables at runtime.
 
@@ -175,13 +181,14 @@ The API reads config in this priority order (highest wins):
 
 ### 3.2 Frontend — .env files
 
-Both frontends use the same two variables. Create the appropriate file per environment.
+Admin, vendor, and visitor frontends use `VITE_API_BASE_URL` (and optional keys where noted). Create the appropriate file per environment.
 
 **For local development** — copy `.env.example` to `.env`:
 
 ```powershell
 Copy-Item admin-frontend/.env.example  admin-frontend/.env
 Copy-Item vendor-frontend/.env.example vendor-frontend/.env
+Copy-Item visitor-frontend/.env.example visitor-frontend/.env
 ```
 
 **For staging** — create `.env.staging` (used with `vite build --mode staging`):
@@ -406,7 +413,7 @@ FileStorage__AwsAccessKey=<AWS_ACCESS_KEY_ID>
 FileStorage__AwsSecretKey=<AWS_SECRET_ACCESS_KEY>
 AzureTTS__SubscriptionKey=<AZURE_TTS_KEY>
 AzureTTS__Region=southeastasia
-CORS_ALLOWED_ORIGINS=http://<FRONTEND_HOST>:5173,http://<FRONTEND_HOST>:5174
+CORS_ALLOWED_ORIGINS=http://<FRONTEND_HOST>:5173,http://<FRONTEND_HOST>:5174,http://<FRONTEND_HOST>:5175
 ASPNETCORE_ENVIRONMENT=Production
 ```
 
@@ -490,6 +497,52 @@ npx vite preview --port 5174
 npm run build
 # Output: vendor-frontend/dist/
 ```
+
+---
+
+### 6.3 Visitor site (port 5175)
+
+Public SPA for tourists (anonymous API only — same surface as the mobile app’s public endpoints). Stack: React 19, Vite 7, Ant Design 6, Leaflet.
+
+```powershell
+cd visitor-frontend
+
+npm install
+
+# --- Option A: Local dev server ---
+Copy-Item .env.example .env   # set VITE_API_BASE_URL (see visitor-frontend/.env.example)
+npm run dev
+# → http://localhost:5175
+
+# --- Option B: Staging build + preview ---
+npm run build -- --mode staging
+npx vite preview --port 5175
+
+# --- Option C: Production build ---
+# Ensure .env.production exists with production API URL
+npm run build
+# Output: visitor-frontend/dist/
+# Deploy dist/ to S3 + CloudFront or Nginx (see §9)
+```
+
+**Production checklist**
+
+- Set the API host’s `CORS_ALLOWED_ORIGINS` (environment variable or `appsettings`) to include the visitor origin (for example `https://visit.example.com`). Localhost `http://localhost:5175` is already allowed in code for development only.
+- `VITE_API_BASE_URL` in `.env.production` must be the **browser-reachable** HTTPS API base (for example `https://api.example.com/api/v1`).
+- If the app is served under a subpath (for example `https://example.com/visit/`), set `VITE_BASE_PATH=/visit/` before `npm run build` so asset URLs resolve correctly (see `visitor-frontend/vite.config.js`).
+
+**Hosting**
+
+- **S3 + CloudFront:** Same pattern as admin/vendor — upload `dist/`, default root object `index.html`, error page redirect to `index.html` for SPA routes.
+- **Nginx:** Add a `server` block with `root` pointing at the visitor `dist/` output; see [§9 Nginx](#9-nginx-self-hosted) for an example `server_name` (for example `visit.vinhkhanh.com`).
+
+---
+
+### 6.4 Visitor: EC2 compose and optional CI
+
+When using [`.github/workflows/deploy-ec2.yml`](.github/workflows/deploy-ec2.yml), `docker compose up -d --build` starts **admin**, **vendor**, **visitor**, and **backend** if all services are defined in [`docker-compose.yml`](docker-compose.yml). Ensure the EC2 security group allows inbound **5175** (and 5173/5174) if you expose those ports directly; for production, prefer TLS termination on Nginx or CloudFront instead of raw dev-server ports.
+
+For visitor-only static hosting on S3, add a separate GitHub Actions workflow (not included by default): build `visitor-frontend` with `npm ci && npm run build`, then `aws s3 sync dist/` to your bucket using repository secrets for AWS credentials. This keeps the visitor CDN independent of the EC2 dev-style stack.
 
 ---
 
@@ -606,6 +659,15 @@ Invoke-RestMethod "$BASE/dashboard/stats" `
 [ ] Cannot delete or feature POIs (buttons hidden)
 ```
 
+### Visitor Frontend (port 5175)
+
+```
+[ ] Home loads → language list and map/nearby POIs (or sensible empty state)
+[ ] Change language → nearby list reflects selected language
+[ ] Open a POI → public detail and audio controls work (no login)
+[ ] Queue and Offline pages load without auth errors
+```
+
 ### Mobile App
 
 ```
@@ -632,7 +694,7 @@ sudo nano /etc/nginx/sites-available/vinhkhanh
 # Redirect HTTP → HTTPS
 server {
     listen 80;
-    server_name vinhkhanh.com www.vinhkhanh.com api.vinhkhanh.com;
+    server_name vinhkhanh.com www.vinhkhanh.com api.vinhkhanh.com vendor.vinhkhanh.com visit.vinhkhanh.com;
     return 301 https://$host$request_uri;
 }
 
@@ -679,6 +741,30 @@ server {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
+}
+
+# Visitor Frontend (public SPA)
+server {
+    listen 443 ssl http2;
+    server_name visit.vinhkhanh.com;
+
+    ssl_certificate     /etc/letsencrypt/live/visit.vinhkhanh.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/visit.vinhkhanh.com/privkey.pem;
+
+    root /var/www/vinhkhanh/visitor;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|webp|svg|ico|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    gzip on;
+    gzip_types text/css application/javascript image/svg+xml;
 }
 
 # Backend API
@@ -757,13 +843,13 @@ React Router requires a catch-all fallback. With Nginx: confirm `try_files $uri 
 The frontend's origin is not in the allowed list. Set `CORS_ALLOWED_ORIGINS` to include the frontend URL when starting the API:
 
 ```env
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175
 ```
 
 For Docker:
 
 ```powershell
-docker run ... -e CORS_ALLOWED_ORIGINS="http://<HOST>:5173,http://<HOST>:5174" ...
+docker run ... -e CORS_ALLOWED_ORIGINS="http://<HOST>:5173,http://<HOST>:5174,http://<HOST>:5175" ...
 ```
 
 ### ❌ 413 Request Entity Too Large

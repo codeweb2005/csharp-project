@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Alert, Button, Card, Spin, Table, Typography } from 'antd'
 import { ArrowLeft, Download, Package } from 'lucide-react'
 import { api, getOfflinePackageDownloadUrl } from '../../api.js'
+import { useLanguage } from '../../context/LanguageContext.jsx'
 import './Offline.css'
 
 function formatBytes(n) {
@@ -13,6 +14,7 @@ function formatBytes(n) {
 }
 
 export default function Offline() {
+  const { t } = useLanguage()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -24,7 +26,7 @@ export default function Offline() {
         const data = await api.getOfflineCatalog()
         if (!cancelled) setItems(Array.isArray(data) ? data : [])
       } catch (e) {
-        if (!cancelled) setError(e.message || 'Could not load packages.')
+        if (!cancelled) setError(e.message || t('offlineLoadError'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -32,11 +34,11 @@ export default function Offline() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [t])
 
   const columns = [
     {
-      title: 'Package',
+      title: t('package'),
       dataIndex: 'name',
       key: 'name',
       render: (text, row) => (
@@ -51,19 +53,19 @@ export default function Offline() {
       ),
     },
     {
-      title: 'Language',
+      title: t('languageCol'),
       key: 'lang',
       width: 140,
       render: (_, row) => row.languageName,
     },
     {
-      title: 'POIs / Audio',
+      title: t('counts'),
       key: 'counts',
       width: 140,
       render: (_, row) => `${row.poiCount} / ${row.audioCount}`,
     },
     {
-      title: 'Size',
+      title: t('size'),
       dataIndex: 'fileSize',
       key: 'fileSize',
       width: 100,
@@ -81,7 +83,7 @@ export default function Offline() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Download
+          {t('download')}
         </Button>
       ),
     },
@@ -92,17 +94,14 @@ export default function Offline() {
       <div className="vk-offline-toolbar">
         <Link to="/" className="vk-offline-back">
           <ArrowLeft size={18} aria-hidden />
-          Explore
+          {t('navExplore')}
         </Link>
       </div>
 
       <header className="vk-offline-header">
         <Package size={28} className="vk-offline-icon" aria-hidden />
-        <h1 className="vk-page-title">Offline packages</h1>
-        <p className="vk-muted">
-          Download a ZIP bundle for use in the mobile app when you are offline. Large files — Wi‑Fi
-          recommended.
-        </p>
+        <h1 className="vk-page-title">{t('offlineTitle')}</h1>
+        <p className="vk-muted">{t('offlineSubtitle')}</p>
       </header>
 
       {error && <Alert type="error" message={error} showIcon className="vk-offline-alert" />}
@@ -114,7 +113,7 @@ export default function Offline() {
           </div>
         ) : items.length === 0 ? (
           <Typography.Paragraph type="secondary">
-            No offline packages are published yet.
+            {t('offlineNone')}
           </Typography.Paragraph>
         ) : (
           <Table

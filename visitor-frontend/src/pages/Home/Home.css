@@ -13,6 +13,18 @@
   margin-top: 1rem;
 }
 
+.vk-home-stats-row {
+  margin-bottom: 0.5rem;
+}
+
+.vk-home-stat-card .ant-statistic-title {
+  font-size: 0.78rem;
+}
+
+.vk-home-stat-card .ant-statistic-content {
+  font-size: 1.15rem;
+}
+
 .vk-home-map-card {
   overflow: hidden;
 }
@@ -23,6 +35,21 @@
   justify-content: center;
   height: 360px;
   background: var(--vk-bg);
+}
+
+.vk-home-coordinate-card {
+  margin-top: 0.8rem;
+}
+
+.vk-home-coordinate-input {
+  width: 170px;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.vk-home-coordinate-help {
+  margin: 0.5rem 0 0 !important;
+  font-size: 0.8rem;
 }
 
 .vk-home-radius {

@@ -1,5 +1,6 @@
-# Deploy docker-compose stack to AWS EC2 (backend + Vite dev frontends).
+# Deploy docker-compose stack to AWS EC2 (backend + Vite dev frontends: admin 5173, vendor 5174, visitor 5175).
 # Database: Amazon RDS — credentials come from GitHub Secrets and are written to .env on the server (not committed).
+# If you expose visitor (or other) dev servers on EC2, open the matching ports in the security group or terminate TLS on Nginx instead.
 #
 # Secrets (Settings → Actions → Secrets):
 #   EC2_HOST, EC2_USER, EC2_SSH_KEY  — SSH access

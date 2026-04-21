@@ -36,6 +36,30 @@
   margin-top: 1rem;
 }
 
+.vk-queue-map-card {
+  overflow: hidden;
+  margin-bottom: 0.9rem;
+}
+
+.vk-queue-coordinate-card {
+  margin-bottom: 1rem;
+}
+
+.vk-queue-coordinate-input {
+  width: 170px;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.vk-queue-radius-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+  color: var(--vk-muted);
+  font-size: 0.85rem;
+}
+
 .vk-queue-meta {
   font-size: 0.875rem;
   color: var(--vk-muted);

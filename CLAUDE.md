@@ -14,6 +14,7 @@
 | Backend | ASP.NET Core 10, EF Core, MySQL 8 | Phase 1 hoan thanh |
 | Admin Frontend | React 19, Vite 7, Ant Design 6.3 | Phase 1 hoan thanh |
 | Vendor Frontend | React 19, Vite 7, Ant Design 6.3 | Phase 1 hoan thanh |
+| Visitor Frontend | React 19, Vite 7, Ant Design 6.3 (public SPA) | Phase 1 hoan thanh |
 | Mobile | .NET MAUI | Phase 2 — chua bat dau |
 
 **3 role:** Admin (quan tri), Vendor (chu quan), Customer (khach du lich).
@@ -50,6 +51,10 @@ admin-frontend/src/           ← Admin + Vendor shared panel (port 5173)
   components/                   ← Reusable components
 
 vendor-frontend/src/          ← Vendor-only panel (port 5174)
+
+visitor-frontend/src/         ← Public visitor site (port 5175)
+  api.js                        ← Anonymous API only (no JWT)
+  pages/                        ← Home, POI detail, queue, offline
 
 Database/                     ← SQL migration scripts (001_*.sql — 009_*.sql)
 ```
@@ -182,10 +187,10 @@ Du an su dung pattern **1 file cho moi loai** de de nhin toan bo contract:
 
 ### Chung
 
-- **HAI frontend rieng biet:** `admin-frontend/` (port 5173) va `vendor-frontend/` (port 5174). Chung co cau truc tuong tu nhung la 2 codebase doc lap.
-- **TAT CA API calls** di qua `api.js` function `request()`. KHONG BAO GIO dung `fetch()` truc tiep trong components.
-- `request()` tu dong refresh token khi gap 401. KHONG them logic refresh token rieng.
-- Token storage: `localStorage` voi keys `accessToken`, `refreshToken`, `user`.
+- **Ba frontend rieng biet:** `admin-frontend/` (5173), `vendor-frontend/` (5174), `visitor-frontend/` (5175). Admin va vendor la panel quan tri; visitor la SPA cong khai (khong JWT).
+- **TAT CA API calls** di qua `api.js` function `request()` (hoac wrapper tuong duong). KHONG BAO GIO dung `fetch()` truc tiep trong components.
+- Admin/vendor: `request()` tu dong refresh token khi gap 401. KHONG them logic refresh token rieng. Visitor khong dung JWT — chi endpoint anonymous.
+- Token storage (admin/vendor): `localStorage` voi keys `accessToken`, `refreshToken`, `user`.
 - **Ngon ngu chu thich:** TAT CA comments, labels, placeholders, tooltips, va UI text trong code frontend PHAI dung **tieng Anh**. KHONG dung tieng Viet trong code comments hoac hardcoded UI strings.
 
 ### Thu vien UI (BAT BUOC tuan thu)

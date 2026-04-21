@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { api } from '../api.js'
+import { createTranslator } from '../i18n.js'
 
 const LANG_KEY = 'vk_visitor_lang_id'
 
@@ -37,8 +38,11 @@ export function LanguageProvider({ children }) {
     localStorage.setItem(LANG_KEY, String(id))
   }
 
+  const currentLanguage = languages.find((l) => l.id === langId) || null
+  const t = useMemo(() => createTranslator(currentLanguage?.code), [currentLanguage?.code])
+
   return (
-    <LanguageContext.Provider value={{ languages, langId, setLangId, loading }}>
+    <LanguageContext.Provider value={{ languages, langId, setLangId, loading, currentLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   )

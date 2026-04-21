@@ -1,6 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Alert, Card, Col, Empty, List, Row, Slider, Spin, Tag, Typography } from 'antd'
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Empty,
+  InputNumber,
+  List,
+  Row,
+  Slider,
+  Space,
+  Spin,
+  Statistic,
+  Tag,
+  Typography,
+} from 'antd'
 import { ChevronRight, LocateFixed } from 'lucide-react'
 import { api } from '../../api.js'
 import { useLanguage } from '../../context/LanguageContext.jsx'
@@ -12,34 +27,37 @@ const FALLBACK_CENTER = [10.754, 106.693]
 
 export default function Home() {
   const navigate = useNavigate()
-  const { langId, loading: langLoading } = useLanguage()
+  const { langId, loading: langLoading, t } = useLanguage()
 
   const [position, setPosition] = useState({ lat: FALLBACK_CENTER[0], lng: FALLBACK_CENTER[1] })
   const [geoDenied, setGeoDenied] = useState(false)
-  const [geoLoading, setGeoLoading] = useState(true)
+  const [geoLoading, setGeoLoading] = useState(false)
+  const [followingDevice, setFollowingDevice] = useState(false)
   const [radiusMeters, setRadiusMeters] = useState(500)
   const [categories, setCategories] = useState([])
   const [categoryId, setCategoryId] = useState(null)
   const [rawNearby, setRawNearby] = useState([])
   const [loadingNearby, setLoadingNearby] = useState(false)
   const [nearbyError, setNearbyError] = useState(null)
+  const [draftLat, setDraftLat] = useState(FALLBACK_CENTER[0])
+  const [draftLng, setDraftLng] = useState(FALLBACK_CENTER[1])
+  const watchIdRef = useRef(null)
+
+  const stopDeviceTracking = useCallback(() => {
+    if (watchIdRef.current != null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+    setFollowingDevice(false)
+    setGeoLoading(false)
+  }, [])
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setGeoLoading(false)
-      return
+    return () => {
+      if (watchIdRef.current != null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+      }
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-        setGeoLoading(false)
-      },
-      () => {
-        setGeoDenied(true)
-        setGeoLoading(false)
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
-    )
   }, [])
 
   useEffect(() => {
@@ -69,7 +87,7 @@ export default function Home() {
         if (!cancelled) setRawNearby(Array.isArray(data) ? data : [])
       } catch (e) {
         if (!cancelled) {
-          setNearbyError(e.message || 'Could not load nearby places.')
+          setNearbyError(e.message || t('couldNotLoadNearby'))
           setRawNearby([])
         }
       } finally {
@@ -79,7 +97,7 @@ export default function Home() {
     return () => {
       cancelled = true
     }
-  }, [position.lat, position.lng, radiusMeters, langId, langLoading])
+  }, [position.lat, position.lng, radiusMeters, langId, langLoading, t])
 
   const nearby = useMemo(() => {
     if (categoryId == null) return rawNearby
@@ -96,6 +114,13 @@ export default function Home() {
       })),
     [nearby],
   )
+  const selectedCategoryLabel = useMemo(() => {
+    if (categoryId == null) return t('all')
+    const category = categories.find((c) => c.id === categoryId)
+    if (!category) return String(categoryId)
+    const tr = category.translations?.find((it) => it.languageId === langId)
+    return tr?.name ?? category.translations?.[0]?.name ?? String(categoryId)
+  }, [categoryId, categories, langId, t])
 
   const center = useMemo(() => [position.lat, position.lng], [position.lat, position.lng])
 
@@ -105,6 +130,63 @@ export default function Home() {
     },
     [navigate],
   )
+
+  const applyDraftPosition = useCallback(() => {
+    if (
+      typeof draftLat !== 'number' ||
+      typeof draftLng !== 'number' ||
+      Number.isNaN(draftLat) ||
+      Number.isNaN(draftLng) ||
+      draftLat < -90 ||
+      draftLat > 90 ||
+      draftLng < -180 ||
+      draftLng > 180
+    ) {
+      return
+    }
+    stopDeviceTracking()
+    setPosition({ lat: draftLat, lng: draftLng })
+    setGeoDenied(false)
+  }, [draftLat, draftLng, stopDeviceTracking])
+
+  const useCurrentLocation = useCallback(() => {
+    if (followingDevice) {
+      stopDeviceTracking()
+      return
+    }
+    if (!navigator.geolocation) {
+      setGeoDenied(true)
+      return
+    }
+
+    setGeoLoading(true)
+    setGeoDenied(false)
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        setPosition({ lat, lng })
+        setDraftLat(lat)
+        setDraftLng(lng)
+        setGeoDenied(false)
+        setGeoLoading(false)
+      },
+      () => {
+        setGeoDenied(true)
+        setGeoLoading(false)
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 },
+    )
+    setFollowingDevice(true)
+  }, [followingDevice, stopDeviceTracking])
+
+  const onPickLocationFromMap = useCallback((lat, lng) => {
+    stopDeviceTracking()
+    setDraftLat(Number(lat.toFixed(6)))
+    setDraftLng(Number(lng.toFixed(6)))
+    setPosition({ lat, lng })
+    setGeoDenied(false)
+  }, [stopDeviceTracking])
 
   if (langLoading || langId == null) {
     return (
@@ -117,36 +199,96 @@ export default function Home() {
   return (
     <div className="vk-home">
       <header className="vk-home-header">
-        <h1 className="vk-page-title">Explore Vinh Khanh</h1>
-        <p className="vk-muted">
-          Discover food stops and listen to narrations near you. No account required.
-        </p>
+        <h1 className="vk-page-title">{t('homeTitle')}</h1>
+        <p className="vk-muted">{t('homeSubtitle')}</p>
         {geoDenied && (
           <Alert
             type="info"
             showIcon
             className="vk-home-alert"
-            message="Using default map position"
-            description="Location access was denied or unavailable. Showing the Vinh Khanh area. You can still browse the list."
+            message={t('geoFallbackTitle')}
+            description={t('geoFallbackBody')}
           />
         )}
       </header>
+
+      <Row gutter={[12, 12]} className="vk-home-stats-row">
+        <Col xs={12} sm={8} lg={6}>
+          <Card size="small" className="vk-home-stat-card">
+            <Statistic title={t('nearbyStops')} value={nearby.length} />
+          </Card>
+        </Col>
+        <Col xs={12} sm={8} lg={6}>
+          <Card size="small" className="vk-home-stat-card">
+            <Statistic title={t('radiusLabel')} value={radiusMeters} suffix={t('distanceUnit')} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8} lg={6}>
+          <Card size="small" className="vk-home-stat-card">
+            <Statistic title={t('category')} value={selectedCategoryLabel} />
+          </Card>
+        </Col>
+      </Row>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={14}>
           <Card className="vk-home-map-card" styles={{ body: { padding: 0, height: 360 } }}>
             {geoLoading ? (
               <div className="vk-home-map-loading">
-                <Spin tip="Finding your position…" />
+                <Spin tip={t('findPosition')} />
               </div>
             ) : (
-              <VisitorMap center={center} pois={mapPois} onMarkerClick={onMarkerClick} />
+              <VisitorMap
+                center={center}
+                userPosition={center}
+                radiusMeters={radiusMeters}
+                pois={mapPois}
+                onMarkerClick={onMarkerClick}
+                onPickLocation={onPickLocationFromMap}
+              />
             )}
+          </Card>
+          <Card className="vk-home-coordinate-card" size="small">
+            <Space wrap align="end" size={10}>
+              <div>
+                <Typography.Text type="secondary">{t('coordinateLat')}</Typography.Text>
+                <InputNumber
+                  className="vk-home-coordinate-input"
+                  value={draftLat}
+                  min={-90}
+                  max={90}
+                  step={0.0001}
+                  onChange={(v) => setDraftLat(typeof v === 'number' ? v : draftLat)}
+                />
+              </div>
+              <div>
+                <Typography.Text type="secondary">{t('coordinateLng')}</Typography.Text>
+                <InputNumber
+                  className="vk-home-coordinate-input"
+                  value={draftLng}
+                  min={-180}
+                  max={180}
+                  step={0.0001}
+                  onChange={(v) => setDraftLng(typeof v === 'number' ? v : draftLng)}
+                />
+              </div>
+              <Button type="primary" onClick={applyDraftPosition}>
+                {t('coordinateApply')}
+              </Button>
+              <Button onClick={useCurrentLocation}>
+                {followingDevice ? t('coordinateStopDevice') : t('coordinateUseDevice')}
+              </Button>
+            </Space>
+            <Typography.Paragraph className="vk-home-coordinate-help" type="secondary">
+              {followingDevice ? t('coordinateTrackingHint') : t('coordinateHint')}
+            </Typography.Paragraph>
           </Card>
           <div className="vk-home-radius">
             <div className="vk-home-radius-label">
               <LocateFixed size={16} aria-hidden />
-              <span>Search radius: {radiusMeters} m</span>
+              <span>
+                {t('radiusLabel')}: {radiusMeters} {t('distanceUnit')}
+              </span>
             </div>
             <Slider
               min={100}
@@ -154,20 +296,20 @@ export default function Home() {
               step={50}
               value={radiusMeters}
               onChange={setRadiusMeters}
-              tooltip={{ formatter: (v) => `${v} m` }}
+              tooltip={{ formatter: (v) => `${v} ${t('distanceUnit')}` }}
             />
           </div>
         </Col>
         <Col xs={24} lg={10}>
-          <Card title="Nearby stops" className="vk-home-list-card">
+          <Card title={t('nearbyStops')} className="vk-home-list-card">
             <div className="vk-home-filters">
-              <Typography.Text type="secondary">Category</Typography.Text>
+              <Typography.Text type="secondary">{t('category')}</Typography.Text>
               <div className="vk-home-tags">
                 <Tag.CheckableTag
                   checked={categoryId === null}
                   onChange={() => setCategoryId(null)}
                 >
-                  All
+                  {t('all')}
                 </Tag.CheckableTag>
                 {categories.map((c) => {
                   const tr = c.translations?.find((t) => t.languageId === langId)
@@ -193,7 +335,7 @@ export default function Home() {
                 <Spin />
               </div>
             ) : nearby.length === 0 ? (
-              <Empty description="No stops in this radius" />
+              <Empty description={t('noStops')} />
             ) : (
               <List
                 className="vk-home-list"
@@ -216,7 +358,9 @@ export default function Home() {
                       description={
                         <span className="vk-home-item-meta">
                           {item.distanceMeters != null && (
-                            <Tag>{Math.round(item.distanceMeters)} m</Tag>
+                            <Tag>
+                              {Math.round(item.distanceMeters)} {t('distanceUnit')}
+                            </Tag>
                           )}
                           {item.address}
                         </span>

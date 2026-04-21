@@ -34,6 +34,21 @@
   font-size: 1.125rem;
 }
 
+.vk-brand-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.vk-brand-subtitle {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--vk-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .vk-brand-mark {
   width: 10px;
   height: 10px;
@@ -80,9 +95,25 @@
   color: var(--vk-accent);
 }
 
+.vk-nav-link.is-active {
+  background: var(--vk-accent-soft);
+  color: var(--vk-accent);
+  font-weight: 700;
+}
+
 .vk-header-tools {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+}
+
+.vk-lang-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--vk-muted);
+  white-space: nowrap;
 }
 
 .vk-main {

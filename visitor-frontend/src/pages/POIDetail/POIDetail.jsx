@@ -4,6 +4,7 @@ import { Alert, Button, Card, Col, Empty, Image, Row, Spin, Tag, Typography } fr
 import { ArrowLeft, Pause, Play } from 'lucide-react'
 import { api, getAudioStreamUrl } from '../../api.js'
 import { useLanguage } from '../../context/LanguageContext.jsx'
+import VisitorMap from '../../components/VisitorMap/VisitorMap.jsx'
 import './POIDetail.css'
 
 const vnd = (n) =>
@@ -14,7 +15,7 @@ const vnd = (n) =>
 export default function POIDetail() {
   const { id } = useParams()
   const poiId = Number(id)
-  const { langId, loading: langLoading } = useLanguage()
+  const { langId, loading: langLoading, t } = useLanguage()
 
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
@@ -33,7 +34,7 @@ export default function POIDetail() {
         const res = await api.getPoiPublic(poiId, langId)
         if (!cancelled) setData(res)
       } catch (e) {
-        if (!cancelled) setError(e.message || 'Not found')
+        if (!cancelled) setError(e.message || t('detailUnavailable'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -41,7 +42,7 @@ export default function POIDetail() {
     return () => {
       cancelled = true
     }
-  }, [poiId, langId, langLoading])
+  }, [poiId, langId, langLoading, t])
 
   const translation = useMemo(() => {
     if (!data?.translations?.length) return null
@@ -91,7 +92,7 @@ export default function POIDetail() {
   if (loading) {
     return (
       <div className="vk-detail-loading">
-        <Spin size="large" tip="Loading place…" />
+        <Spin size="large" tip={t('detailLoading')} />
       </div>
     )
   }
@@ -99,10 +100,10 @@ export default function POIDetail() {
   if (error || !data) {
     return (
       <div className="vk-detail-empty">
-        <Alert type="error" message={error || 'This place is not available.'} showIcon />
+        <Alert type="error" message={error || t('detailUnavailable')} showIcon />
         <Link to="/">
           <Button type="primary" className="vk-detail-back" icon={<ArrowLeft size={16} />}>
-            Back to map
+            {t('backToMap')}
           </Button>
         </Link>
       </div>
@@ -122,7 +123,7 @@ export default function POIDetail() {
       <div className="vk-detail-toolbar">
         <Link to="/" className="vk-detail-back-link">
           <ArrowLeft size={18} aria-hidden />
-          Back
+          {t('detailBack')}
         </Link>
       </div>
 
@@ -144,19 +145,19 @@ export default function POIDetail() {
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={14}>
           {translation?.shortDescription && (
-            <Card title="Overview" className="vk-detail-card">
+            <Card title={t('detailOverview')} className="vk-detail-card">
               <Typography.Paragraph>{translation.shortDescription}</Typography.Paragraph>
             </Card>
           )}
           {translation?.fullDescription && (
-            <Card title="About" className="vk-detail-card">
+            <Card title={t('detailAbout')} className="vk-detail-card">
               <Typography.Paragraph className="vk-detail-prose">
                 {translation.fullDescription}
               </Typography.Paragraph>
             </Card>
           )}
           {Array.isArray(translation?.highlights) && translation.highlights.length > 0 && (
-            <Card title="Highlights" className="vk-detail-card">
+            <Card title={t('detailHighlights')} className="vk-detail-card">
               <ul className="vk-detail-highlights">
                 {translation.highlights.map((h) => (
                   <li key={h}>{h}</li>
@@ -164,9 +165,25 @@ export default function POIDetail() {
               </ul>
             </Card>
           )}
+          <Card title={t('detailMap')} className="vk-detail-card" styles={{ body: { padding: 0, height: 240 } }}>
+            <VisitorMap
+              center={[data.latitude, data.longitude]}
+              userPosition={[data.latitude, data.longitude]}
+              radiusMeters={Math.max(120, data.geofenceRadius ?? 150)}
+              pois={[
+                {
+                  id: data.id,
+                  name: translation?.name ?? data.name,
+                  latitude: data.latitude,
+                  longitude: data.longitude,
+                },
+              ]}
+              onMarkerClick={() => {}}
+            />
+          </Card>
         </Col>
         <Col xs={24} lg={10}>
-          <Card title="Audio" className="vk-detail-card">
+          <Card title={t('detailAudio')} className="vk-detail-card">
             {data.audio?.length ? (
               <ul className="vk-detail-audio-list">
                 {data.audio.map((a) => (
@@ -182,13 +199,13 @@ export default function POIDetail() {
                       type={playingId === a.id ? 'default' : 'primary'}
                       icon={playingId === a.id ? <Pause size={16} /> : <Play size={16} />}
                       onClick={() => togglePlay(a.id)}
-                      aria-label={playingId === a.id ? 'Pause' : 'Play'}
+                      aria-label={playingId === a.id ? t('pause') : t('play')}
                     />
                   </li>
                 ))}
               </ul>
             ) : (
-              <Empty description="No narration for this place" />
+              <Empty description={t('detailNoNarration')} />
             )}
             {translation?.narrationText && (
               <Typography.Paragraph className="vk-detail-narration">
@@ -197,16 +214,16 @@ export default function POIDetail() {
             )}
           </Card>
 
-          <Card title="Visit" className="vk-detail-card">
+          <Card title={t('detailVisit')} className="vk-detail-card">
             {data.phone && (
               <div className="vk-detail-row">
-                <span className="vk-detail-label">Phone</span>
+                <span className="vk-detail-label">{t('detailPhone')}</span>
                 <a href={`tel:${data.phone}`}>{data.phone}</a>
               </div>
             )}
             {data.website && (
               <div className="vk-detail-row">
-                <span className="vk-detail-label">Website</span>
+                <span className="vk-detail-label">{t('detailWebsite')}</span>
                 <a href={data.website} target="_blank" rel="noopener noreferrer">
                   {data.website.replace(/^https?:\/\//, '')}
                 </a>
@@ -214,13 +231,13 @@ export default function POIDetail() {
             )}
             {data.openingHours && (
               <div className="vk-detail-row">
-                <span className="vk-detail-label">Hours</span>
+                <span className="vk-detail-label">{t('detailHours')}</span>
                 <span>{data.openingHours}</span>
               </div>
             )}
             {data.priceRangeMin != null && data.priceRangeMax != null && (
               <div className="vk-detail-row">
-                <span className="vk-detail-label">Price</span>
+                <span className="vk-detail-label">{t('detailPrice')}</span>
                 <span>
                   {vnd(Number(data.priceRangeMin))} – {vnd(Number(data.priceRangeMax))}
                 </span>
@@ -231,7 +248,7 @@ export default function POIDetail() {
       </Row>
 
       {gallery.length > 1 && (
-        <Card title="Gallery" className="vk-detail-card vk-detail-gallery-card">
+        <Card title={t('detailGallery')} className="vk-detail-card vk-detail-gallery-card">
           <div className="vk-detail-gallery">
             {gallery.map((m) => (
               <Image
@@ -246,7 +263,7 @@ export default function POIDetail() {
       )}
 
       {data.menuItems?.length > 0 && (
-        <Card title="Menu" className="vk-detail-card">
+        <Card title={t('detailMenu')} className="vk-detail-card">
           <Row gutter={[12, 12]}>
             {data.menuItems.map((item) => {
               const mt = item.translations?.find((t) => t.languageId === langId)
@@ -266,7 +283,7 @@ export default function POIDetail() {
                     <div className="vk-menu-body">
                       <div className="vk-menu-head">
                         <strong>{name}</strong>
-                        {item.isSignature ? <Tag color="orange">Signature</Tag> : null}
+                        {item.isSignature ? <Tag color="orange">{t('detailSignature')}</Tag> : null}
                       </div>
                       <div className="vk-menu-price">{vnd(Number(item.price))}</div>
                       {desc && <p className="vk-menu-desc">{desc}</p>}
