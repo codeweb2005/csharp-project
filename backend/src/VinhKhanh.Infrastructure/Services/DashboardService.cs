@@ -151,18 +151,7 @@ public class DashboardService : IDashboardService
         var total = await historyQuery.CountAsync();
 
         if (total == 0)
-        {
-            var langs = await _db.Languages
-                .Where(l => l.IsActive)
-                .Select(l => new LanguageStatDto
-                {
-                    Name       = l.NativeName,
-                    FlagEmoji  = l.FlagEmoji,
-                    Count      = 0,
-                    Percentage = 0
-                }).ToListAsync();
-            return ApiResponse<List<LanguageStatDto>>.Ok(langs);
-        }
+            return ApiResponse<List<LanguageStatDto>>.Ok([]);
 
         var stats = await historyQuery
             .Include(v => v.Language)

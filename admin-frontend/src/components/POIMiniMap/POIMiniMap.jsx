@@ -42,12 +42,13 @@ function loadLeaflet() {
 }
 
 // Colour-coded marker icons
-function makeIcon(color = '#00246a', active = false) {
+function makeIcon(color = '#6b7280', active = false, inactive = false) {
     const size = active ? 32 : 24
+    const opacity = inactive ? '0.35' : (active ? '1' : '0.85')
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="${size}" height="${size * 4 / 3}">
         <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z"
-              fill="${color}" stroke="white" stroke-width="1.5" opacity="${active ? '1' : '0.85'}"/>
-        <circle cx="12" cy="12" r="5" fill="white" opacity="0.95"/>
+              fill="${color}" stroke="white" stroke-width="1.5" opacity="${opacity}"/>
+        <circle cx="12" cy="12" r="5" fill="white" opacity="${inactive ? '0.5' : '0.95'}"/>
     </svg>`
     return window.L.divIcon({
         html: svg,
@@ -112,11 +113,19 @@ export default function POIMiniMap({ pois = [], selectedPoiId, onSelectPoi }) {
 
         pois.filter(p => p.latitude && p.longitude).forEach(poi => {
             const isSelected = poi.id === selectedPoiId
-            const color = isSelected ? '#00246a' : (poi.categoryColor || '#6b7280')
+            const isInactive = !poi.isActive
+
+            // Color logic: selected=VK red, inactive=gray, active=category color
+            const color = isSelected
+                ? '#C92127'
+                : isInactive
+                    ? '#9CA3AF'
+                    : (poi.categoryColor || '#6b7280')
 
             const marker = L.marker([poi.latitude, poi.longitude], {
-                icon: makeIcon(color, isSelected),
-                title: poi.name
+                icon: makeIcon(color, isSelected, isInactive),
+                title: poi.name,
+                opacity: isInactive ? 0.5 : 1,
             })
 
             marker.bindPopup(`
@@ -125,9 +134,9 @@ export default function POIMiniMap({ pois = [], selectedPoiId, onSelectPoi }) {
                     <div style="font-size:0.78rem;color:#64748b">${poi.address || ''}</div>
                     ${poi.isActive
                         ? '<span style="font-size:0.72rem;color:#10b981;font-weight:600">● Active</span>'
-                        : '<span style="font-size:0.72rem;color:#ef4444;font-weight:600">● Inactive</span>'}
+                        : '<span style="font-size:0.72rem;color:#ef4444;font-weight:600">● Inactive — hidden on tourist app</span>'}
                 </div>
-            `, { maxWidth: 220 })
+            `, { maxWidth: 240 })
 
             marker.on('click', () => {
                 onSelectPoi?.(poi)
@@ -141,9 +150,9 @@ export default function POIMiniMap({ pois = [], selectedPoiId, onSelectPoi }) {
             if (isSelected && poi.geofenceRadiusMeters) {
                 circleRef.current = L.circle([poi.latitude, poi.longitude], {
                     radius: poi.geofenceRadiusMeters,
-                    color: '#00246a',
-                    fillColor: '#00246a',
-                    fillOpacity: 0.08,
+                    color: '#C92127',
+                    fillColor: '#C92127',
+                    fillOpacity: 0.06,
                     weight: 1.5,
                     dashArray: '4 4'
                 }).addTo(map)

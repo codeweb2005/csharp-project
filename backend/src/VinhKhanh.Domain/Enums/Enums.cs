@@ -4,7 +4,12 @@ public enum UserRole
 {
     Customer = 0,
     Vendor = 1,
-    Admin = 2
+    Admin = 2,
+    /// <summary>
+    /// Anonymous walk-in tourist authenticated via QR session token.
+    /// Short-lived JWT (24h), no email/password required.
+    /// </summary>
+    Tourist = 3
 }
 
 public enum MediaType

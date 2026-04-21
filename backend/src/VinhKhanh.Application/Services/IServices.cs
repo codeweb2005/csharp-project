@@ -198,7 +198,7 @@ public interface ISettingsService
 public interface ISyncService
 {
     Task<ApiResponse<SyncDeltaResponse>> GetDeltaAsync(DateTime since, int languageId);
-    Task<ApiResponse<int>> UploadVisitsAsync(VisitBatchRequest request, int? userId);
+    Task<ApiResponse<int>> UploadVisitsAsync(VisitBatchRequest request, int? userId, string? sessionId = null);
 }
 
 // ============ Language Service ============
@@ -209,3 +209,77 @@ public interface ILanguageService
 {
     Task<ApiResponse<List<LanguageDto>>> GetAllActiveAsync();
 }
+
+// ============ Tourist Session Service ============
+/// <summary>
+/// Manages anonymous tourist sessions created via QR code scan.
+/// No account creation required — a session token embedded in a QR code is
+/// exchanged for a short-lived JWT with role = Tourist.
+/// </summary>
+public interface ITouristSessionService
+{
+    /// <summary>
+    /// Exchange a QR session token for a 24-hour JWT.
+    /// Creates or updates the TouristSession row; increments QR use-count.
+    /// Returns an error if the QR is invalid, expired, or max-uses reached.
+    /// </summary>
+    Task<ApiResponse<TouristTokenResponse>> StartSessionAsync(StartSessionRequest request);
+
+    /// <summary>
+    /// Return current session info for the authenticated tourist (from JWT claims).
+    /// </summary>
+    Task<ApiResponse<TouristSessionDto>> GetSessionAsync(string sessionId);
+
+    /// <summary>Mark a session as inactive. Called when tourist exits the app.</summary>
+    Task<ApiResponse<bool>> EndSessionAsync(string sessionId);
+
+    // ── Admin: QR Management ──────────────────────────────────────────────
+
+    /// <summary>List all QR codes created by admins (with use counts).</summary>
+    Task<ApiResponse<List<TourQRCodeDto>>> GetQRCodesAsync();
+
+    /// <summary>Generate a new QR (UUID v4) and return its PNG bytes.</summary>
+    Task<ApiResponse<TourQRCodeDto>> CreateQRCode(CreateQRCodeRequest request);
+
+    /// <summary>Returns PNG bytes for an existing QR code.</summary>
+    Task<byte[]?> GetQRPngAsync(string qrToken, int pixels = 512);
+
+    /// <summary>Deactivate a QR code so it can no longer be used.</summary>
+    Task<ApiResponse<bool>> DeactivateQRCodeAsync(int id);
+}
+
+// ============ Presence Service ============
+/// <summary>
+/// Tracks real-time GPS positions of active tourists and broadcasts
+/// presence events to admin monitors via SignalR.
+/// </summary>
+public interface IPresenceService
+{
+    /// <summary>
+    /// Record that a tourist has entered a POI's geofence.
+    /// Upserts ActivePresence row and broadcasts "TouristEnteredPOI" to admin hub.
+    /// </summary>
+    Task TrackEnterAsync(string sessionId, int poiId, double? lat, double? lng);
+
+    /// <summary>
+    /// Record that a tourist has exited a POI's geofence (or session ended).
+    /// Sets PoiId = null in ActivePresence and broadcasts "TouristExitedPOI".
+    /// </summary>
+    Task TrackExitAsync(string sessionId, int? poiId);
+
+    /// <summary>
+    /// Update only the tourist's GPS coordinates (between POIs).
+    /// Used by periodic location pings from the mobile app.
+    /// </summary>
+    Task UpdateLocationAsync(string sessionId, double lat, double lng);
+
+    /// <summary>
+    /// Get a snapshot of all currently active tourists (for admin heatmap).
+    /// Returns position + active POI for every non-expired ActivePresence row.
+    /// </summary>
+    Task<ApiResponse<PresenceSnapshot>> GetSnapshotAsync();
+
+    /// <summary>Remove stale presence rows for sessions older than the threshold.</summary>
+    Task PurgeStaleAsync(TimeSpan staleThreshold);
+}
+

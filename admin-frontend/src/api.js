@@ -253,4 +253,9 @@ export const settings = {
   generateApiKey: () => request('/settings/generate-api-key', { method: 'POST' }),
 }
 
+// ============ Presence (Monitor) ============
+export const presence = {
+  getSnapshot: () => request('/presence/snapshot'),
+}
+
 export { clearTokens, setTokens, getToken }

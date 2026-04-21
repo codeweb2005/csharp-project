@@ -549,8 +549,6 @@ public class VisitInput
     public double? Longitude { get; set; }
 }
 
-// ============ Audio Queue (Sequential Playback) ============
-
 /// <summary>
 /// Response for the audio queue endpoint. When a user is near multiple POIs,
 /// the mobile app should play audio narrations sequentially in this order
@@ -564,6 +562,16 @@ public class AudioQueueResponse
     public int TotalDurationSeconds { get; set; }
     /// <summary>Number of POIs included in the queue.</summary>
     public int POICount { get; set; }
+    /// <summary>
+    /// True when two or more POIs within range have overlapping geofences.
+    /// Mobile app should show a subtle indicator that overlap resolution was applied.
+    /// </summary>
+    public bool HasOverlappingPOIs { get; set; }
+    /// <summary>
+    /// Describes how overlapping POIs were resolved.
+    /// Values: "priority" | "distance" | "none" (no overlap).
+    /// </summary>
+    public string ResolvedBy { get; set; } = "none";
 }
 
 /// <summary>
@@ -601,3 +609,129 @@ public class AudioQueueItemDto
     /// <summary>Narration text for display while audio plays.</summary>
     public string? NarrationText { get; set; }
 }
+
+// ============ Tourist Session (QR Walk-In) ============
+
+/// <summary>POST /api/v1/tourist/session — exchange QR token for a 24-hour JWT.</summary>
+public class StartSessionRequest
+{
+    /// <summary>UUID v4 embedded in the QR code. Required.</summary>
+    public string QRToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Anonymous device identifier (UUID stored in app Preferences).
+    /// Not required but helps analytics distinguish unique devices.
+    /// </summary>
+    public string? DeviceId { get; set; }
+
+    /// <summary>Preferred language ID selected by the tourist on first launch.</summary>
+    public int? LanguageId { get; set; }
+}
+
+/// <summary>Response for POST /api/v1/tourist/session.</summary>
+public class TouristTokenResponse
+{
+    /// <summary>Short-lived JWT (role = Tourist, expiry 24h).</summary>
+    public string AccessToken { get; set; } = string.Empty;
+    /// <summary>Session token from the QR code — used as the JWT "sessionId" claim.</summary>
+    public string SessionId { get; set; } = string.Empty;
+    /// <summary>Unix timestamp when the token expires.</summary>
+    public long ExpiresAt { get; set; }
+    /// <summary>Preferred language returned from the session, if any.</summary>
+    public int? LanguageId { get; set; }
+}
+
+/// <summary>GET /api/v1/tourist/session/me — info about the current tourist session.</summary>
+public class TouristSessionDto
+{
+    public string SessionId { get; set; } = string.Empty;
+    public DateTime StartedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public int? LanguageId { get; set; }
+    public bool IsActive { get; set; }
+}
+
+// ============ Tour QR Code (Admin) ============
+
+/// <summary>List item returned by GET /api/v1/tourist/qr.</summary>
+public class TourQRCodeDto
+{
+    public int Id { get; set; }
+    public string QRToken { get; set; } = string.Empty;
+    public string? Label { get; set; }
+    public int? MaxUses { get; set; }
+    public int UseCount { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>POST /api/v1/tourist/qr — admin creates a new QR code for a tour group.</summary>
+public class CreateQRCodeRequest
+{
+    /// <summary>Admin-friendly label, e.g. "Nhóm sáng 18/04".</summary>
+    public string? Label { get; set; }
+
+    /// <summary>Maximum number of tourists that can use this QR. Null = unlimited.</summary>
+    public int? MaxUses { get; set; }
+
+    /// <summary>Optional expiry date/time for the QR. Null = never expires.</summary>
+    public DateTime? ExpiresAt { get; set; }
+}
+
+// ============ Realtime Presence (Monitor) ============
+
+/// <summary>POST /api/v1/presence/update — mobile app reports current GPS position.</summary>
+public class PresenceUpdateRequest
+{
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    /// <summary>Current active POI ID, null if between POIs.</summary>
+    public int? PoiId { get; set; }
+    /// <summary>"enter" | "exit" | "move" — what triggered this update.</summary>
+    public string EventType { get; set; } = "move";
+}
+
+/// <summary>GET /api/v1/presence/snapshot — admin realtime snapshot of all active tourists.</summary>
+public class PresenceSnapshot
+{
+    /// <summary>Total number of active tourist sessions right now.</summary>
+    public int ActiveTourists { get; set; }
+    /// <summary>Breakdown of tourists per POI.</summary>
+    public List<PoiPresenceCount> PerPOI { get; set; } = [];
+    /// <summary>Raw position list for heatmap rendering.</summary>
+    public List<TouristPositionDto> Positions { get; set; } = [];
+    public DateTime SnapshotAt { get; set; } = DateTime.UtcNow;
+}
+
+public class PoiPresenceCount
+{
+    public int PoiId { get; set; }
+    public string PoiName { get; set; } = string.Empty;
+    public int Count { get; set; }
+}
+
+public class TouristPositionDto
+{
+    public string SessionId { get; set; } = string.Empty;
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public int? PoiId { get; set; }
+    public string? PoiName { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+// ============ Visit Ingestion (Channel<T> Queue) ============
+
+/// <summary>
+/// Internal message sent to the VisitIngestionService's Channel.
+/// Contains all data needed to persist a batch of visits to the DB.
+/// </summary>
+public class VisitBatchMessage
+{
+    public List<VisitInput> Visits { get; set; } = [];
+    public int? UserId { get; set; }       // authenticated user (null for anonymous tourists)
+    public string? SessionId { get; set; } // tourist session ID (null for registered users)
+    public DateTime ReceivedAt { get; set; } = DateTime.UtcNow;
+}
+

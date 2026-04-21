@@ -1,0 +1,231 @@
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using VinhKhanh.Application.DTOs;
+using VinhKhanh.Application.Services;
+using VinhKhanh.Domain.Entities;
+using VinhKhanh.Infrastructure.Data;
+
+namespace VinhKhanh.Infrastructure.Services;
+
+/// <summary>
+/// Tracks real-time GPS positions of active tourists and broadcasts presence events
+/// to admin monitors via SignalR.
+///
+/// Architecture:
+///   - Mobile app calls POST /presence/update on every GPS update or geofence event.
+///   - Service upserts the ActivePresence row (one per live tourist session).
+///   - On enter/exit events, broadcasts to the admin "Monitor" SignalR group.
+///   - GET /presence/snapshot returns a point-in-time snapshot for admin heatmap.
+///
+/// Stale rows (LastSeenAt older than 15 minutes) are purged periodically by
+/// <see cref="PresenceCleanupService"/> (IHostedService, also in this file).
+/// </summary>
+public class PresenceService(
+    AppDbContext db,
+    IHubContext<TourMonitorHub> hub,
+    ILogger<PresenceService> logger) : IPresenceService
+{
+    /// <inheritdoc/>
+    public async Task TrackEnterAsync(string sessionId, int poiId, double? lat, double? lng)
+    {
+        await UpsertPresenceAsync(sessionId, poiId, lat, lng);
+
+        // Broadcast to admin monitor group
+        var poiName = await db.POIs
+            .Where(p => p.Id == poiId)
+            .SelectMany(p => p.Translations)
+            .OrderBy(t => t.LanguageId)
+            .Select(t => t.Name)
+            .FirstOrDefaultAsync() ?? $"POI #{poiId}";
+
+        var msg = new
+        {
+            eventType = "enter",
+            sessionId = sessionId[..Math.Min(8, sessionId.Length)] + "…",
+            poiId,
+            poiName,
+            lat,
+            lng,
+            timestamp = DateTime.UtcNow
+        };
+
+        await hub.Clients.Group("Admins").SendAsync("TouristEnteredPOI", msg);
+        logger.LogDebug("[Presence] Session {S} entered POI {P}", sessionId[..8], poiId);
+    }
+
+    /// <inheritdoc/>
+    public async Task TrackExitAsync(string sessionId, int? poiId)
+    {
+        // Set PoiId = null — tourist is between POIs
+        var presence = await db.ActivePresence.FindAsync(sessionId);
+        if (presence != null)
+        {
+            presence.PoiId     = null;
+            presence.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        if (poiId.HasValue)
+        {
+            await hub.Clients.Group("Admins").SendAsync("TouristExitedPOI", new
+            {
+                eventType = "exit",
+                sessionId = sessionId[..Math.Min(8, sessionId.Length)] + "…",
+                poiId     = poiId.Value,
+                timestamp = DateTime.UtcNow
+            });
+        }
+
+        logger.LogDebug("[Presence] Session {S} exited POI {P}", sessionId[..8], poiId);
+    }
+
+    /// <inheritdoc/>
+    public async Task UpdateLocationAsync(string sessionId, double lat, double lng)
+    {
+        var presence = await db.ActivePresence.FindAsync(sessionId);
+        if (presence == null) return;
+
+        presence.Latitude  = lat;
+        presence.Longitude = lng;
+        presence.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        // Broadcast lightweight location update to admin monitor
+        await hub.Clients.Group("Admins").SendAsync("TouristLocationUpdate", new
+        {
+            sessionId = sessionId[..Math.Min(8, sessionId.Length)] + "…",
+            lat,
+            lng,
+            poiId   = presence.PoiId,
+            timestamp = DateTime.UtcNow
+        });
+    }
+
+    /// <inheritdoc/>
+    public async Task<ApiResponse<PresenceSnapshot>> GetSnapshotAsync()
+    {
+        var staleThreshold = DateTime.UtcNow.AddMinutes(-15);
+
+        var rows = await db.ActivePresence
+            .Where(p => p.UpdatedAt >= staleThreshold)
+            .Include(p => p.Poi)
+                .ThenInclude(poi => poi!.Translations)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var positions = rows.Select(p => new TouristPositionDto
+        {
+            SessionId = p.SessionId[..Math.Min(8, p.SessionId.Length)] + "…",
+            Latitude  = p.Latitude,
+            Longitude = p.Longitude,
+            PoiId     = p.PoiId,
+            PoiName   = p.Poi?.Translations
+                .OrderBy(t => t.LanguageId)
+                .Select(t => t.Name)
+                .FirstOrDefault(),
+            UpdatedAt = p.UpdatedAt
+        }).ToList();
+
+        // Group by active POI
+        var perPoi = rows
+            .Where(p => p.PoiId.HasValue)
+            .GroupBy(p => p.PoiId!.Value)
+            .Select(g => new PoiPresenceCount
+            {
+                PoiId   = g.Key,
+                PoiName = g.First().Poi?.Translations
+                    .OrderBy(t => t.LanguageId)
+                    .Select(t => t.Name)
+                    .FirstOrDefault() ?? $"POI #{g.Key}",
+                Count   = g.Count()
+            })
+            .OrderByDescending(p => p.Count)
+            .ToList();
+
+        return ApiResponse<PresenceSnapshot>.Ok(new PresenceSnapshot
+        {
+            ActiveTourists = rows.Count,
+            PerPOI         = perPoi,
+            Positions      = positions,
+            SnapshotAt     = DateTime.UtcNow
+        });
+    }
+
+    /// <inheritdoc/>
+    public async Task PurgeStaleAsync(TimeSpan staleThreshold)
+    {
+        var cutoff = DateTime.UtcNow - staleThreshold;
+        var stale = await db.ActivePresence
+            .Where(p => p.UpdatedAt < cutoff)
+            .ToListAsync();
+
+        if (stale.Count == 0) return;
+
+        db.ActivePresence.RemoveRange(stale);
+        await db.SaveChangesAsync();
+        logger.LogInformation("[Presence] Purged {N} stale presence rows (older than {T})", stale.Count, staleThreshold);
+    }
+
+    // ── Private ──────────────────────────────────────────────────────────────
+
+    private async Task UpsertPresenceAsync(string sessionId, int? poiId, double? lat, double? lng)
+    {
+        var existing = await db.ActivePresence.FindAsync(sessionId);
+        if (existing != null)
+        {
+            existing.PoiId     = poiId;
+            existing.Latitude  = lat;
+            existing.Longitude = lng;
+            existing.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            db.ActivePresence.Add(new ActivePresence
+            {
+                SessionId = sessionId,
+                PoiId     = poiId,
+                Latitude  = lat,
+                Longitude = lng,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        await db.SaveChangesAsync();
+    }
+}
+
+// ── Cleanup Background Service ───────────────────────────────────────────────
+
+/// <summary>
+/// Periodic background service that purges stale ActivePresence rows (tourist gone for > 15 min).
+/// Runs every 5 minutes. Keeps the presence table small and the heatmap accurate.
+/// </summary>
+public class PresenceCleanupService(
+    IServiceScopeFactory scopeFactory,
+    ILogger<PresenceCleanupService> logger) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        logger.LogInformation("[PresenceCleanup] Service started.");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+
+                using var scope    = scopeFactory.CreateScope();
+                var presenceSvc = scope.ServiceProvider.GetRequiredService<IPresenceService>();
+                await presenceSvc.PurgeStaleAsync(TimeSpan.FromMinutes(15));
+            }
+            catch (OperationCanceledException) { /* graceful shutdown */ }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "[PresenceCleanup] Error during stale presence purge.");
+            }
+        }
+    }
+}

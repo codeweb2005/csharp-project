@@ -23,7 +23,9 @@ import Settings from './pages/Settings/Settings'
 import Audio from './pages/Audio/Audio'
 import Analytics from './pages/Analytics/Analytics'
 import Offline from './pages/Offline/Offline'
+import LiveMonitorPage from './pages/Monitor/LiveMonitorPage'
 import './index.css'
+
 
 /**
  * ProtectedRoute — Wraps route children and redirects to /login
@@ -74,7 +76,11 @@ export default function App() {
                     <Route path="users"      element={<Users />} />
                     <Route path="offline"    element={<Offline />} />
                     <Route path="settings"   element={<Settings />} />
+
+                    {/* Admin-only: realtime tour monitor */}
+                    <Route path="monitor"    element={<LiveMonitorPage />} />
                 </Route>
+
 
                 {/* Catch-all route for unknown URLs: Redirect to / (which evaluates auth and redirects to /login if needed) */}
                 <Route path="*" element={<Navigate to="/" replace />} />

@@ -629,13 +629,149 @@ public class SettingsController(ISettingsService svc) : BaseApiController
 [Route("api/v1/sync")]
 public class SyncController(ISyncService svc) : BaseApiController
 {
+    /// <summary>GET /api/v1/sync/delta — authenticated users only (Tourist or registered).</summary>
     [HttpGet("delta")]
     [Authorize]
     public async Task<IActionResult> GetDelta([FromQuery] DateTime since, [FromQuery] int langId)
         => ApiResult(await svc.GetDeltaAsync(since, langId));
 
+    /// <summary>
+    /// POST /api/v1/sync/visits — accepts Tourist JWT, registered user JWT, or anonymous.
+    /// Visits are fire-and-forget via Channel&lt;T&gt; (returns 200 immediately).
+    /// </summary>
     [HttpPost("visits")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> UploadVisits([FromBody] VisitBatchRequest req)
-        => ApiResult(await svc.UploadVisitsAsync(req, GetUserId()));
+    {
+        // Extract identifiers: prefer authenticated user, fall back to tourist sessionId
+        int? userId = null;
+        string? sessionId = null;
+
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var role = GetUserRole();
+            if (role == "Tourist")
+                sessionId = User.FindFirst("sessionId")?.Value;
+            else
+                userId = GetUserId();
+        }
+
+        return ApiResult(await svc.UploadVisitsAsync(req, userId, sessionId));
+    }
 }
+
+// ================================
+// Tourist Controller (QR Walk-In)
+// ================================
+
+/// <summary>
+/// Manages anonymous tourist sessions.
+/// POST /api/v1/tourist/session  — exchange QR token for 24h JWT (no account required).
+/// GET  /api/v1/tourist/session/me — current session info (Tourist JWT required).
+/// DELETE /api/v1/tourist/session — end session.
+/// GET  /api/v1/tourist/qr       — [Admin] list all QR codes.
+/// POST /api/v1/tourist/qr       — [Admin] create a new QR code.
+/// GET  /api/v1/tourist/qr/{token}/png — download QR PNG (Admin only).
+/// DELETE /api/v1/tourist/qr/{id} — [Admin] deactivate QR code.
+/// </summary>
+[Route("api/v1/tourist")]
+public class TouristController(ITouristSessionService svc) : BaseApiController
+{
+    /// <summary>Exchange a QR session token for a 24-hour tourist JWT. No account needed.</summary>
+    [HttpPost("session")]
+    [AllowAnonymous]
+    public async Task<IActionResult> StartSession([FromBody] StartSessionRequest req)
+        => ApiResult(await svc.StartSessionAsync(req));
+
+    /// <summary>Get current tourist session details from JWT claims.</summary>
+    [HttpGet("session/me")]
+    [Authorize(Roles = "Tourist")]
+    public async Task<IActionResult> GetMySession()
+    {
+        var sessionId = User.FindFirst("sessionId")?.Value ?? "";
+        return ApiResult(await svc.GetSessionAsync(sessionId));
+    }
+
+    /// <summary>End the tourist session (logout / app close).</summary>
+    [HttpDelete("session")]
+    [Authorize(Roles = "Tourist")]
+    public async Task<IActionResult> EndSession()
+    {
+        var sessionId = User.FindFirst("sessionId")?.Value ?? "";
+        return ApiResult(await svc.EndSessionAsync(sessionId));
+    }
+
+    // ── Admin: QR Management ────────────────────────────────────────────────
+
+    [HttpGet("qr")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ListQRCodes()
+        => ApiResult(await svc.GetQRCodesAsync());
+
+    [HttpPost("qr")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateQRCode([FromBody] CreateQRCodeRequest req)
+        => ApiResult(await svc.CreateQRCode(req));
+
+    [HttpGet("qr/{token}/png")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetQRPng(string token, [FromQuery] int pixels = 512)
+    {
+        var png = await svc.GetQRPngAsync(token, pixels);
+        if (png == null) return NotFound();
+        return File(png, "image/png");
+    }
+
+    [HttpDelete("qr/{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeactivateQRCode(int id)
+        => ApiResult(await svc.DeactivateQRCodeAsync(id));
+}
+
+// ================================
+// Presence Controller (Realtime GPS)
+// ================================
+
+/// <summary>
+/// Real-time GPS presence tracking for active tourists.
+/// POST /api/v1/presence/update   — tourist reports current position (Tourist JWT).
+/// GET  /api/v1/presence/snapshot — admin heatmap snapshot (Admin JWT).
+/// </summary>
+[Route("api/v1/presence")]
+public class PresenceController(IPresenceService presenceSvc) : BaseApiController
+{
+    /// <summary>
+    /// Tourist app calls this on every GPS tick or geofence event.
+    /// Updates the ActivePresence table and broadcasts to admin monitor via SignalR.
+    /// </summary>
+    [HttpPost("update")]
+    [Authorize(Roles = "Tourist")]
+    public async Task<IActionResult> Update([FromBody] PresenceUpdateRequest req)
+    {
+        var sessionId = User.FindFirst("sessionId")?.Value ?? "";
+
+        switch (req.EventType.ToLower())
+        {
+            case "enter" when req.PoiId.HasValue:
+                await presenceSvc.TrackEnterAsync(sessionId, req.PoiId.Value, req.Latitude, req.Longitude);
+                break;
+            case "exit":
+                await presenceSvc.TrackExitAsync(sessionId, req.PoiId);
+                break;
+            default:
+                await presenceSvc.UpdateLocationAsync(sessionId, req.Latitude, req.Longitude);
+                break;
+        }
+
+        return Ok(new { ok = true });
+    }
+
+    /// <summary>
+    /// Returns a snapshot of all active tourists for the admin heatmap.
+    /// </summary>
+    [HttpGet("snapshot")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetSnapshot()
+        => ApiResult(await presenceSvc.GetSnapshotAsync());
+}
+

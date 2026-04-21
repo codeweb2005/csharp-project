@@ -230,3 +230,81 @@ public class PoiDistanceResult
     public int Id { get; set; }
     public double DistanceMeters { get; set; }
 }
+
+/// <summary>
+/// Represents an anonymous tourist session created when a visitor scans a QR code.
+/// No email or password required — the session token (UUID v4 embedded in the QR)
+/// is exchanged for a short-lived JWT with role = Tourist.
+/// </summary>
+public class TouristSession : BaseEntity
+{
+    /// <summary>UUID v4 embedded in the QR code PNG.</summary>
+    public string SessionToken { get; set; } = string.Empty;
+
+    /// <summary>Anonymous device fingerprint stored in app Preferences (random UUID).</summary>
+    public string? DeviceId { get; set; }
+
+    public int? LanguageId { get; set; }
+
+    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Session expires after 24 hours.</summary>
+    public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddHours(24);
+
+    /// <summary>Updated on each presence ping to detect stale sessions.</summary>
+    public DateTime? LastSeenAt { get; set; }
+
+    public bool IsActive { get; set; } = true;
+
+    // Navigation
+    public Language? Language { get; set; }
+}
+
+/// <summary>
+/// Admin-generated QR code for a tour.
+/// Supports multiuse (MaxUses = null) or single-use (MaxUses = 1) modes.
+/// </summary>
+public class TourQRCode : BaseEntity
+{
+    /// <summary>UUID v4 encoded in the QR PNG. Tourists exchange this for a session JWT.</summary>
+    public string QRToken { get; set; } = string.Empty;
+
+    /// <summary>Admin-friendly label, e.g. "Nhóm sáng 18/04".</summary>
+    public string? Label { get; set; }
+
+    /// <summary>Null = unlimited uses (multiuse). Set to 1 for single-use tickets.</summary>
+    public int? MaxUses { get; set; }
+
+    public int UseCount { get; set; } = 0;
+
+    public int? CreatedByAdminId { get; set; }
+
+    public bool IsActive { get; set; } = true;
+
+    public DateTime? ExpiresAt { get; set; }
+
+    // Navigation
+    public User? CreatedByAdmin { get; set; }
+}
+
+/// <summary>
+/// Tracks real-time GPS position and active POI for each connected tourist session.
+/// Upserted on each presence ping. Rows are ephemeral — deleted when session ends.
+/// </summary>
+public class ActivePresence
+{
+    /// <summary>FK → TouristSession.SessionToken (the primary key here too).</summary>
+    public string SessionId { get; set; } = string.Empty;
+
+    /// <summary>Currently active POI. Null when tourist is between POIs.</summary>
+    public int? PoiId { get; set; }
+
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation
+    public POI? Poi { get; set; }
+}
+
