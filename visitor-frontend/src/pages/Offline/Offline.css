@@ -1,0 +1,40 @@
+.vk-offline-toolbar {
+  margin-bottom: 1rem;
+}
+
+.vk-offline-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--vk-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.vk-offline-back:hover {
+  text-decoration: underline;
+}
+
+.vk-offline-header {
+  margin-bottom: 1.25rem;
+}
+
+.vk-offline-icon {
+  color: var(--vk-accent);
+  margin-bottom: 0.5rem;
+}
+
+.vk-offline-alert {
+  margin-bottom: 1rem;
+}
+
+.vk-offline-spin {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.vk-offline-ver {
+  font-size: 0.875rem;
+  font-weight: normal;
+}

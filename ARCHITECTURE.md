@@ -294,6 +294,8 @@ List endpoints return a `PagedResult<T>`:
 
 ## 6. Frontend Architecture
 
+There are **three** browser SPAs: **admin-frontend** (port 5173), **vendor-frontend** (port 5174), and **visitor-frontend** (port 5175). Admin and vendor share JWT auth and the management UI patterns described below. **visitor-frontend** is a separate app for tourists: no login, anonymous public API only (`/languages`, `/pois/nearby`, `/pois/{id}/public`, audio stream URLs, offline catalog), implemented in `visitor-frontend/src/api.js`.
+
 ### Stack
 
 - **React 19** with functional components + hooks

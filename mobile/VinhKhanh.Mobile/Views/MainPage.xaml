@@ -52,16 +52,19 @@
                    VerticalOptions="Center" />
 
             <!-- GPS status pill -->
-            <Frame Grid.Column="1"
-                   BackgroundColor="#0F172A"
-                   BorderColor="#334155"
-                   CornerRadius="12"
-                   Padding="10,4"
-                   VerticalOptions="Center">
+            <Border Grid.Column="1"
+                    BackgroundColor="#0F172A"
+                    Stroke="#334155"
+                    StrokeThickness="1"
+                    Padding="10,4"
+                    VerticalOptions="Center">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
                 <Label Text="{Binding StatusText}"
                        FontSize="12"
                        TextColor="#94A3B8" />
-            </Frame>
+            </Border>
         </Grid>
 
         <!-- ── POI List ───────────────────────────────────────────────────────── -->
@@ -85,6 +88,7 @@
             <!-- POI list -->
             <CollectionView
                 ItemsSource="{Binding NearbyPois}"
+                ItemsUpdatingScrollMode="KeepScrollOffset"
                 SelectionMode="Single"
                 SelectionChanged="OnPoiSelected"
                 IsVisible="{Binding IsBusy, Converter={StaticResource InvertBool}}"
@@ -109,25 +113,31 @@
                         <!--
                             Each row: icon pill + name + distance chip + category label.
                         -->
-                        <Frame Margin="12,4" Padding="14,12"
-                               BackgroundColor="#1E293B"
-                               BorderColor="#334155"
-                               CornerRadius="12">
+                        <Border Margin="12,4" Padding="14,12"
+                                BackgroundColor="#1E293B"
+                                Stroke="#334155"
+                                StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
                             <Grid ColumnDefinitions="48,*,Auto" ColumnSpacing="12">
 
                                 <!-- Category icon circle -->
-                                <Frame Grid.Column="0"
-                                       BackgroundColor="#312E81"
-                                       CornerRadius="24"
-                                       WidthRequest="44" HeightRequest="44"
-                                       Padding="0"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center">
+                                <Border Grid.Column="0"
+                                        BackgroundColor="#312E81"
+                                        StrokeThickness="0"
+                                        WidthRequest="44" HeightRequest="44"
+                                        Padding="0"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="24" />
+                                    </Border.StrokeShape>
                                     <Label Text="{Binding CategoryIcon}"
                                            FontSize="22"
                                            HorizontalOptions="Center"
                                            VerticalOptions="Center" />
-                                </Frame>
+                                </Border>
 
                                 <!-- Name + category -->
                                 <VerticalStackLayout Grid.Column="1" Spacing="2"
@@ -142,18 +152,21 @@
                                 </VerticalStackLayout>
 
                                 <!-- Distance badge -->
-                                <Frame Grid.Column="2"
-                                       BackgroundColor="#1E3A5F"
-                                       CornerRadius="8"
-                                       Padding="8,4"
-                                       VerticalOptions="Center">
+                                <Border Grid.Column="2"
+                                        BackgroundColor="#1E3A5F"
+                                        StrokeThickness="0"
+                                        Padding="8,4"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
                                     <Label Text="{Binding DistanceDisplay}"
                                            TextColor="#60A5FA"
                                            FontSize="12"
                                            FontAttributes="Bold" />
-                                </Frame>
+                                </Border>
                             </Grid>
-                        </Frame>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

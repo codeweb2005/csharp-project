@@ -67,7 +67,10 @@
                    Margin="0,4,0,8" />
 
             <!-- ── GPS & Geofence ─────────────────────────────────────────── -->
-            <Frame BackgroundColor="#1E293B" BorderColor="#334155" CornerRadius="14" Padding="16">
+            <Border BackgroundColor="#1E293B" Stroke="#334155" StrokeThickness="1" Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
 
                     <Label Text="📡  GPS &amp; Geofence" Style="{StaticResource SectionHeader}" Margin="0,0,0,4"/>
@@ -118,10 +121,13 @@
                         MaximumTrackColor="#334155" />
 
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
             <!-- ── Narration ─────────────────────────────────────────────── -->
-            <Frame BackgroundColor="#1E293B" BorderColor="#334155" CornerRadius="14" Padding="16" Margin="0,8,0,0">
+            <Border BackgroundColor="#1E293B" Stroke="#334155" StrokeThickness="1" Padding="16" Margin="0,8,0,0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
 
                     <Label Text="🎙️  Narration" Style="{StaticResource SectionHeader}" Margin="0,0,0,4"/>
@@ -161,10 +167,13 @@
                             CornerRadius="8" />
 
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
             <!-- ── Sync ──────────────────────────────────────────────────── -->
-            <Frame BackgroundColor="#1E293B" BorderColor="#334155" CornerRadius="14" Padding="16" Margin="0,8,0,0">
+            <Border BackgroundColor="#1E293B" Stroke="#334155" StrokeThickness="1" Padding="16" Margin="0,8,0,0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
                 <VerticalStackLayout Spacing="12">
 
                     <Label Text="🔄  Data Sync" Style="{StaticResource SectionHeader}" Margin="0,0,0,4"/>
@@ -192,7 +201,7 @@
                            HorizontalOptions="Center" />
 
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
             <!-- ── Reset ─────────────────────────────────────────────────── -->
             <Button Text="Reset all to defaults"

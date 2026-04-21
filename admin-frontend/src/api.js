@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5015/api/v1'
+export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://3.1.101.35:5000/api/v1'
 
 /** Auth refresh endpoint (must match backend route). */
 const AUTH_REFRESH_PATH = '/auth/refresh'
@@ -258,4 +258,5 @@ export const presence = {
   getSnapshot: () => request('/presence/snapshot'),
 }
 
-export { clearTokens, setTokens, getToken }
+export { clearTokens, getToken, setTokens }
+

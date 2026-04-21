@@ -31,12 +31,15 @@
                    FontAttributes="Italic" />
 
             <!-- T-15: Update available banner (hidden when up to date) -->
-            <Frame BackgroundColor="#451A03"
-                   BorderColor="#F59E0B"
-                   CornerRadius="10"
+            <Border BackgroundColor="#451A03"
+                   Stroke="#F59E0B"
+                   StrokeThickness="1"
                    Padding="14,10"
                    IsVisible="{Binding UpdateBannerText,
                        Converter={toolkit:IsStringNotNullOrEmptyConverter}}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
                 <Grid ColumnDefinitions="*,Auto">
                     <Label Grid.Column="0"
                            Text="{Binding UpdateBannerText}"
@@ -55,7 +58,7 @@
                             CornerRadius="8"
                             HeightRequest="36" />
                 </Grid>
-            </Frame>
+            </Border>
 
             <Button Text="Refresh catalog"
                     Command="{Binding LoadCommand}"
@@ -106,11 +109,14 @@
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="services:OfflinePackageCatalogItemDto">
-                        <Frame Margin="0,6"
+                        <Border Margin="0,6"
                                Padding="14"
                                BackgroundColor="#1E293B"
-                               BorderColor="#334155"
-                               CornerRadius="12">
+                               Stroke="#334155"
+                               StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
                                 <Label Grid.Row="0" Grid.Column="0"
                                        Text="{Binding Name}"
@@ -134,7 +140,7 @@
                                         TextColor="White"
                                         CornerRadius="8" />
                             </Grid>
-                        </Frame>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

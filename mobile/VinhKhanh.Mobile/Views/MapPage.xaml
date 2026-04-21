@@ -30,7 +30,13 @@
 
         <!-- Mapsui native map — OSM tiles, POI pins, geofence circles, user dot -->
         <Grid Grid.Row="1">
-            <mapsui:MapControl x:Name="TourMapControl" />
+            <!-- Explicit fill + min size helps first layout pass before Skia allocates (avoids crashes on some devices). -->
+            <mapsui:MapControl
+                x:Name="TourMapControl"
+                HorizontalOptions="Fill"
+                VerticalOptions="Fill"
+                MinimumHeightRequest="200"
+                MinimumWidthRequest="200" />
 
             <Label Text="{Binding ErrorMessage}"
                    TextColor="#F87171"

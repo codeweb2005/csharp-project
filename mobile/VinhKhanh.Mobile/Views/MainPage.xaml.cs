@@ -49,12 +49,13 @@ public partial class MainPage : ContentPage
     /// <summary>Navigate to PoiDetailPage when the user taps a POI row.</summary>
     private async void OnPoiSelected(object sender, SelectionChangedEventArgs e)
     {
+        if (sender is not CollectionView cv) return;
         if (e.CurrentSelection.FirstOrDefault() is not PoiLocal poi) return;
 
-        // Deselect the row immediately so the highlight clears on return
-        ((CollectionView)sender).SelectedItem = null;
-
-        // Pass the POI to PoiDetailPage via Shell navigation query parameter
+        // Defer clear + navigation so Android RecyclerView finishes layout (avoids crashes
+        // with Shell TabBar / ViewPager2 on some devices).
+        await Task.Yield();
+        await MainThread.InvokeOnMainThreadAsync(() => cv.SelectedItem = null);
         await Shell.Current.GoToAsync("poiDetail", new Dictionary<string, object>
         {
             { "poi", poi }

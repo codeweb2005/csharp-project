@@ -64,19 +64,25 @@
             <VerticalStackLayout Padding="20" Spacing="16">
 
                 <!-- ── Hero card: icon + name ─────────────────────────────── -->
-                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
-                       CornerRadius="16" Padding="20">
+                <Border BackgroundColor="#1E293B" Stroke="#334155" StrokeThickness="1"
+                        Padding="20">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
                     <VerticalStackLayout Spacing="8">
 
                         <!-- Category icon circle -->
-                        <Frame BackgroundColor="#312E81" CornerRadius="36"
+                        <Border BackgroundColor="#312E81" StrokeThickness="0"
                                WidthRequest="72" HeightRequest="72"
                                HorizontalOptions="Center" Padding="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="36" />
+                            </Border.StrokeShape>
                             <Label Text="{Binding Poi.CategoryIcon}"
                                    FontSize="36"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
-                        </Frame>
+                        </Border>
 
                         <!-- POI Name -->
                         <Label Text="{Binding Poi.Name}"
@@ -95,7 +101,7 @@
                         </HorizontalStackLayout>
 
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
                 <!-- ── Loading indicator for detail ─────────────────────── -->
                 <ActivityIndicator IsRunning="{Binding IsLoadingDetail}"
@@ -104,8 +110,11 @@
                                    HorizontalOptions="Center" />
 
                 <!-- ── Address card ───────────────────────────────────────── -->
-                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
-                       CornerRadius="12" Padding="16">
+                <Border BackgroundColor="#1E293B" Stroke="#334155" StrokeThickness="1"
+                        Padding="16">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
                     <VerticalStackLayout Spacing="8">
                         <Label Text="📍 Address" Style="{StaticResource SectionHeader}" />
                         <Label Text="{Binding Poi.Address}"
@@ -124,12 +133,15 @@
                             </Label.FormattedText>
                         </Label>
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
                 <!-- ── Description card (T-13) ────────────────────────────── -->
-                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
-                       CornerRadius="12" Padding="16"
-                       IsVisible="{Binding Description, Converter={toolkit:IsStringNotNullOrEmptyConverter}}">
+                <Border BackgroundColor="#1E293B" Stroke="#334155" StrokeThickness="1"
+                        Padding="16"
+                        IsVisible="{Binding Description, Converter={toolkit:IsStringNotNullOrEmptyConverter}}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
                     <VerticalStackLayout Spacing="8">
                         <Label Text="📝 About" Style="{StaticResource SectionHeader}" />
                         <Label Text="{Binding Description}"
@@ -137,12 +149,15 @@
                                FontSize="14"
                                LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
                 <!-- ── Highlights card (T-13) ─────────────────────────────── -->
-                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
-                       CornerRadius="12" Padding="16"
-                       IsVisible="{Binding Highlights, Converter={toolkit:IsStringNotNullOrEmptyConverter}}">
+                <Border BackgroundColor="#1E293B" Stroke="#334155" StrokeThickness="1"
+                        Padding="16"
+                        IsVisible="{Binding Highlights, Converter={toolkit:IsStringNotNullOrEmptyConverter}}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
                     <VerticalStackLayout Spacing="8">
                         <Label Text="✨ Highlights" Style="{StaticResource SectionHeader}" />
                         <Label Text="{Binding Highlights}"
@@ -150,11 +165,14 @@
                                FontSize="14"
                                LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
                 <!-- ── Play Narration card ────────────────────────────────── -->
-                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
-                       CornerRadius="12" Padding="16">
+                <Border BackgroundColor="#1E293B" Stroke="#334155" StrokeThickness="1"
+                        Padding="16">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
                     <VerticalStackLayout Spacing="12">
 
                         <Label Text="🎙️ Audio Narration"
@@ -194,12 +212,15 @@
                                FontSize="11"
                                HorizontalOptions="Center" />
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
                 <!-- ── Menu items (T-13) ─────────────────────────────────── -->
-                <Frame BackgroundColor="#1E293B" BorderColor="#334155"
-                       CornerRadius="12" Padding="16"
-                       IsVisible="{Binding HasDetail}">
+                <Border BackgroundColor="#1E293B" Stroke="#334155" StrokeThickness="1"
+                        Padding="16"
+                        IsVisible="{Binding HasDetail}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
                     <VerticalStackLayout Spacing="12">
 
                         <Label Text="🍜 Menu" Style="{StaticResource SectionHeader}" />
@@ -226,15 +247,18 @@
                                                    FontSize="14"
                                                    VerticalOptions="Center" />
                                             <!-- ★ Signature badge -->
-                                            <Frame BackgroundColor="#7C3AED"
-                                                   CornerRadius="6"
+                                            <Border BackgroundColor="#7C3AED"
+                                                   StrokeThickness="0"
                                                    Padding="5,2"
                                                    IsVisible="{Binding IsSignature}">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="6" />
+                                                </Border.StrokeShape>
                                                 <Label Text="★ Signature"
                                                        TextColor="#DDD6FE"
                                                        FontSize="10"
                                                        FontAttributes="Bold" />
-                                            </Frame>
+                                            </Border>
                                         </HorizontalStackLayout>
                                         <!-- Description -->
                                         <Label Grid.Row="1" Grid.Column="0"
@@ -256,7 +280,7 @@
                         </CollectionView>
 
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
                 <!-- Back button -->
                 <Button Text="← Back to nearby"
