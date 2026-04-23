@@ -767,6 +767,35 @@ public class PresenceController(IPresenceService presenceSvc) : BaseApiControlle
     }
 
     /// <summary>
+    /// Visitor website heartbeat (anonymous).
+    /// Keeps live monitor "online visitors" count updated for public web sessions.
+    /// </summary>
+    [HttpPost("web-visitor")]
+    [AllowAnonymous]
+    public async Task<IActionResult> UpdateWebVisitor([FromBody] WebVisitorPresenceRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.VisitorId))
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "visitorId is required"));
+
+        await presenceSvc.TrackWebVisitorHeartbeatAsync(req.VisitorId);
+        return Ok(ApiResponse<object>.Ok(new { ok = true }));
+    }
+
+    /// <summary>
+    /// Visitor website explicit exit signal (best-effort).
+    /// </summary>
+    [HttpPost("web-visitor/exit")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExitWebVisitor([FromBody] WebVisitorPresenceRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.VisitorId))
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "visitorId is required"));
+
+        await presenceSvc.TrackWebVisitorExitAsync(req.VisitorId);
+        return Ok(ApiResponse<object>.Ok(new { ok = true }));
+    }
+
+    /// <summary>
     /// Returns a snapshot of all active tourists for the admin heatmap.
     /// </summary>
     [HttpGet("snapshot")]

@@ -7,6 +7,8 @@
 
 CREATE TABLE IF NOT EXISTS TouristSessions (
     Id           INT          NOT NULL AUTO_INCREMENT,
+    CreatedAt    DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    UpdatedAt    DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP()),
     SessionToken VARCHAR(64)  NOT NULL UNIQUE,    -- UUID v4 encoded in QR code
     DeviceId     VARCHAR(128) NULL,               -- anonymous device fingerprint (UUID stored in Preferences)
     LanguageId   INT          NULL,               -- preferred language at session start
@@ -38,6 +40,7 @@ CREATE TABLE IF NOT EXISTS TourQRCodes (
     CreatedByAdminId INT      NULL,
     IsActive     TINYINT(1)   NOT NULL DEFAULT 1,
     CreatedAt    DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    UpdatedAt    DATETIME     NOT NULL DEFAULT (UTC_TIMESTAMP()),
     ExpiresAt    DATETIME     NULL,              -- NULL = never expires
 
     PRIMARY KEY (Id),

@@ -731,11 +731,16 @@ public static class DataSeeder
     /// <summary>
     /// Idempotent schema fixes: runs ALTER TABLE statements that may not be reflected
     /// in the original EnsureCreated snapshot (e.g. columns made nullable after initial creation).
+    /// Uses INFORMATION_SCHEMA checks instead of "ADD COLUMN IF NOT EXISTS" for full
+    /// MySQL connector compatibility.
     /// </summary>
     private static async Task FixSchemaAsync(AppDbContext db, ILogger logger)
     {
+        // Resolve the database name from the active connection.
+        var dbName = db.Database.GetDbConnection().Database;
+
         // Make VisitHistory.UserId nullable so anonymous (QR-only) visits can be recorded
-        // without a user account. Safe to run multiple times — ALTER is a no-op if already nullable.
+        // without a user account. MODIFY COLUMN is idempotent.
         try
         {
             await db.Database.ExecuteSqlRawAsync(
@@ -747,8 +752,17 @@ public static class DataSeeder
             // Already correct — ignore
         }
 
-        // Backfill TtsCode for languages that were seeded before this column was populated.
-        // Uses UPDATE ... WHERE TtsCode IS NULL so this is safe to run on every startup.
+        // TourQRCodes inherits BaseEntity → needs UpdatedAt.
+        await AddColumnIfMissingAsync(db, dbName, "TourQRCodes", "UpdatedAt",
+            "DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP())", logger);
+
+        // TouristSessions inherits BaseEntity → needs CreatedAt + UpdatedAt.
+        await AddColumnIfMissingAsync(db, dbName, "TouristSessions", "CreatedAt",
+            "DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP())", logger);
+        await AddColumnIfMissingAsync(db, dbName, "TouristSessions", "UpdatedAt",
+            "DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP())", logger);
+
+        // Backfill TtsCode for languages seeded before this column was populated.
         var ttsCodes = new Dictionary<string, string>
         {
             ["vi"] = "vi-VN",
@@ -762,11 +776,44 @@ public static class DataSeeder
         {
             var lang = await db.Languages.FirstOrDefaultAsync(l => l.Code == code);
             if (lang != null && string.IsNullOrEmpty(lang.TtsCode))
-            {
                 lang.TtsCode = ttsCode;
-            }
         }
         await db.SaveChangesAsync();
         logger.LogInformation("[Schema] Language TtsCodes backfilled");
+    }
+
+    /// <summary>
+    /// Adds a column to a table only if it does not already exist.
+    /// Uses raw ADO.NET ExecuteScalarAsync — avoids EF Core wrapping the query in a
+    /// subquery (which breaks trailing semicolons and scalar results).
+    /// </summary>
+    private static async Task AddColumnIfMissingAsync(
+        AppDbContext db, string dbName, string table, string column, string columnDef, ILogger logger)
+    {
+        var connection = db.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+            await connection.OpenAsync();
+
+        int count;
+        using (var cmd = connection.CreateCommand())
+        {
+            cmd.CommandText =
+                $"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
+                $"WHERE TABLE_SCHEMA = '{dbName}' " +
+                $"AND TABLE_NAME = '{table}' " +
+                $"AND COLUMN_NAME = '{column}'";
+            count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+        }
+
+        if (count == 0)
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                $"ALTER TABLE `{table}` ADD COLUMN `{column}` {columnDef}");
+            logger.LogInformation("[Schema] Added {Table}.{Column}", table, column);
+        }
+        else
+        {
+            logger.LogInformation("[Schema] {Table}.{Column} already exists — skipped", table, column);
+        }
     }
 }

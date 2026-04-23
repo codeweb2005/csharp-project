@@ -274,6 +274,17 @@ public interface IPresenceService
     Task UpdateLocationAsync(string sessionId, double lat, double lng);
 
     /// <summary>
+    /// Record anonymous visitor website heartbeat.
+    /// The visitor is considered online while heartbeats continue.
+    /// </summary>
+    Task TrackWebVisitorHeartbeatAsync(string visitorId);
+
+    /// <summary>
+    /// Mark anonymous visitor website session as ended.
+    /// </summary>
+    Task TrackWebVisitorExitAsync(string visitorId);
+
+    /// <summary>
     /// Get a snapshot of all currently active tourists (for admin heatmap).
     /// Returns position + active POI for every non-expired ActivePresence row.
     /// </summary>

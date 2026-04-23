@@ -90,4 +90,24 @@ export const api = {
 
   /** @returns {Promise<import('./types').OfflinePackageCatalogItemDto[]>} */
   getOfflineCatalog: () => request('/offlinepackages/catalog'),
+
+  /**
+   * Keep anonymous website visitor online in live monitor.
+   * @param {string} visitorId
+   */
+  presenceHeartbeat: (visitorId) =>
+    request('/presence/web-visitor', {
+      method: 'POST',
+      body: JSON.stringify({ visitorId }),
+    }),
+
+  /**
+   * Explicitly mark website visitor as offline (best-effort).
+   * @param {string} visitorId
+   */
+  presenceExit: (visitorId) =>
+    request('/presence/web-visitor/exit', {
+      method: 'POST',
+      body: JSON.stringify({ visitorId }),
+    }),
 }

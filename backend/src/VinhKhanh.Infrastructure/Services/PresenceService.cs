@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +29,9 @@ public class PresenceService(
     IHubContext<TourMonitorHub> hub,
     ILogger<PresenceService> logger) : IPresenceService
 {
+    private static readonly ConcurrentDictionary<string, DateTime> WebVisitorLastSeen = new();
+    private static readonly TimeSpan WebVisitorStaleThreshold = TimeSpan.FromMinutes(2);
+
     /// <inheritdoc/>
     public async Task TrackEnterAsync(string sessionId, int poiId, double? lat, double? lng)
     {
@@ -105,6 +109,24 @@ public class PresenceService(
     }
 
     /// <inheritdoc/>
+    public async Task TrackWebVisitorHeartbeatAsync(string visitorId)
+    {
+        if (string.IsNullOrWhiteSpace(visitorId)) return;
+
+        WebVisitorLastSeen[visitorId.Trim()] = DateTime.UtcNow;
+        await BroadcastWebVisitorCountAsync();
+    }
+
+    /// <inheritdoc/>
+    public async Task TrackWebVisitorExitAsync(string visitorId)
+    {
+        if (string.IsNullOrWhiteSpace(visitorId)) return;
+
+        WebVisitorLastSeen.TryRemove(visitorId.Trim(), out _);
+        await BroadcastWebVisitorCountAsync();
+    }
+
+    /// <inheritdoc/>
     public async Task<ApiResponse<PresenceSnapshot>> GetSnapshotAsync()
     {
         var staleThreshold = DateTime.UtcNow.AddMinutes(-15);
@@ -145,9 +167,14 @@ public class PresenceService(
             .OrderByDescending(p => p.Count)
             .ToList();
 
+        var webVisitors = CountActiveWebVisitors();
+        var activeTourists = rows.Count;
+
         return ApiResponse<PresenceSnapshot>.Ok(new PresenceSnapshot
         {
-            ActiveTourists = rows.Count,
+            ActiveTourists = activeTourists,
+            WebVisitors = webVisitors,
+            TotalOnlineVisitors = activeTourists + webVisitors,
             PerPOI         = perPoi,
             Positions      = positions,
             SnapshotAt     = DateTime.UtcNow
@@ -162,11 +189,17 @@ public class PresenceService(
             .Where(p => p.UpdatedAt < cutoff)
             .ToListAsync();
 
-        if (stale.Count == 0) return;
+        if (stale.Count == 0)
+        {
+            PurgeStaleWebVisitors();
+            return;
+        }
 
         db.ActivePresence.RemoveRange(stale);
         await db.SaveChangesAsync();
         logger.LogInformation("[Presence] Purged {N} stale presence rows (older than {T})", stale.Count, staleThreshold);
+
+        PurgeStaleWebVisitors();
     }
 
     // ── Private ──────────────────────────────────────────────────────────────
@@ -194,6 +227,32 @@ public class PresenceService(
         }
 
         await db.SaveChangesAsync();
+    }
+
+    private int CountActiveWebVisitors()
+    {
+        PurgeStaleWebVisitors();
+        return WebVisitorLastSeen.Count;
+    }
+
+    private static void PurgeStaleWebVisitors()
+    {
+        var cutoff = DateTime.UtcNow - WebVisitorStaleThreshold;
+        foreach (var entry in WebVisitorLastSeen)
+        {
+            if (entry.Value < cutoff)
+                WebVisitorLastSeen.TryRemove(entry.Key, out _);
+        }
+    }
+
+    private async Task BroadcastWebVisitorCountAsync()
+    {
+        var webVisitors = CountActiveWebVisitors();
+        await hub.Clients.Group("Admins").SendAsync("WebVisitorPresenceUpdated", new
+        {
+            webVisitors,
+            timestamp = DateTime.UtcNow
+        });
     }
 }
 

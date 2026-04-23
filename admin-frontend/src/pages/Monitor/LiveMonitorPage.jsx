@@ -186,11 +186,20 @@ export default function LiveMonitorPage() {
   const handleEnter = useCallback(msg => { setConnected(true); pushEvent({ ...msg, eventType: 'enter' }); }, [pushEvent]);
   const handleExit  = useCallback(msg => pushEvent({ ...msg, eventType: 'exit' }),  [pushEvent]);
   const handleMove  = useCallback(msg => pushEvent({ ...msg, eventType: 'move' }),  [pushEvent]);
+  const handleWebVisitorUpdate = useCallback(() => {
+    setConnected(true);
+    fetchSnapshot();
+  }, [fetchSnapshot]);
 
-  useMonitorHub({ onEnter: handleEnter, onExit: handleExit, onMove: handleMove });
+  useMonitorHub({
+    onEnter: handleEnter,
+    onExit: handleExit,
+    onMove: handleMove,
+    onWebVisitorUpdate: handleWebVisitorUpdate,
+  });
 
   // ── Derived values ─────────────────────────────────────────────────────────
-  const activeTourists = snapshot?.activeTourists ?? 0;
+  const activeTourists = snapshot?.totalOnlineVisitors ?? snapshot?.activeTourists ?? 0;
   const perPOI         = snapshot?.perPOI ?? [];
   const positions      = snapshot?.positions ?? [];
   const touristsAtPOI  = positions.filter(p => p.poiId).length;

@@ -1,19 +1,22 @@
 import { useEffect, useRef, useCallback } from 'react';
 import * as signalR from '@microsoft/signalr';
+import { API_BASE } from '../api';
 
-const HUB_URL = `${import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') ?? ''}/hubs/monitor`;
+const API_ORIGIN = API_BASE.replace(/\/api\/v1\/?$/, '');
+const HUB_URL = `${API_ORIGIN}/hubs/monitor`;
 
 /**
  * Connects to the TourMonitorHub SignalR hub and returns event handlers.
  *
  * @param {object} handlers
- * @param {function} handlers.onEnter   - Called when a tourist enters a POI
- * @param {function} handlers.onExit    - Called when a tourist exits a POI
- * @param {function} handlers.onMove    - Called on GPS location update
+ * @param {function} handlers.onEnter             - Called when a tourist enters a POI
+ * @param {function} handlers.onExit              - Called when a tourist exits a POI
+ * @param {function} handlers.onMove              - Called on GPS location update
+ * @param {function} handlers.onWebVisitorUpdate  - Called when web visitor count changes
  * @param {object}   options
  * @param {boolean}  options.enabled    - Whether to establish the connection (default true)
  */
-export function useMonitorHub({ onEnter, onExit, onMove } = {}, { enabled = true } = {}) {
+export function useMonitorHub({ onEnter, onExit, onMove, onWebVisitorUpdate } = {}, { enabled = true } = {}) {
   const connRef = useRef(null);
 
   const connect = useCallback(async () => {
@@ -35,6 +38,7 @@ export function useMonitorHub({ onEnter, onExit, onMove } = {}, { enabled = true
     connection.on('TouristEnteredPOI',     msg => onEnter?.(msg));
     connection.on('TouristExitedPOI',      msg => onExit?.(msg));
     connection.on('TouristLocationUpdate', msg => onMove?.(msg));
+    connection.on('WebVisitorPresenceUpdated', msg => onWebVisitorUpdate?.(msg));
 
     connection.onreconnecting(() =>
       console.info('[MonitorHub] Reconnecting…'));
@@ -53,7 +57,7 @@ export function useMonitorHub({ onEnter, onExit, onMove } = {}, { enabled = true
     } catch (err) {
       console.error('[MonitorHub] Failed to connect:', err);
     }
-  }, [onEnter, onExit, onMove]);
+  }, [onEnter, onExit, onMove, onWebVisitorUpdate]);
 
   useEffect(() => {
     if (!enabled) return;
