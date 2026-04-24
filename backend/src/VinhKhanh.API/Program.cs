@@ -177,6 +177,9 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ── Health checks (Docker / load balancer probe) ────────────────────────────
+builder.Services.AddHealthChecks();
+
 // ============ App Pipeline ============
 var app = builder.Build();
 
@@ -205,6 +208,9 @@ app.UseMiddleware<MaintenanceMiddleware>();
 app.UseStaticFiles();
 
 app.MapControllers();
+
+// Health-check endpoint — used by Docker HEALTHCHECK and AWS ALB target groups
+app.MapHealthChecks("/health");
 
 // SignalR hub — admin live tour monitor
 app.MapHub<TourMonitorHub>("/hubs/monitor");

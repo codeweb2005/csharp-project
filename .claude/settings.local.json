@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(find c:/Project_dev/csharp/admin-frontend/src -type f -name *POI* -o -name *poi*)",
-      "Bash(find /c/Project_dev/csharp/admin-frontend -type f -name *.tsx -o -name *.ts)"
-    ]
-  }
-}

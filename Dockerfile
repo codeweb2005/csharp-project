@@ -16,10 +16,12 @@ RUN dotnet restore backend/VinhKhanhFoodTour.slnx
 COPY backend/src ./backend/src
 
 # Publish in Release mode → /app/publish
+# Note: --no-restore is intentionally omitted.
+# AWSSDK.S3 and similar packages need a full resolve pass even after dotnet restore
+# because the SDK re-checks package paths during publish on Linux (NETSDK1064).
 RUN dotnet publish backend/src/VinhKhanh.API/VinhKhanh.API.csproj \
     -c Release \
     -o /app/publish \
-    --no-restore \
     /p:UseAppHost=false
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
@@ -35,9 +37,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && \
 # Copy published output from build stage
 COPY --from=build /app/publish .
 
-# Health-check: hit the Swagger JSON endpoint (available in both dev and prod)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD curl -f http://localhost:8080/swagger/v1/swagger.json || exit 1
+# Health-check: /health endpoint (Swagger is disabled in Production)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Configuration via environment variables (injected by ECS task definition)
 # Sensitive values are read from AWS Secrets Manager at startup via aspnetcore config

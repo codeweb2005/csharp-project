@@ -9,18 +9,27 @@ services:
     restart: unless-stopped
     ports:
       - "${API_PORT:-8080}:8080"
-    # Do not bind-mount appsettings.json: if the host file is missing, Docker creates a directory and breaks config.
-    # appsettings.json is gitignored; on a fresh clone use .env (see .env.example) or bake config at build time.
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
       DOTNET_RUNNING_IN_CONTAINER: "true"
-      ConnectionStrings__DefaultConnection: ${CONNECTION_STRING:-}
-      Jwt__Key: ${JWT_KEY:-}
+      # CORS thêm origin nếu deploy production
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+    volumes:
+      # Mount appsettings.json từ host vào container (file bị gitignore nên không COPY trong Dockerfile)
+      - ./backend/src/VinhKhanh.API/appsettings.json:/app/appsettings.json:ro
+      # Thư mục upload tĩnh — persist giữa các lần restart
+      - backend_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 25s
+      retries: 3
     networks:
       - vinhkhanh
 
-  # ── Admin Frontend (port 5173) ───────────────────────────────────────────────
+  # ── Admin Frontend — port 5173 ───────────────────────────────────────────────
   admin-frontend:
     image: node:22-alpine
     container_name: vinhkhanh-admin
@@ -32,14 +41,21 @@ services:
       - ./admin-frontend:/app
       - admin_node_modules:/app/node_modules
     environment:
+      # URL mà BROWSER dùng để gọi API → phải là host-reachable
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api/v1}
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+      # SignalR hub cũng phải host-reachable
+      VITE_HUB_URL: ${VITE_HUB_URL:-http://localhost:8080/hubs}
+    # --host 0.0.0.0 bắt buộc để container expose ra ngoài
+    command: >
+      sh -c "npm install --prefer-offline &&
+             npm run dev -- --host 0.0.0.0 --port 5173"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - vinhkhanh
 
-  # ── Vendor Frontend (port 5174) ──────────────────────────────────────────────
+  # ── Vendor Frontend — port 5174 ──────────────────────────────────────────────
   vendor-frontend:
     image: node:22-alpine
     container_name: vinhkhanh-vendor
@@ -52,13 +68,16 @@ services:
       - vendor_node_modules:/app/node_modules
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api/v1}
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5174"
+    command: >
+      sh -c "npm install --prefer-offline &&
+             npm run dev -- --host 0.0.0.0 --port 5174"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - vinhkhanh
 
-  # ── Visitor Frontend — public site (port 5175) ───────────────────────────────
+  # ── Visitor Frontend — public site, port 5175 ─────────────────────────────────
   visitor-frontend:
     image: node:22-alpine
     container_name: vinhkhanh-visitor
@@ -70,18 +89,27 @@ services:
       - ./visitor-frontend:/app
       - visitor_node_modules:/app/node_modules
     environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api/v1}
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5175"
+      # Proxy nội bộ: Vite dev-server forward /api/v1/* → backend container
+      VITE_DEV_API_PROXY_TARGET: http://backend:8080
+      # Base path nếu deploy dưới sub-path
+      VITE_BASE_PATH: ${VISITOR_BASE_PATH:-/}
+    command: >
+      sh -c "npm install --prefer-offline &&
+             npm run dev -- --host 0.0.0.0 --port 5175"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - vinhkhanh
 
+# ── Named volumes ─────────────────────────────────────────────────────────────
 volumes:
+  backend_uploads:
   admin_node_modules:
   vendor_node_modules:
   visitor_node_modules:
 
+# ── Network ───────────────────────────────────────────────────────────────────
 networks:
   vinhkhanh:
     driver: bridge
