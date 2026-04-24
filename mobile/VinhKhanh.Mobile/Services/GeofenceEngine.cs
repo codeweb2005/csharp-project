@@ -79,9 +79,11 @@ public class GeofenceEngine
 
     /// <summary>
     /// POIs waiting to trigger after the currently-active one exits.
-    /// Sorted: Priority DESC, Distance ASC. Populated during overlap resolution.
+    /// Always dequeues the entry with highest Priority first, then shortest Distance.
+    /// Uses PriorityQueue with a composite key (negated priority, distance) so that
+    /// high-priority / close POIs always win regardless of enqueue order.
     /// </summary>
-    private readonly Queue<PendingPoiEntry> _pendingQueue = new();
+    private readonly PriorityQueue<PendingPoiEntry, (int NegPriority, double Distance)> _pendingQueue = new();
 
     // ── Events ────────────────────────────────────────────────────────────────
     /// <summary>Fired when the user has dwelt inside a POI's geofence long enough.</summary>
@@ -158,12 +160,7 @@ public class GeofenceEngine
         _activePoi = null;
         SetCooldown(poiId);
 
-        if (_pendingQueue.TryDequeue(out var next) && _pois.FirstOrDefault(p => p.Id == next.PoiId) is { } poi)
-        {
-            _activePoi = poi;
-            GeofenceEntered?.Invoke(this, poi);
-            System.Diagnostics.Debug.WriteLine($"[GeofenceEngine] Dequeued pending POI: {poi.Name}");
-        }
+        DequeueNextPending();
     }
 
     // ── Private ───────────────────────────────────────────────────────────────
@@ -254,16 +251,23 @@ public class GeofenceEngine
                 GeofenceEntered?.Invoke(this, winner);
                 System.Diagnostics.Debug.WriteLine($"[GeofenceEngine] Entered (immediate): {winner.Name}");
 
-                // Queue the rest
+                // Queue the rest — PriorityQueue key: (negPriority, distance) → min-heap gives highest priority first
                 for (int i = 1; i < sorted.Count; i++)
-                    _pendingQueue.Enqueue(new PendingPoiEntry(sorted[i].poi.Id, sorted[i].poi.Priority, sorted[i].dist));
+                {
+                    var e = sorted[i];
+                    _pendingQueue.Enqueue(
+                        new PendingPoiEntry(e.poi.Id, e.poi.Priority, e.dist),
+                        (-e.poi.Priority, e.dist));
+                }
             }
             else
             {
-                // Another POI is active — queue all new entries
+                // Another POI is active — queue all new entries with priority ordering
                 foreach (var (poi, dist2) in sorted)
                 {
-                    _pendingQueue.Enqueue(new PendingPoiEntry(poi.Id, poi.Priority, dist2));
+                    _pendingQueue.Enqueue(
+                        new PendingPoiEntry(poi.Id, poi.Priority, dist2),
+                        (-poi.Priority, dist2));
                     System.Diagnostics.Debug.WriteLine($"[GeofenceEngine] Queued (overlap): {poi.Name} (pending count={_pendingQueue.Count})");
                 }
             }
@@ -272,7 +276,7 @@ public class GeofenceEngine
 
     private void DequeueNextPending()
     {
-        while (_pendingQueue.TryDequeue(out var next))
+        while (_pendingQueue.TryDequeue(out var next, out _))
         {
             var poi = _pois.FirstOrDefault(p => p.Id == next.PoiId);
             if (poi == null) continue;
@@ -293,11 +297,11 @@ public class GeofenceEngine
 
     private void RemoveFromPending(int poiId)
     {
-        // Queue doesn't support removal — rebuild without that POI
-        var items = _pendingQueue.ToArray();
+        // PriorityQueue doesn't support removal — rebuild without that POI
+        var items = _pendingQueue.UnorderedItems.ToArray();
         _pendingQueue.Clear();
-        foreach (var item in items.Where(i => i.PoiId != poiId))
-            _pendingQueue.Enqueue(item);
+        foreach (var (entry, key) in items.Where(x => x.Element.PoiId != poiId))
+            _pendingQueue.Enqueue(entry, key);
     }
 
     /// <summary>
