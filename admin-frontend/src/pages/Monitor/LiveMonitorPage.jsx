@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useMonitorHub } from '../../hooks/useMonitorHub';
 import { presence } from '../../api';
-import { Users, MapPin, Store, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Users, MapPin, Store, Wifi, WifiOff, RefreshCw, Activity, QrCode } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const VINH_KHANH_CENTER  = [10.7538, 106.6932];
@@ -45,10 +45,10 @@ function StatCard({ icon: Icon, value, label, color, bg }) {
 }
 
 // ─── POI Presence List ────────────────────────────────────────────────────────
-function PoiPresenceList({ perPOI }) {
+function PoiPresenceList({ perPOI, isHistorical }) {
   if (!perPOI?.length) return (
     <div style={{ color: '#CCC', fontSize: 13, padding: '12px 0', textAlign: 'center' }}>
-      Chưa có du khách tại POI nào.
+      {isHistorical ? 'Chưa có lượt thăm nào hôm nay.' : 'Chưa có du khách tại POI nào.'}
     </div>
   );
   return (
@@ -151,45 +151,51 @@ function TouristMarkers({ positions }) {
 /**
  * Live Tour Monitor
  * - SignalR WebSocket: onEnter / onExit / onMove events
- * - REST fallback: snapshot polling every 10s
+ * - REST /presence/stats   : aggregated stats (sessions, visits, QR)
+ * - REST /presence/snapshot: realtime positions for heatmap
  * - Leaflet map: CircleMarker per tourist position
- * - Stats: total tourists, at-POI count, active POIs
  */
 export default function LiveMonitorPage() {
-  const [snapshot,   setSnapshot]   = useState(null);
+  const [stats,      setStats]      = useState(null);   // PresenceDashboardStats
+  const [snapshot,   setSnapshot]   = useState(null);   // PresenceSnapshot (heatmap)
   const [events,     setEvents]     = useState([]);
   const [connected,  setConnected]  = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
 
-  // ── REST snapshot ──────────────────────────────────────────────────────────
-  const fetchSnapshot = useCallback(async () => {
+  // ── REST fetch ──────────────────────────────────────────────────────────────
+  const fetchAll = useCallback(async () => {
     try {
-      const res = await presence.getSnapshot();
-      if (res?.success) { setSnapshot(res.data); setLastUpdate(new Date()); }
+      const [statsRes, snapRes] = await Promise.all([
+        presence.getStats(),
+        presence.getSnapshot(),
+      ]);
+      if (statsRes?.success) setStats(statsRes.data);
+      if (snapRes?.success)  setSnapshot(snapRes.data);
+      setLastUpdate(new Date());
     } catch (err) {
-      console.error('[Monitor] Snapshot error:', err);
+      console.error('[Monitor] Fetch error:', err);
     }
   }, []);
 
   useEffect(() => {
-    fetchSnapshot();
-    const timer = setInterval(fetchSnapshot, SNAPSHOT_INTERVAL_MS);
+    fetchAll();
+    const timer = setInterval(fetchAll, SNAPSHOT_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [fetchSnapshot]);
+  }, [fetchAll]);
 
   // ── SignalR ────────────────────────────────────────────────────────────────
   const pushEvent = useCallback((ev) => {
     setEvents(prev => [...prev.slice(-49), ev]);
-    fetchSnapshot();
-  }, [fetchSnapshot]);
+    fetchAll();
+  }, [fetchAll]);
 
   const handleEnter = useCallback(msg => { setConnected(true); pushEvent({ ...msg, eventType: 'enter' }); }, [pushEvent]);
   const handleExit  = useCallback(msg => pushEvent({ ...msg, eventType: 'exit' }),  [pushEvent]);
   const handleMove  = useCallback(msg => pushEvent({ ...msg, eventType: 'move' }),  [pushEvent]);
   const handleWebVisitorUpdate = useCallback(() => {
     setConnected(true);
-    fetchSnapshot();
-  }, [fetchSnapshot]);
+    fetchAll();
+  }, [fetchAll]);
 
   useMonitorHub({
     onEnter: handleEnter,
@@ -199,10 +205,31 @@ export default function LiveMonitorPage() {
   });
 
   // ── Derived values ─────────────────────────────────────────────────────────
-  const activeTourists = snapshot?.totalOnlineVisitors ?? snapshot?.activeTourists ?? 0;
-  const perPOI         = snapshot?.perPOI ?? [];
-  const positions      = snapshot?.positions ?? [];
-  const touristsAtPOI  = positions.filter(p => p.poiId).length;
+  // "Du khách online" = web visitors đang browse visitor site (heartbeat 30s, stale 2min)
+  const onlineTourists = stats?.webVisitors ?? 0;
+
+  // Realtime cards — fallback to historical data when no mobile app tourists active
+  // "Đang tại điểm": realtime tourists inside geofence, fallback → unique visitors today
+  const touristsAtPOI  = (stats?.touristsAtPOI > 0)
+    ? stats.touristsAtPOI
+    : (stats?.uniqueVisitorsToday ?? 0);
+
+  // "POI có người": distinct POIs with tourist now, fallback → distinct POIs visited today
+  const activePOIs     = (stats?.activePOIs > 0)
+    ? stats.activePOIs
+    : (stats?.visitedPOIsToday ?? 0);
+
+  const visitsToday    = stats?.totalVisitsToday      ?? 0;
+  const activeQRCodes  = stats?.activeQRCodes         ?? 0;
+  const sessions24h    = stats?.activeSessionsLast24h ?? 0;
+
+  // Heatmap uses /presence/snapshot (realtime positions)
+  // Sidebar list: realtime perPOI if available, fallback → today's visit counts from VisitHistory
+  const hasRealtimePOI = (stats?.perPOI?.length ?? 0) > 0;
+  const perPOI    = hasRealtimePOI
+    ? stats.perPOI
+    : (stats?.perPOIToday ?? snapshot?.perPOI ?? []);
+  const positions = snapshot?.positions ?? [];
 
   const cardStyle = {
     background: '#FFFFFF',
@@ -265,10 +292,13 @@ export default function LiveMonitorPage() {
       </div>
 
       {/* ── Stat Cards ── */}
-      <div style={{ display: 'flex', gap: 12 }}>
-        <StatCard icon={Users}  value={activeTourists} label="Du khách online" color="#C92127" bg="rgba(201,33,39,0.08)"/>
-        <StatCard icon={MapPin} value={touristsAtPOI}  label="Đang tại điểm"  color="#E05B1A" bg="rgba(224,91,26,0.08)"/>
-        <StatCard icon={Store}  value={perPOI.length}  label="POI có người"   color="#2563EB" bg="rgba(37,99,235,0.08)"/>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <StatCard icon={Users}    value={onlineTourists} label="Du khách online"   color="#C92127" bg="rgba(201,33,39,0.08)"/>
+        <StatCard icon={MapPin}   value={touristsAtPOI}  label={stats?.touristsAtPOI > 0 ? "Đang tại điểm" : "Khách thăm hôm nay"}  color="#E05B1A" bg="rgba(224,91,26,0.08)"/>
+        <StatCard icon={Store}    value={activePOIs}     label={stats?.activePOIs > 0    ? "POI có người"   : "POI được thăm HN"}   color="#2563EB" bg="rgba(37,99,235,0.08)"/>
+        <StatCard icon={Activity} value={visitsToday}    label="Lượt thăm hôm nay" color="#16a34a" bg="rgba(22,163,74,0.08)"/>
+        <StatCard icon={QrCode}   value={activeQRCodes}  label="Mã QR đang dùng"  color="#7c3aed" bg="rgba(124,58,237,0.08)"/>
+        <StatCard icon={Users}    value={sessions24h}    label="Session 24h qua"   color="#0891b2" bg="rgba(8,145,178,0.08)"/>
       </div>
 
       {/* ── Map + Sidebar ── */}
@@ -304,9 +334,10 @@ export default function LiveMonitorPage() {
               textTransform: 'uppercase', letterSpacing: '0.06em',
               marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6,
             }}>
-              <Store size={13} color="#C92127"/> Du khách theo POI
+              <Store size={13} color="#C92127"/>
+              {hasRealtimePOI ? 'Du khách theo POI' : 'Lượt thăm theo POI hôm nay'}
             </div>
-            <PoiPresenceList perPOI={perPOI}/>
+            <PoiPresenceList perPOI={perPOI} isHistorical={!hasRealtimePOI}/>
           </div>
 
           {/* Event Log */}

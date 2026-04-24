@@ -290,7 +290,17 @@ public interface IPresenceService
     /// </summary>
     Task<ApiResponse<PresenceSnapshot>> GetSnapshotAsync();
 
+    /// <summary>
+    /// Get aggregated monitor dashboard stats:
+    ///   - ActiveSessions  : TouristSessions active in last 24h
+    ///   - TouristsAtPOI   : ActivePresence rows with a PoiId (realtime)
+    ///   - ActivePOIs      : POIs that have at least one active tourist (realtime)
+    ///   - TotalVisitsToday: VisitHistory count for today (UTC)
+    ///   - TotalQRCodes    : active TourQRCodes
+    ///   - WebVisitors     : anonymous web heartbeat count
+    /// </summary>
+    Task<ApiResponse<PresenceDashboardStats>> GetDashboardStatsAsync();
+
     /// <summary>Remove stale presence rows for sessions older than the threshold.</summary>
     Task PurgeStaleAsync(TimeSpan staleThreshold);
 }
-

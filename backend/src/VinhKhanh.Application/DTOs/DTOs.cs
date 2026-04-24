@@ -748,3 +748,56 @@ public class VisitBatchMessage
     public DateTime ReceivedAt { get; set; } = DateTime.UtcNow;
 }
 
+// ============ Presence Dashboard Stats ============
+
+/// <summary>
+/// Aggregated stats for the Live Monitor dashboard.
+/// Combines realtime ActivePresence data with historical TouristSession + VisitHistory counts.
+/// GET /api/v1/presence/stats — Admin only.
+/// </summary>
+public class PresenceDashboardStats
+{
+    /// <summary>Tourist sessions active in the last 24 hours (IsActive = true).</summary>
+    public int ActiveSessionsLast24h { get; set; }
+
+    /// <summary>Tourist sessions active right now (LastSeenAt within 15 min or IsActive = true + ExpiresAt future).</summary>
+    public int ActiveSessionsNow { get; set; }
+
+    /// <summary>Tourists currently inside a POI geofence (ActivePresence.PoiId IS NOT NULL).</summary>
+    public int TouristsAtPOI { get; set; }
+
+    /// <summary>Number of distinct POIs that currently have at least one tourist.</summary>
+    public int ActivePOIs { get; set; }
+
+    /// <summary>Total visit records created today (UTC midnight to now).</summary>
+    public int TotalVisitsToday { get; set; }
+
+    /// <summary>Total visit records this week (Mon–Sun UTC).</summary>
+    public int TotalVisitsThisWeek { get; set; }
+
+    /// <summary>Number of active (non-expired, IsActive) TourQRCodes.</summary>
+    public int ActiveQRCodes { get; set; }
+
+    /// <summary>Anonymous web heartbeat visitor count (in-memory, approx 2 min window).</summary>
+    public int WebVisitors { get; set; }
+
+    /// <summary>Total online = ActiveSessionsNow + WebVisitors.</summary>
+    public int TotalOnline { get; set; }
+
+    /// <summary>Per-POI tourist breakdown (realtime from ActivePresence).</summary>
+    public List<PoiPresenceCount> PerPOI { get; set; } = [];
+
+    /// <summary>Number of distinct POIs visited today (from VisitHistory — historical fallback).</summary>
+    public int VisitedPOIsToday { get; set; }
+
+    /// <summary>Number of distinct sessions/users who visited any POI today.</summary>
+    public int UniqueVisitorsToday { get; set; }
+
+    /// <summary>
+    /// Per-POI visit counts for today (from VisitHistory).
+    /// Used as fallback for sidebar list when PerPOI (realtime) is empty.
+    /// </summary>
+    public List<PoiPresenceCount> PerPOIToday { get; set; } = [];
+
+    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+}

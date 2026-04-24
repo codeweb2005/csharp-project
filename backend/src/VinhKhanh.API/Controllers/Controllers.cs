@@ -802,5 +802,15 @@ public class PresenceController(IPresenceService presenceSvc) : BaseApiControlle
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetSnapshot()
         => ApiResult(await presenceSvc.GetSnapshotAsync());
+
+    /// <summary>
+    /// Returns aggregated monitor stats: active sessions (24h + now), tourists at POI,
+    /// active POIs, visits today/this week, active QR codes, web visitors.
+    /// Combines realtime ActivePresence with historical TouristSession + VisitHistory data.
+    /// </summary>
+    [HttpGet("stats")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetStats()
+        => ApiResult(await presenceSvc.GetDashboardStatsAsync());
 }
 

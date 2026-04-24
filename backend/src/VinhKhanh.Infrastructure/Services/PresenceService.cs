@@ -182,6 +182,125 @@ public class PresenceService(
     }
 
     /// <inheritdoc/>
+    public async Task<ApiResponse<PresenceDashboardStats>> GetDashboardStatsAsync()
+    {
+        var now         = DateTime.UtcNow;
+        var stale15     = now.AddMinutes(-15);
+        var todayStart  = now.Date;                                      // UTC midnight
+        var weekStart   = todayStart.AddDays(-(int)now.DayOfWeek);      // Mon of this week
+        var yesterday   = now.AddHours(-24);
+
+        // ── Realtime: ActivePresence ──────────────────────────────────────────
+        var presenceRows = await db.ActivePresence
+            .Where(p => p.UpdatedAt >= stale15)
+            .ToListAsync();
+
+        var touristsAtPOI = presenceRows.Count(p => p.PoiId.HasValue);
+        var activePOIs    = presenceRows.Where(p => p.PoiId.HasValue)
+                                        .Select(p => p.PoiId!.Value)
+                                        .Distinct().Count();
+
+        var perPoi = presenceRows
+            .Where(p => p.PoiId.HasValue)
+            .GroupBy(p => p.PoiId!.Value)
+            .Select(g => new PoiPresenceCount { PoiId = g.Key, Count = g.Count() })
+            .ToList();
+
+        // Load POI names for the per-POI list
+        if (perPoi.Count > 0)
+        {
+            var poiIds = perPoi.Select(p => p.PoiId).ToList();
+            var names  = await db.POIs
+                .Where(p => poiIds.Contains(p.Id))
+                .Select(p => new { p.Id, Name = p.Translations.OrderBy(t => t.LanguageId).Select(t => t.Name).FirstOrDefault() })
+                .ToListAsync();
+            foreach (var item in perPoi)
+                item.PoiName = names.FirstOrDefault(n => n.Id == item.PoiId)?.Name ?? $"POI #{item.PoiId}";
+        }
+
+        // ── TouristSessions ───────────────────────────────────────────────────
+        var activeLast24h = await db.TouristSessions
+            .CountAsync(s => s.IsActive && s.StartedAt >= yesterday);
+
+        var activeNow = presenceRows.Count;  // any presence row = "now" tourist
+
+        // ── VisitHistory (historical fallbacks) ───────────────────────────────
+        var visitsToday    = await db.VisitHistory.CountAsync(v => v.VisitedAt >= todayStart);
+        var visitsThisWeek = await db.VisitHistory.CountAsync(v => v.VisitedAt >= weekStart);
+
+        // Distinct POIs visited today
+        var visitedPOIsToday = await db.VisitHistory
+            .Where(v => v.VisitedAt >= todayStart)
+            .Select(v => v.POIId)
+            .Distinct()
+            .CountAsync();
+
+        // Distinct visitors today (userId when logged in, else sessionId)
+        var uniqueVisitorsToday = await db.VisitHistory
+            .Where(v => v.VisitedAt >= todayStart && v.UserId != null)
+            .Select(v => v.UserId)
+            .Distinct()
+            .CountAsync();
+
+        // Per-POI visit counts today (for sidebar fallback)
+        var perPoiTodayRaw = await db.VisitHistory
+            .Where(v => v.VisitedAt >= todayStart)
+            .GroupBy(v => v.POIId)
+            .Select(g => new { PoiId = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .Take(20)
+            .ToListAsync();
+
+        List<PoiPresenceCount> perPoiToday = [];
+        if (perPoiTodayRaw.Count > 0)
+        {
+            var poiTodayIds = perPoiTodayRaw.Select(x => x.PoiId).ToList();
+            var poiTodayNames = await db.POIs
+                .Where(p => poiTodayIds.Contains(p.Id))
+                .Select(p => new
+                {
+                    p.Id,
+                    Name = p.Translations.OrderBy(t => t.LanguageId).Select(t => t.Name).FirstOrDefault()
+                })
+                .ToListAsync();
+
+            perPoiToday = perPoiTodayRaw.Select(x => new PoiPresenceCount
+            {
+                PoiId   = x.PoiId,
+                PoiName = poiTodayNames.FirstOrDefault(n => n.Id == x.PoiId)?.Name ?? $"POI #{x.PoiId}",
+                Count   = x.Count,
+            }).ToList();
+        }
+
+        // ── TourQRCodes ───────────────────────────────────────────────────────
+        var activeQRCodes = await db.TourQRCodes
+            .CountAsync(q => q.IsActive && (q.ExpiresAt == null || q.ExpiresAt > now));
+
+        // ── Web Visitors (in-memory) ──────────────────────────────────────────
+        var webVisitors = CountActiveWebVisitors();
+
+        var stats = new PresenceDashboardStats
+        {
+            ActiveSessionsLast24h = activeLast24h,
+            ActiveSessionsNow     = activeNow,
+            TouristsAtPOI         = touristsAtPOI,
+            ActivePOIs            = activePOIs,
+            TotalVisitsToday      = visitsToday,
+            TotalVisitsThisWeek   = visitsThisWeek,
+            ActiveQRCodes         = activeQRCodes,
+            WebVisitors           = webVisitors,
+            TotalOnline           = activeNow + webVisitors,
+            PerPOI                = perPoi,
+            PerPOIToday           = perPoiToday,
+            VisitedPOIsToday      = visitedPOIsToday,
+            UniqueVisitorsToday   = uniqueVisitorsToday,
+            GeneratedAt           = now,
+        };
+
+        return ApiResponse<PresenceDashboardStats>.Ok(stats);
+    }
+
+    /// <inheritdoc/>
     public async Task PurgeStaleAsync(TimeSpan staleThreshold)
     {
         var cutoff = DateTime.UtcNow - staleThreshold;
