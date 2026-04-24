@@ -24,6 +24,7 @@ import Audio from './pages/Audio/Audio'
 import Analytics from './pages/Analytics/Analytics'
 import Offline from './pages/Offline/Offline'
 import LiveMonitorPage from './pages/Monitor/LiveMonitorPage'
+import Languages from './pages/Languages/Languages'
 import './index.css'
 
 
@@ -74,6 +75,7 @@ export default function App() {
 
                     {/* Admin-only routes */}
                     <Route path="users"      element={<Users />} />
+                    <Route path="languages"  element={<Languages />} />
                     <Route path="offline"    element={<Offline />} />
                     <Route path="settings"   element={<Settings />} />
 

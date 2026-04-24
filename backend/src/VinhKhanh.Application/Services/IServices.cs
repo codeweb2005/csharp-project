@@ -203,11 +203,22 @@ public interface ISyncService
 
 // ============ Language Service ============
 /// <summary>
-/// Provides the list of supported languages. Anonymous endpoint used by mobile app for the language picker.
+/// Provides language data. Anonymous endpoint used by mobile app for the language picker.
+/// Admin CRUD endpoints are protected by [Authorize(Roles = "Admin")].
 /// </summary>
 public interface ILanguageService
 {
+    /// <summary>Returns all ACTIVE languages sorted by SortOrder (mobile/public use).</summary>
     Task<ApiResponse<List<LanguageDto>>> GetAllActiveAsync();
+
+    /// <summary>Returns ALL languages (active + inactive) for the admin management table.</summary>
+    Task<ApiResponse<List<LanguageAdminDto>>> GetAllAsync();
+
+    Task<ApiResponse<LanguageAdminDto>> GetByIdAsync(int id);
+    Task<ApiResponse<LanguageAdminDto>> CreateAsync(CreateLanguageRequest request);
+    Task<ApiResponse<LanguageAdminDto>> UpdateAsync(int id, UpdateLanguageRequest request);
+    Task<ApiResponse<bool>> DeleteAsync(int id);
+    Task<ApiResponse<bool>> ToggleActiveAsync(int id);
 }
 
 // ============ Tourist Session Service ============

@@ -63,8 +63,7 @@ public class RegisterRequest
 // ============ Language ============
 
 /// <summary>
-/// Language record returned by GET /api/v1/languages.
-/// Used by mobile app for language picker.
+/// Language record returned by GET /api/v1/languages (mobile/public).
 /// </summary>
 public class LanguageDto
 {
@@ -75,7 +74,33 @@ public class LanguageDto
     public string? TtsCode { get; set; }                        // "vi-VN", "en-US"
     public string? FlagEmoji { get; set; }
     public int SortOrder { get; set; }
+    public bool IsActive { get; set; }
 }
+
+/// <summary>
+/// Extended language record for Admin management (GET /api/v1/languages/admin).
+/// Includes IsActive and timestamp for the management table.
+/// </summary>
+public class LanguageAdminDto : LanguageDto
+{
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+/// <summary>POST /api/v1/languages — Admin creates a new language.</summary>
+public class CreateLanguageRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string NativeName { get; set; } = string.Empty;
+    public string? TtsCode { get; set; }
+    public string? FlagEmoji { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+/// <summary>PUT /api/v1/languages/{id} — Admin updates a language.</summary>
+public class UpdateLanguageRequest : CreateLanguageRequest { }
 
 public class LoginResponse
 {

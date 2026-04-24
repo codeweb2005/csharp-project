@@ -259,5 +259,18 @@ export const presence = {
   getStats:    () => request('/presence/stats'),
 }
 
+// ============ Languages (Admin CRUD) ============
+export const languages = {
+  /** GET /api/v1/languages/admin — all languages including inactive (Admin only) */
+  getAll:    () => request('/languages/admin'),
+  /** GET /api/v1/languages — active only, public (for mobile picker dropdowns) */
+  getActive: () => request('/languages'),
+  getById:  (id)          => request(`/languages/${id}`),
+  create:   (data)        => request('/languages',      { method: 'POST',   body: JSON.stringify(data) }),
+  update:   (id, data)    => request(`/languages/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
+  delete:   (id)          => request(`/languages/${id}`, { method: 'DELETE' }),
+  toggle:   (id)          => request(`/languages/${id}/toggle`, { method: 'PATCH' }),
+}
+
 export { clearTokens, getToken, setTokens }
 

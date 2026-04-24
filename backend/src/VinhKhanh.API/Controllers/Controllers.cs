@@ -239,21 +239,56 @@ public class POIsController(IPOIService poiService, IUserService userSvc) : Base
 // ================================
 
 /// <summary>
-/// Public endpoint for the mobile app language picker.
-/// Returns all active languages — no authentication required.
+/// GET /api/v1/languages          — public, mobile app language picker (active only)
+/// GET /api/v1/languages/admin    — Admin: all languages including inactive
+/// POST/PUT/DELETE/PATCH          — Admin only: full language CRUD
 /// </summary>
 [Route("api/v1/languages")]
 public class LanguagesController(ILanguageService languageService) : BaseApiController
 {
     /// <summary>
     /// GET /api/v1/languages
-    /// Returns all active languages sorted by SortOrder.
+    /// Returns all ACTIVE languages sorted by SortOrder.
     /// Mobile app uses this to populate the language selection screen on first run.
+    /// AllowAnonymous — no JWT required.
     /// </summary>
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> GetAll()
         => ApiResult(await languageService.GetAllActiveAsync());
+
+    // ── Admin endpoints ──────────────────────────────────────────────────────
+
+    /// <summary>GET /api/v1/languages/admin — returns ALL languages (incl. inactive) for admin table.</summary>
+    [HttpGet("admin")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllAdmin()
+        => ApiResult(await languageService.GetAllAsync());
+
+    [HttpGet("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetById(int id)
+        => ApiResult(await languageService.GetByIdAsync(id));
+
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Create([FromBody] CreateLanguageRequest request)
+        => ApiResult(await languageService.CreateAsync(request));
+
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateLanguageRequest request)
+        => ApiResult(await languageService.UpdateAsync(id, request));
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Delete(int id)
+        => ApiResult(await languageService.DeleteAsync(id));
+
+    [HttpPatch("{id:int}/toggle")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Toggle(int id)
+        => ApiResult(await languageService.ToggleActiveAsync(id));
 }
 
 // ================================

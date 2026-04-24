@@ -4,7 +4,7 @@ import { Avatar } from 'antd'
 import {
   LayoutDashboard, MapPin, Tag as TagIcon, Volume2,
   Users, BarChart3, Package, Settings, LogOut,
-  ChevronLeft, ChevronRight, Radio
+  ChevronLeft, ChevronRight, Radio, Globe
 } from 'lucide-react'
 
 import useCurrentUser from '../../hooks/useCurrentUser.js'
@@ -18,6 +18,7 @@ const allMenuItems = [
   { icon: BarChart3,       label: 'Analytics',          path: '/analytics'  },
   { icon: Radio,           label: 'Live Monitor',       path: '/monitor',  adminOnly: true, live: true },
   { icon: Users,           label: 'Users',              path: '/users',    adminOnly: true },
+  { icon: Globe,           label: 'Languages',          path: '/languages', adminOnly: true },
   { icon: Package,         label: 'Offline Packages',   path: '/offline',  adminOnly: true },
   { icon: Settings,        label: 'Settings',           path: '/settings', adminOnly: true },
 ]

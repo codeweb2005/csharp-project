@@ -1,3 +1,6 @@
+/* Queue Page — Audio Tour Playback */
+
+/* ── Loading states ─────────────────────────────────────────────────────── */
 .vk-queue-loading,
 .vk-queue-spin {
   display: flex;
@@ -6,6 +9,17 @@
   min-height: 40vh;
 }
 
+/* ── Page padding to avoid overlap with player bar ──────────────────────── */
+.vk-queue {
+  padding-bottom: 1rem;
+  transition: padding-bottom 0.3s ease;
+}
+
+.vk-queue.has-player {
+  padding-bottom: 110px; /* reserve space for floating bar */
+}
+
+/* ── Toolbar / back link ────────────────────────────────────────────────── */
 .vk-queue-toolbar {
   margin-bottom: 1rem;
 }
@@ -23,6 +37,7 @@
   text-decoration: underline;
 }
 
+/* ── Header ─────────────────────────────────────────────────────────────── */
 .vk-queue-header {
   margin-bottom: 1.25rem;
 }
@@ -36,6 +51,7 @@
   margin-top: 1rem;
 }
 
+/* ── Map & coordinate cards ─────────────────────────────────────────────── */
 .vk-queue-map-card {
   overflow: hidden;
   margin-bottom: 0.9rem;
@@ -65,9 +81,53 @@
   color: var(--vk-muted);
 }
 
+/* ── Start CTA ──────────────────────────────────────────────────────────── */
+.vk-queue-start-wrap {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.vk-queue-start-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--vk-accent);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 14px 32px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(196, 92, 38, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.vk-queue-start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(196, 92, 38, 0.45);
+}
+
+.vk-queue-start-btn:active {
+  transform: translateY(0);
+}
+
+.vk-queue-start-hint {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--vk-muted);
+}
+
+/* ── Queue list items ────────────────────────────────────────────────────── */
 .vk-queue-item {
   flex-wrap: wrap;
   gap: 0.75rem;
+  transition: background 0.2s;
+  border-radius: 8px;
+}
+
+.vk-queue-item--current {
+  background: rgba(196, 92, 38, 0.05);
 }
 
 .vk-queue-order {
@@ -80,6 +140,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+
+.vk-queue-order--active {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(196, 92, 38, 0.15);
 }
 
 .vk-queue-title {
@@ -104,7 +171,246 @@
   color: var(--vk-muted);
 }
 
-.vk-queue-audio {
-  width: min(100%, 280px);
-  max-height: 40px;
+/* ── Per-item play button ────────────────────────────────────────────────── */
+.vk-queue-item-play {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--vk-accent);
+  background: transparent;
+  color: var(--vk-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+.vk-queue-item-play:hover,
+.vk-queue-item-play.active {
+  background: var(--vk-accent);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+/* ── Animated bars (now playing indicator) ───────────────────────────────── */
+.vk-queue-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+
+.vk-queue-bars span {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  animation: queueBar 0.8s ease-in-out infinite;
+}
+
+.vk-queue-bars span:nth-child(2) { animation-delay: 0.15s; }
+.vk-queue-bars span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes queueBar {
+  0%, 100% { height: 4px; }
+  50%       { height: 14px; }
+}
+
+/* ── Floating Player Bar ─────────────────────────────────────────────────── */
+.vk-player-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+
+  background: rgba(28, 25, 23, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.25);
+  color: #fff;
+
+  animation: slideUp 0.3s cubic-bezier(0.25,0.8,0.25,1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* Track info (left) */
+.vk-player-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 0 0 200px;
+}
+
+.vk-player-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--vk-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vk-player-meta {
+  min-width: 0;
+}
+
+.vk-player-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.vk-player-pos {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 2px;
+}
+
+/* Center — progress + controls */
+.vk-player-center {
+  flex: 1;
+  min-width: 0;
+}
+
+.vk-player-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.vk-player-time {
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+}
+
+.vk-player-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.vk-player-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--vk-accent);
+  cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(196,92,38,0.3);
+  transition: transform 0.1s;
+}
+
+.vk-player-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.vk-player-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--vk-accent);
+  cursor: pointer;
+}
+
+/* Fill left side of track with accent colour */
+.vk-player-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+}
+
+.vk-player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Side — mute (right) */
+.vk-player-side {
+  flex: 0 0 40px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Player buttons */
+.vk-player-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+.vk-player-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.vk-player-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.vk-player-btn--main {
+  width: 42px;
+  height: 42px;
+  background: var(--vk-accent);
+  color: #fff;
+}
+
+.vk-player-btn--main:hover {
+  background: #b04d1e;
+  color: #fff;
+  transform: scale(1.06);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .vk-player-info {
+    flex: 0 0 120px;
+  }
+
+  .vk-player-side {
+    display: none;
+  }
+
+  .vk-player-title {
+    font-size: 12px;
+  }
 }
