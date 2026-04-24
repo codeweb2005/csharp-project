@@ -13,7 +13,6 @@ import './Queue.css'
 
 const FALLBACK = { lat: 10.754, lng: 106.693 }
 const WEB_VISITOR_ID_KEY = 'vk_web_visitor_id'
-const LOCATION_REPORT_DEBOUNCE_MS = 5_000 // send at most once per 5s
 
 function fmtTime(s) {
   if (!s || isNaN(s)) return '0:00'
@@ -180,14 +179,13 @@ export default function Queue() {
   }, [])
 
   // ── Report visitor GPS to backend (for admin heatmap) ──────────────────────
+  // Fires immediately on mount (FALLBACK coords) + on every coordinate change
+  // (manual input, device GPS, map click). No debounce needed — watchPosition
+  // already caps frequency via maximumAge, and manual changes are user-triggered.
   useEffect(() => {
     const visitorId = localStorage.getItem(WEB_VISITOR_ID_KEY)
     if (!visitorId) return
-    // Debounce: skip if position hasn't been set by actual device GPS
-    const timer = setTimeout(() => {
-      api.presenceUpdateLocation(visitorId, position.lat, position.lng).catch(() => {})
-    }, LOCATION_REPORT_DEBOUNCE_MS)
-    return () => clearTimeout(timer)
+    api.presenceUpdateLocation(visitorId, position.lat, position.lng).catch(() => {})
   }, [position.lat, position.lng])
 
   // ── Fetch queue ────────────────────────────────────────────────────────────
