@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { App, Table, Button, Modal, Form, Input, InputNumber, Switch, Tag, Space, Tooltip, Typography, Badge } from 'antd'
-import { Plus, Pencil, Trash2, ToggleLeft, Globe, Languages } from 'lucide-react'
+import { Plus, Pencil, Trash2, ToggleLeft, Globe, Languages as LanguagesIcon } from 'lucide-react'
 import { languages as languagesApi } from '../../api.js'
 import './Languages.css'
 
@@ -219,7 +219,7 @@ export default function Languages() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <div className="lang-icon-wrap">
-              <Languages size={18} color="#C92127" />
+              <LanguagesIcon size={18} color="#C92127" />
             </div>
             <Title level={4} style={{ margin: 0 }}>Quản lý Ngôn ngữ</Title>
           </div>
@@ -284,7 +284,7 @@ export default function Languages() {
         open={modalOpen}
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Languages size={16} color="#C92127" />
+            <LanguagesIcon size={16} color="#C92127" />
             <span>{editing ? 'Chỉnh sửa ngôn ngữ' : 'Thêm ngôn ngữ mới'}</span>
           </div>
         }
