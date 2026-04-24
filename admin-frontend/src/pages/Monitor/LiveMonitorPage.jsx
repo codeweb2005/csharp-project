@@ -147,6 +147,34 @@ function TouristMarkers({ positions }) {
     ));
 }
 
+// ─── Web Visitor Position Markers ───────────────────────────────────────────
+function WebVisitorMarkers({ positions }) {
+  return positions
+    .filter(p => p.latitude && p.longitude)
+    .map((p, i) => (
+      <CircleMarker
+        key={`web-${i}`}
+        center={[p.latitude, p.longitude]}
+        radius={8}
+        pathOptions={{
+          fillColor:   '#2563EB',   // blue = web visitor
+          fillOpacity: 0.70,
+          color:       '#FFF',
+          weight:      2,
+          dashArray:   '4 2',      // dashed border = web (not mobile)
+        }}
+      >
+        <Popup>
+          <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+            <strong>🌐 Visitor web</strong><br/>
+            <span style={{ color: '#999' }}>{p.visitorId}</span><br/>
+            <span style={{ color: '#999' }}>{new Date(p.updatedAt).toLocaleTimeString('vi-VN')}</span>
+          </div>
+        </Popup>
+      </CircleMarker>
+    ));
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 /**
  * Live Tour Monitor
@@ -229,7 +257,8 @@ export default function LiveMonitorPage() {
   const perPOI    = hasRealtimePOI
     ? stats.perPOI
     : (stats?.perPOIToday ?? snapshot?.perPOI ?? []);
-  const positions = snapshot?.positions ?? [];
+  const positions          = snapshot?.positions         ?? [];
+  const webVisitorPositions = snapshot?.webVisitorPositions ?? [];
 
   const cardStyle = {
     background: '#FFFFFF',
@@ -320,7 +349,10 @@ export default function LiveMonitorPage() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
             />
+            {/* Mobile tourist positions (red) */}
             <TouristMarkers positions={positions}/>
+            {/* Web visitor positions (blue dashed) */}
+            <WebVisitorMarkers positions={webVisitorPositions}/>
           </MapContainer>
         </div>
 

@@ -12,6 +12,8 @@ import { useQueuePlayback } from '../../hooks/useQueuePlayback.js'
 import './Queue.css'
 
 const FALLBACK = { lat: 10.754, lng: 106.693 }
+const WEB_VISITOR_ID_KEY = 'vk_web_visitor_id'
+const LOCATION_REPORT_DEBOUNCE_MS = 5_000 // send at most once per 5s
 
 function fmtTime(s) {
   if (!s || isNaN(s)) return '0:00'
@@ -176,6 +178,17 @@ export default function Queue() {
         navigator.geolocation.clearWatch(watchIdRef.current)
     }
   }, [])
+
+  // ── Report visitor GPS to backend (for admin heatmap) ──────────────────────
+  useEffect(() => {
+    const visitorId = localStorage.getItem(WEB_VISITOR_ID_KEY)
+    if (!visitorId) return
+    // Debounce: skip if position hasn't been set by actual device GPS
+    const timer = setTimeout(() => {
+      api.presenceUpdateLocation(visitorId, position.lat, position.lng).catch(() => {})
+    }, LOCATION_REPORT_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [position.lat, position.lng])
 
   // ── Fetch queue ────────────────────────────────────────────────────────────
   useEffect(() => {

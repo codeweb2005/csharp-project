@@ -831,6 +831,26 @@ public class PresenceController(IPresenceService presenceSvc) : BaseApiControlle
     }
 
     /// <summary>
+    /// Visitor website reports its GPS position (anonymous).
+    /// Position is stored in-memory and shown on the admin heatmap.
+    /// Automatically refreshes the web-visitor heartbeat so no separate heartbeat call is needed.
+    /// </summary>
+    [HttpPost("web-location")]
+    [AllowAnonymous]
+    public async Task<IActionResult> UpdateWebLocation([FromBody] WebVisitorLocationRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.VisitorId))
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "visitorId is required"));
+        if (req.Latitude < -90 || req.Latitude > 90)
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "lat must be between -90 and 90"));
+        if (req.Longitude < -180 || req.Longitude > 180)
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "lng must be between -180 and 180"));
+
+        await presenceSvc.TrackWebVisitorLocationAsync(req.VisitorId, req.Latitude, req.Longitude);
+        return Ok(ApiResponse<object>.Ok(new { ok = true }));
+    }
+
+    /// <summary>
     /// Returns a snapshot of all active tourists for the admin heatmap.
     /// </summary>
     [HttpGet("snapshot")]

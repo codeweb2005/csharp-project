@@ -296,6 +296,12 @@ public interface IPresenceService
     Task TrackWebVisitorExitAsync(string visitorId);
 
     /// <summary>
+    /// Update GPS location of an anonymous web visitor (visitor site with geolocation).
+    /// Stored in-memory and included in the next snapshot for admin heatmap.
+    /// </summary>
+    Task TrackWebVisitorLocationAsync(string visitorId, double lat, double lng);
+
+    /// <summary>
     /// Get a snapshot of all currently active tourists (for admin heatmap).
     /// Returns position + active POI for every non-expired ActivePresence row.
     /// </summary>

@@ -32,6 +32,10 @@ public class PresenceService(
     private static readonly ConcurrentDictionary<string, DateTime> WebVisitorLastSeen = new();
     private static readonly TimeSpan WebVisitorStaleThreshold = TimeSpan.FromMinutes(2);
 
+    // In-memory GPS locations for web visitors (visitor site with geolocation)
+    private record WebVisitorLocation(double Lat, double Lng, DateTime UpdatedAt);
+    private static readonly ConcurrentDictionary<string, WebVisitorLocation> WebVisitorLocations = new();
+
     /// <inheritdoc/>
     public async Task TrackEnterAsync(string sessionId, int poiId, double? lat, double? lng)
     {
@@ -123,7 +127,20 @@ public class PresenceService(
         if (string.IsNullOrWhiteSpace(visitorId)) return;
 
         WebVisitorLastSeen.TryRemove(visitorId.Trim(), out _);
+        WebVisitorLocations.TryRemove(visitorId.Trim(), out _);
         await BroadcastWebVisitorCountAsync();
+    }
+
+    /// <inheritdoc/>
+    public Task TrackWebVisitorLocationAsync(string visitorId, double lat, double lng)
+    {
+        if (string.IsNullOrWhiteSpace(visitorId)) return Task.CompletedTask;
+
+        var id = visitorId.Trim();
+        // Also refresh heartbeat so location reporters stay counted as online
+        WebVisitorLastSeen[id] = DateTime.UtcNow;
+        WebVisitorLocations[id] = new WebVisitorLocation(lat, lng, DateTime.UtcNow);
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
@@ -137,6 +154,18 @@ public class PresenceService(
                 .ThenInclude(poi => poi!.Translations)
             .AsNoTracking()
             .ToListAsync();
+
+        // Web visitor GPS positions (in-memory)
+        PurgeStaleWebVisitors();
+        var webPositions = WebVisitorLocations
+            .Where(kv => WebVisitorLastSeen.ContainsKey(kv.Key)) // only still-online visitors
+            .Select(kv => new WebVisitorPositionDto
+            {
+                VisitorId  = kv.Key[..Math.Min(8, kv.Key.Length)] + "…",
+                Latitude   = kv.Value.Lat,
+                Longitude  = kv.Value.Lng,
+                UpdatedAt  = kv.Value.UpdatedAt,
+            }).ToList();
 
         var positions = rows.Select(p => new TouristPositionDto
         {
@@ -172,12 +201,13 @@ public class PresenceService(
 
         return ApiResponse<PresenceSnapshot>.Ok(new PresenceSnapshot
         {
-            ActiveTourists = activeTourists,
-            WebVisitors = webVisitors,
+            ActiveTourists      = activeTourists,
+            WebVisitors         = webVisitors,
             TotalOnlineVisitors = activeTourists + webVisitors,
-            PerPOI         = perPoi,
-            Positions      = positions,
-            SnapshotAt     = DateTime.UtcNow
+            PerPOI              = perPoi,
+            Positions           = positions,
+            WebVisitorPositions = webPositions,
+            SnapshotAt          = DateTime.UtcNow
         });
     }
 
@@ -360,7 +390,10 @@ public class PresenceService(
         foreach (var entry in WebVisitorLastSeen)
         {
             if (entry.Value < cutoff)
+            {
                 WebVisitorLastSeen.TryRemove(entry.Key, out _);
+                WebVisitorLocations.TryRemove(entry.Key, out _);
+            }
         }
     }
 
