@@ -169,7 +169,7 @@ public interface IAnalyticsService
 {
     Task<ApiResponse<Dictionary<string, TrendDto>>> GetTrendsAsync(string period, List<int>? vendorPOIIds = null);
     Task<ApiResponse<List<VisitChartDto>>>   GetVisitsByDayAsync(DateTime from, DateTime to, List<int>? vendorPOIIds = null);
-    Task<ApiResponse<List<HourlyVisitDto>>>  GetVisitsByHourAsync(DateTime date, List<int>? vendorPOIIds = null);
+    Task<ApiResponse<List<HourlyVisitDto>>>  GetVisitsByHourAsync(DateTime date, List<int>? vendorPOIIds = null, int tzOffsetMinutes = 420);
     Task<ApiResponse<List<LanguageStatDto>>> GetLanguageDistributionAsync(DateTime from, DateTime to, List<int>? vendorPOIIds = null);
 }
 
@@ -198,14 +198,126 @@ public interface ISettingsService
 public interface ISyncService
 {
     Task<ApiResponse<SyncDeltaResponse>> GetDeltaAsync(DateTime since, int languageId);
-    Task<ApiResponse<int>> UploadVisitsAsync(VisitBatchRequest request, int? userId);
+    Task<ApiResponse<int>> UploadVisitsAsync(VisitBatchRequest request, int? userId, string? sessionId = null);
 }
 
 // ============ Language Service ============
 /// <summary>
-/// Provides the list of supported languages. Anonymous endpoint used by mobile app for the language picker.
+/// Provides language data. Anonymous endpoint used by mobile app for the language picker.
+/// Admin CRUD endpoints are protected by [Authorize(Roles = "Admin")].
 /// </summary>
 public interface ILanguageService
 {
+    /// <summary>Returns all ACTIVE languages sorted by SortOrder (mobile/public use).</summary>
     Task<ApiResponse<List<LanguageDto>>> GetAllActiveAsync();
+
+    /// <summary>Returns ALL languages (active + inactive) for the admin management table.</summary>
+    Task<ApiResponse<List<LanguageAdminDto>>> GetAllAsync();
+
+    Task<ApiResponse<LanguageAdminDto>> GetByIdAsync(int id);
+    Task<ApiResponse<LanguageAdminDto>> CreateAsync(CreateLanguageRequest request);
+    Task<ApiResponse<LanguageAdminDto>> UpdateAsync(int id, UpdateLanguageRequest request);
+    Task<ApiResponse<bool>> DeleteAsync(int id);
+    Task<ApiResponse<bool>> ToggleActiveAsync(int id);
+}
+
+// ============ Tourist Session Service ============
+/// <summary>
+/// Manages anonymous tourist sessions created via QR code scan.
+/// No account creation required — a session token embedded in a QR code is
+/// exchanged for a short-lived JWT with role = Tourist.
+/// </summary>
+public interface ITouristSessionService
+{
+    /// <summary>
+    /// Exchange a QR session token for a 24-hour JWT.
+    /// Creates or updates the TouristSession row; increments QR use-count.
+    /// Returns an error if the QR is invalid, expired, or max-uses reached.
+    /// </summary>
+    Task<ApiResponse<TouristTokenResponse>> StartSessionAsync(StartSessionRequest request);
+
+    /// <summary>
+    /// Return current session info for the authenticated tourist (from JWT claims).
+    /// </summary>
+    Task<ApiResponse<TouristSessionDto>> GetSessionAsync(string sessionId);
+
+    /// <summary>Mark a session as inactive. Called when tourist exits the app.</summary>
+    Task<ApiResponse<bool>> EndSessionAsync(string sessionId);
+
+    // ── Admin: QR Management ──────────────────────────────────────────────
+
+    /// <summary>List all QR codes created by admins (with use counts).</summary>
+    Task<ApiResponse<List<TourQRCodeDto>>> GetQRCodesAsync();
+
+    /// <summary>Generate a new QR (UUID v4) and return its PNG bytes.</summary>
+    Task<ApiResponse<TourQRCodeDto>> CreateQRCode(CreateQRCodeRequest request);
+
+    /// <summary>Returns PNG bytes for an existing QR code.</summary>
+    Task<byte[]?> GetQRPngAsync(string qrToken, int pixels = 512);
+
+    /// <summary>Deactivate a QR code so it can no longer be used.</summary>
+    Task<ApiResponse<bool>> DeactivateQRCodeAsync(int id);
+}
+
+// ============ Presence Service ============
+/// <summary>
+/// Tracks real-time GPS positions of active tourists and broadcasts
+/// presence events to admin monitors via SignalR.
+/// </summary>
+public interface IPresenceService
+{
+    /// <summary>
+    /// Record that a tourist has entered a POI's geofence.
+    /// Upserts ActivePresence row and broadcasts "TouristEnteredPOI" to admin hub.
+    /// </summary>
+    Task TrackEnterAsync(string sessionId, int poiId, double? lat, double? lng);
+
+    /// <summary>
+    /// Record that a tourist has exited a POI's geofence (or session ended).
+    /// Sets PoiId = null in ActivePresence and broadcasts "TouristExitedPOI".
+    /// </summary>
+    Task TrackExitAsync(string sessionId, int? poiId);
+
+    /// <summary>
+    /// Update only the tourist's GPS coordinates (between POIs).
+    /// Used by periodic location pings from the mobile app.
+    /// </summary>
+    Task UpdateLocationAsync(string sessionId, double lat, double lng);
+
+    /// <summary>
+    /// Record anonymous visitor website heartbeat.
+    /// The visitor is considered online while heartbeats continue.
+    /// </summary>
+    Task TrackWebVisitorHeartbeatAsync(string visitorId);
+
+    /// <summary>
+    /// Mark anonymous visitor website session as ended.
+    /// </summary>
+    Task TrackWebVisitorExitAsync(string visitorId);
+
+    /// <summary>
+    /// Update GPS location of an anonymous web visitor (visitor site with geolocation).
+    /// Stored in-memory and included in the next snapshot for admin heatmap.
+    /// </summary>
+    Task TrackWebVisitorLocationAsync(string visitorId, double lat, double lng);
+
+    /// <summary>
+    /// Get a snapshot of all currently active tourists (for admin heatmap).
+    /// Returns position + active POI for every non-expired ActivePresence row.
+    /// </summary>
+    Task<ApiResponse<PresenceSnapshot>> GetSnapshotAsync();
+
+    /// <summary>
+    /// Get aggregated monitor dashboard stats:
+    ///   - ActiveSessions  : TouristSessions active in last 24h
+    ///   - TouristsAtPOI   : ActivePresence rows with a PoiId (realtime)
+    ///   - ActivePOIs      : POIs that have at least one active tourist (realtime)
+    ///   - TotalVisitsToday: VisitHistory count for today (UTC)
+    ///   - TotalQRCodes    : active TourQRCodes
+    ///   - WebVisitors     : anonymous web heartbeat count
+    /// </summary>
+    Task<ApiResponse<PresenceDashboardStats>> GetDashboardStatsAsync();
+
+    /// <summary>Remove stale presence rows for sessions older than the threshold.</summary>
+    Task PurgeStaleAsync(TimeSpan staleThreshold);
 }

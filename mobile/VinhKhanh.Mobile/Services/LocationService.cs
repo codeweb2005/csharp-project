@@ -7,25 +7,44 @@ namespace VinhKhanh.Mobile.Services;
 ///   Android → AndroidLocationService (wraps GpsTrackerService ForegroundService)
 ///             so GPS continues when the screen is off or app is in background.
 ///   iOS     → IosCLLocationDelegate (T-02) will replace this for iOS background mode.
-///   Other   → This polling implementation (Windows, MacCatalyst) — foreground only is acceptable.
+///   Other   → This polling implementation (Windows, MacCatalyst) — foreground only.
 ///
-/// This class is retained for:
-///   1. Windows/MacCatalyst targets where background GPS is not required.
-///   2. Simulator testing where platform services are unavailable.
+/// v2 — Adaptive polling interval:
+///   Instead of a fixed 5-second interval, the poll frequency adapts to the tourist's
+///   movement speed derived from consecutive GPS readings:
+///
+///   | Speed              | Poll Interval | Rationale                        |
+///   |--------------------|---------------|----------------------------------|
+///   | < 0.5 m/s (still) | 15 s          | Standing still — save battery    |
+///   | 0.5–2 m/s (walk)  | 5 s           | Normal walking speed             |
+///   | > 2 m/s (vehicle) | 3 s           | Moving fast, fast geofence update|
 ///
 /// Thread-safety: LocationUpdated is raised from a background Task. UI subscribers
 /// must dispatch to the main thread via MainThread.BeginInvokeOnMainThread().
 /// </summary>
 public class LocationService : ILocationService
 {
-    // ── Configuration ──────────────────────────────────────────────────────────
-    private readonly TimeSpan _pollInterval;
+    // ── Adaptive interval thresholds ───────────────────────────────────────────
+    private static readonly TimeSpan IntervalStationary = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan IntervalWalking    = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan IntervalVehicle    = TimeSpan.FromSeconds(3);
+
+    private const double SpeedThresholdStationary = 0.5; // m/s
+    private const double SpeedThresholdVehicle    = 2.0; // m/s
 
     // ── State ──────────────────────────────────────────────────────────────────
     private CancellationTokenSource? _cts;
+    private Location? _prevLocation;       // previous fix for speed calculation
+    private TimeSpan  _currentInterval = IntervalWalking; // start with walking speed
 
     public Location? LastKnownLocation { get; private set; }
     public bool IsTracking { get; private set; }
+
+    /// <summary>
+    /// Current GPU poll interval, adapted from last-known speed.
+    /// Exposed for diagnostics / UI display.
+    /// </summary>
+    public TimeSpan CurrentPollInterval => _currentInterval;
 
     /// <summary>True if the app has LocationAlways permission; false if only WhenInUse.</summary>
     public bool IsUsingAlwaysPermission { get; private set; }
@@ -33,21 +52,16 @@ public class LocationService : ILocationService
     /// <inheritdoc/>
     public event EventHandler<LocationUpdate>? LocationUpdated;
 
-    public LocationService(int pollIntervalSeconds = 5)
-    {
-        _pollInterval = TimeSpan.FromSeconds(pollIntervalSeconds);
-    }
+    public LocationService() { }
 
     /// <summary>
-    /// Request the best available location permission, then start the polling loop.
-    /// Upgrade order: LocationAlways → LocationWhenInUse → denied (abort).
+    /// Request the best available location permission, then start the adaptive polling loop.
     /// Safe to call multiple times — subsequent calls are no-ops while already tracking.
     /// </summary>
     public async Task StartTrackingAsync()
     {
         if (IsTracking) return;
 
-        // ── Permission check — try for Always first ────────────────────────
         var permissionLevel = await RequestBestLocationPermissionAsync();
         if (permissionLevel == PermissionLevel.Denied)
         {
@@ -81,7 +95,6 @@ public class LocationService : ILocationService
     private static async Task<PermissionLevel> RequestBestLocationPermissionAsync()
     {
 #if ANDROID || IOS
-        // First ensure WhenInUse is granted (required before requesting Always)
         var whenInUse = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
         if (whenInUse != PermissionStatus.Granted)
         {
@@ -89,7 +102,6 @@ public class LocationService : ILocationService
             return PermissionLevel.Denied;
         }
 
-        // Attempt LocationAlways upgrade (Android 10+ / iOS — goes through system settings)
         try
         {
             var always = await Permissions.RequestAsync<Permissions.LocationAlways>();
@@ -98,11 +110,9 @@ public class LocationService : ILocationService
         }
         catch (Exception ex)
         {
-            // Some platforms throw if the permission type is not available
             Console.WriteLine($"[LocationService] LocationAlways request error: {ex.Message}");
         }
 
-        // Fallback: WhenInUse granted but Always denied
         await ShowWhenInUseFallbackToastAsync();
         return PermissionLevel.WhenInUse;
 #else
@@ -144,8 +154,10 @@ public class LocationService : ILocationService
     // ── Private ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Background loop: wakes every <see cref="_pollInterval"/>, gets a GPS fix,
-    /// stores it, and fires <see cref="LocationUpdated"/>.
+    /// Adaptive polling loop.
+    /// After each GPS fix, calculates speed from the previous fix and adjusts
+    /// the next sleep interval accordingly — less frequent when stationary (battery),
+    /// more frequent when moving fast (accuracy).
     /// </summary>
     private async Task PollLoopAsync(CancellationToken token)
     {
@@ -153,20 +165,30 @@ public class LocationService : ILocationService
         {
             try
             {
-                // High accuracy forces the platform to read a fresh GPS fix
-                // rather than returning a stale cached position. Required for
-                // mock/simulated locations on emulators and GPS spoofing apps.
-                var request = new GeolocationRequest(GeolocationAccuracy.High, TimeSpan.FromSeconds(5));
+                var request  = new GeolocationRequest(GeolocationAccuracy.High, TimeSpan.FromSeconds(5));
                 var location = await Geolocation.GetLocationAsync(request, token);
 
                 if (location is not null)
                 {
                     LastKnownLocation = location;
+
+                    // ── Adaptive interval calculation ──────────────────────────
+                    double speedMs = 0;
+                    if (_prevLocation is not null)
+                    {
+                        double distM  = location.CalculateDistance(_prevLocation, DistanceUnits.Kilometers) * 1000.0;
+                        double timeSec = (location.Timestamp - _prevLocation.Timestamp).TotalSeconds;
+                        speedMs = timeSec > 0 ? distM / timeSec : 0;
+                    }
+                    _prevLocation    = location;
+                    _currentInterval = SpeedToInterval(speedMs);
+
                     var update = new LocationUpdate(location.Latitude, location.Longitude,
-                        location.Accuracy ?? 0);
+                        location.Accuracy ?? 0, speedMs);
 
                     Console.WriteLine(
-                        $"[LocationService] Fix: {location.Latitude:F6}, {location.Longitude:F6} ± {location.Accuracy ?? 0:F0}m");
+                        $"[LocationService] Fix: {location.Latitude:F6},{location.Longitude:F6} " +
+                        $"±{location.Accuracy ?? 0:F0}m speed={speedMs:F1}m/s → next={_currentInterval.TotalSeconds}s");
 
                     LocationUpdated?.Invoke(this, update);
                 }
@@ -177,24 +199,28 @@ public class LocationService : ILocationService
             }
             catch (FeatureNotEnabledException)
             {
-                // GPS is disabled on the device — notify once, keep looping so we recover
-                // when the user re-enables GPS without restarting the app.
                 Console.WriteLine("[LocationService] GPS is disabled on device.");
             }
             catch (OperationCanceledException)
             {
-                // Normal stop — exit the loop
                 break;
             }
             catch (Exception ex)
             {
-                // Log unexpected errors but continue polling
                 Console.WriteLine($"[LocationService] Unexpected error: {ex.Message}");
             }
 
-            await Task.Delay(_pollInterval, token).ConfigureAwait(false);
+            await Task.Delay(_currentInterval, token).ConfigureAwait(false);
         }
 
         IsTracking = false;
     }
+
+    /// <summary>Maps speed in m/s to the appropriate poll interval.</summary>
+    private static TimeSpan SpeedToInterval(double speedMs) => speedMs switch
+    {
+        < SpeedThresholdStationary => IntervalStationary,  // standing still → 15s
+        < SpeedThresholdVehicle    => IntervalWalking,     // walking       → 5s
+        _                          => IntervalVehicle      // vehicle       → 3s
+    };
 }

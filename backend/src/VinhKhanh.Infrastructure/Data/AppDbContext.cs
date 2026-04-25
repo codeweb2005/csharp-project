@@ -21,6 +21,11 @@ public class AppDbContext : DbContext
     public DbSet<OfflinePackage> OfflinePackages => Set<OfflinePackage>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
+    // ── New: Tourist & Realtime ───────────────────────────────────────────────
+    public DbSet<TouristSession> TouristSessions => Set<TouristSession>();
+    public DbSet<TourQRCode> TourQRCodes => Set<TourQRCode>();
+    public DbSet<ActivePresence> ActivePresence => Set<ActivePresence>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -77,7 +82,6 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Category).WithMany(c => c.POIs).HasForeignKey(x => x.CategoryId);
             e.HasOne(x => x.VendorUser).WithMany(u => u.VendorPOIs).HasForeignKey(x => x.VendorUserId);
             // VendorUserId must be a NON-UNIQUE index — one vendor can own many POIs (1:N).
-            // Without this explicit call EF may generate or preserve a UNIQUE index from old 1:1 schema.
             e.HasIndex(x => x.VendorUserId).IsUnique(false);
         });
 
@@ -160,6 +164,38 @@ public class AppDbContext : DbContext
             e.Property(x => x.Key).HasMaxLength(100);
             e.Property(x => x.Value).HasMaxLength(1000);
             e.Property(x => x.Description).HasMaxLength(500);
+        });
+
+        // ── Tourist Sessions ───────────────────────────────────────────────────
+        mb.Entity<TouristSession>(e =>
+        {
+            e.HasIndex(x => x.SessionToken).IsUnique();
+            e.Property(x => x.SessionToken).HasMaxLength(64).IsRequired();
+            e.Property(x => x.DeviceId).HasMaxLength(128);
+            e.HasIndex(x => x.ExpiresAt);
+            e.HasOne(x => x.Language).WithMany().HasForeignKey(x => x.LanguageId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        mb.Entity<TourQRCode>(e =>
+        {
+            e.HasIndex(x => x.QRToken).IsUnique();
+            e.Property(x => x.QRToken).HasMaxLength(64).IsRequired();
+            e.Property(x => x.Label).HasMaxLength(128);
+            e.HasOne(x => x.CreatedByAdmin).WithMany().HasForeignKey(x => x.CreatedByAdminId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ── Active Presence ────────────────────────────────────────────────────
+        // String PK (SessionId) — not auto-increment.
+        mb.Entity<ActivePresence>(e =>
+        {
+            e.HasKey(x => x.SessionId);
+            e.Property(x => x.SessionId).HasMaxLength(64).IsRequired();
+            e.HasIndex(x => x.PoiId);
+            e.HasIndex(x => x.UpdatedAt);
+            e.HasOne(x => x.Poi).WithMany().HasForeignKey(x => x.PoiId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 

@@ -90,4 +90,38 @@ export const api = {
 
   /** @returns {Promise<import('./types').OfflinePackageCatalogItemDto[]>} */
   getOfflineCatalog: () => request('/offlinepackages/catalog'),
+
+  /**
+   * Keep anonymous website visitor online in live monitor.
+   * @param {string} visitorId
+   */
+  presenceHeartbeat: (visitorId) =>
+    request('/presence/web-visitor', {
+      method: 'POST',
+      body: JSON.stringify({ visitorId }),
+    }),
+
+  /**
+   * Explicitly mark website visitor as offline (best-effort).
+   * @param {string} visitorId
+   */
+  presenceExit: (visitorId) =>
+    request('/presence/web-visitor/exit', {
+      method: 'POST',
+      body: JSON.stringify({ visitorId }),
+    }),
+
+  /**
+   * Report current GPS location of the anonymous web visitor.
+   * Stored in-memory on the server and displayed on the admin heatmap.
+   * Also refreshes the heartbeat — no separate presenceHeartbeat call needed.
+   * @param {string} visitorId
+   * @param {number} lat
+   * @param {number} lng
+   */
+  presenceUpdateLocation: (visitorId, lat, lng) =>
+    request('/presence/web-location', {
+      method: 'POST',
+      body: JSON.stringify({ visitorId, latitude: lat, longitude: lng }),
+    }),
 }

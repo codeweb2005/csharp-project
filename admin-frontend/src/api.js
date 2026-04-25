@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://3.1.101.35:5000/api/v1'
+export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5015/api/v1'
 
 /** Auth refresh endpoint (must match backend route). */
 const AUTH_REFRESH_PATH = '/auth/refresh'
@@ -217,7 +217,10 @@ export const analytics = {
     return request(`/analytics/visits-by-day?${q}`)
   },
   getVisitsByHour: (date, poiId = null) => {
-    const q = new URLSearchParams({ date })
+    // `date` is a LOCAL date string "YYYY-MM-DD"
+    // tzOffset = minutes east of UTC (e.g. GMT+7 → 420)
+    const tzOffset = -new Date().getTimezoneOffset() // JS getTimezoneOffset returns negative for east
+    const q = new URLSearchParams({ date, tzOffset })
     if (poiId) q.set('poiId', poiId)
     return request(`/analytics/visits-by-hour?${q}`)
   },
@@ -251,6 +254,25 @@ export const settings = {
   setMaintenance: (enabled) =>
     request('/settings/maintenance', { method: 'PUT', body: JSON.stringify(enabled) }),
   generateApiKey: () => request('/settings/generate-api-key', { method: 'POST' }),
+}
+
+// ============ Presence (Monitor) ============
+export const presence = {
+  getSnapshot: () => request('/presence/snapshot'),
+  getStats:    () => request('/presence/stats'),
+}
+
+// ============ Languages (Admin CRUD) ============
+export const languages = {
+  /** GET /api/v1/languages/admin — all languages including inactive (Admin only) */
+  getAll:    () => request('/languages/admin'),
+  /** GET /api/v1/languages — active only, public (for mobile picker dropdowns) */
+  getActive: () => request('/languages'),
+  getById:  (id)          => request(`/languages/${id}`),
+  create:   (data)        => request('/languages',      { method: 'POST',   body: JSON.stringify(data) }),
+  update:   (id, data)    => request(`/languages/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
+  delete:   (id)          => request(`/languages/${id}`, { method: 'DELETE' }),
+  toggle:   (id)          => request(`/languages/${id}/toggle`, { method: 'PATCH' }),
 }
 
 export { clearTokens, getToken, setTokens }

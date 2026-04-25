@@ -116,26 +116,35 @@ public class AnalyticsService : IAnalyticsService
     }
 
     /// <inheritdoc />
+    /// <param name="date">The local date string (YYYY-MM-DD) to query.</param>
+    /// <param name="tzOffsetMinutes">
+    /// Client timezone offset in minutes east of UTC (e.g. GMT+7 → 420).
+    /// Used to convert UTC <c>VisitedAt</c> to the local hour for the chart.
+    /// Defaults to 420 (Vietnam Standard Time, UTC+7) when not provided.
+    /// </param>
     public async Task<ApiResponse<List<HourlyVisitDto>>> GetVisitsByHourAsync(
-        DateTime date, List<int>? vendorPOIIds = null)
+        DateTime date, List<int>? vendorPOIIds = null, int tzOffsetMinutes = 420)
     {
-        var startOfDay = date.Date;
-        var endOfDay   = startOfDay.AddDays(1);
+        // Build local-day window in UTC:
+        //   localMidnight = date at 00:00 local = date in UTC minus the offset
+        var localMidnightUtc = date.Date.AddMinutes(-tzOffsetMinutes);
+        var localEndOfDayUtc = localMidnightUtc.AddDays(1);
 
         IQueryable<Domain.Entities.VisitHistory> q = _db.VisitHistory
-            .Where(v => v.VisitedAt >= startOfDay && v.VisitedAt < endOfDay);
+            .Where(v => v.VisitedAt >= localMidnightUtc && v.VisitedAt < localEndOfDayUtc);
 
         if (vendorPOIIds != null)
             q = q.Where(v => vendorPOIIds.Contains(v.POIId));
 
-        var hourly = await q
-            .GroupBy(v => v.VisitedAt.Hour)
-            .Select(g => new HourlyVisitDto
-            {
-                Hour   = g.Key,
-                Visits = g.Count()
-            })
-            .ToListAsync();
+        // Load raw VisitedAt values then convert to local hour in .NET
+        // (EF Core / MySQL translate DateTime arithmetic but not TimeSpan offsets reliably)
+        var rawDates = await q.Select(v => v.VisitedAt).ToListAsync();
+
+        var hourly = rawDates
+            .Select(utc => utc.AddMinutes(tzOffsetMinutes).Hour)   // → local hour
+            .GroupBy(h => h)
+            .Select(g => new HourlyVisitDto { Hour = g.Key, Visits = g.Count() })
+            .ToList();
 
         var result = Enumerable.Range(0, 24)
             .Select(h => hourly.FirstOrDefault(x => x.Hour == h)

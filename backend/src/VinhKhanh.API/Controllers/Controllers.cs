@@ -239,21 +239,56 @@ public class POIsController(IPOIService poiService, IUserService userSvc) : Base
 // ================================
 
 /// <summary>
-/// Public endpoint for the mobile app language picker.
-/// Returns all active languages — no authentication required.
+/// GET /api/v1/languages          — public, mobile app language picker (active only)
+/// GET /api/v1/languages/admin    — Admin: all languages including inactive
+/// POST/PUT/DELETE/PATCH          — Admin only: full language CRUD
 /// </summary>
 [Route("api/v1/languages")]
 public class LanguagesController(ILanguageService languageService) : BaseApiController
 {
     /// <summary>
     /// GET /api/v1/languages
-    /// Returns all active languages sorted by SortOrder.
+    /// Returns all ACTIVE languages sorted by SortOrder.
     /// Mobile app uses this to populate the language selection screen on first run.
+    /// AllowAnonymous — no JWT required.
     /// </summary>
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> GetAll()
         => ApiResult(await languageService.GetAllActiveAsync());
+
+    // ── Admin endpoints ──────────────────────────────────────────────────────
+
+    /// <summary>GET /api/v1/languages/admin — returns ALL languages (incl. inactive) for admin table.</summary>
+    [HttpGet("admin")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllAdmin()
+        => ApiResult(await languageService.GetAllAsync());
+
+    [HttpGet("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetById(int id)
+        => ApiResult(await languageService.GetByIdAsync(id));
+
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Create([FromBody] CreateLanguageRequest request)
+        => ApiResult(await languageService.CreateAsync(request));
+
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateLanguageRequest request)
+        => ApiResult(await languageService.UpdateAsync(id, request));
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Delete(int id)
+        => ApiResult(await languageService.DeleteAsync(id));
+
+    [HttpPatch("{id:int}/toggle")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Toggle(int id)
+        => ApiResult(await languageService.ToggleActiveAsync(id));
 }
 
 // ================================
@@ -522,21 +557,51 @@ public class DashboardController(IDashboardService svc, IUserService userSvc) : 
 [Authorize(Roles = "Admin,Vendor")]
 public class AnalyticsController(IAnalyticsService svc, IUserService userSvc) : BaseApiController
 {
+    /// <summary>
+    /// Resolves the effective POI filter list:
+    /// - Vendor: always scoped to their own POIs (optionally narrowed to one).
+    /// - Admin: if poiId is specified filter to that one POI; otherwise global.
+    /// </summary>
+    private async Task<List<int>?> ResolvePoiFilter(int? poiId)
+    {
+        var vendorIds = await GetVendorPOIIdsAsync(userSvc); // null for Admin
+        if (vendorIds != null)
+        {
+            // Vendor: only allow selecting among their own POIs
+            return poiId.HasValue && vendorIds.Contains(poiId.Value)
+                ? [poiId.Value]
+                : vendorIds;
+        }
+        // Admin: single POI filter or global
+        return poiId.HasValue ? [poiId.Value] : null;
+    }
+
     [HttpGet("trends")]
-    public async Task<IActionResult> GetTrends([FromQuery] string period = "30d")
-        => ApiResult(await svc.GetTrendsAsync(period, await GetVendorPOIIdsAsync(userSvc)));
+    public async Task<IActionResult> GetTrends(
+        [FromQuery] string period = "30d",
+        [FromQuery] int? poiId = null)
+        => ApiResult(await svc.GetTrendsAsync(period, await ResolvePoiFilter(poiId)));
 
     [HttpGet("visits-by-day")]
-    public async Task<IActionResult> GetVisitsByDay([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetVisitsByDayAsync(from, to, await GetVendorPOIIdsAsync(userSvc)));
+    public async Task<IActionResult> GetVisitsByDay(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        [FromQuery] int? poiId = null)
+        => ApiResult(await svc.GetVisitsByDayAsync(from, to, await ResolvePoiFilter(poiId)));
 
     [HttpGet("visits-by-hour")]
-    public async Task<IActionResult> GetVisitsByHour([FromQuery] DateTime date)
-        => ApiResult(await svc.GetVisitsByHourAsync(date, await GetVendorPOIIdsAsync(userSvc)));
+    public async Task<IActionResult> GetVisitsByHour(
+        [FromQuery] DateTime date,
+        [FromQuery] int? poiId = null,
+        [FromQuery] int tzOffset = 420)
+        => ApiResult(await svc.GetVisitsByHourAsync(date, await ResolvePoiFilter(poiId), tzOffset));
 
     [HttpGet("language-distribution")]
-    public async Task<IActionResult> GetLanguages([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetLanguageDistributionAsync(from, to, await GetVendorPOIIdsAsync(userSvc)));
+    public async Task<IActionResult> GetLanguages(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        [FromQuery] int? poiId = null)
+        => ApiResult(await svc.GetLanguageDistributionAsync(from, to, await ResolvePoiFilter(poiId)));
 }
 
 // ================================
@@ -629,13 +694,208 @@ public class SettingsController(ISettingsService svc) : BaseApiController
 [Route("api/v1/sync")]
 public class SyncController(ISyncService svc) : BaseApiController
 {
+    /// <summary>GET /api/v1/sync/delta — authenticated users only (Tourist or registered).</summary>
     [HttpGet("delta")]
     [Authorize]
     public async Task<IActionResult> GetDelta([FromQuery] DateTime since, [FromQuery] int langId)
         => ApiResult(await svc.GetDeltaAsync(since, langId));
 
+    /// <summary>
+    /// POST /api/v1/sync/visits — accepts Tourist JWT, registered user JWT, or anonymous.
+    /// Visits are fire-and-forget via Channel&lt;T&gt; (returns 200 immediately).
+    /// </summary>
     [HttpPost("visits")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> UploadVisits([FromBody] VisitBatchRequest req)
-        => ApiResult(await svc.UploadVisitsAsync(req, GetUserId()));
+    {
+        // Extract identifiers: prefer authenticated user, fall back to tourist sessionId
+        int? userId = null;
+        string? sessionId = null;
+
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var role = GetUserRole();
+            if (role == "Tourist")
+                sessionId = User.FindFirst("sessionId")?.Value;
+            else
+                userId = GetUserId();
+        }
+
+        return ApiResult(await svc.UploadVisitsAsync(req, userId, sessionId));
+    }
 }
+
+// ================================
+// Tourist Controller (QR Walk-In)
+// ================================
+
+/// <summary>
+/// Manages anonymous tourist sessions.
+/// POST /api/v1/tourist/session  — exchange QR token for 24h JWT (no account required).
+/// GET  /api/v1/tourist/session/me — current session info (Tourist JWT required).
+/// DELETE /api/v1/tourist/session — end session.
+/// GET  /api/v1/tourist/qr       — [Admin] list all QR codes.
+/// POST /api/v1/tourist/qr       — [Admin] create a new QR code.
+/// GET  /api/v1/tourist/qr/{token}/png — download QR PNG (Admin only).
+/// DELETE /api/v1/tourist/qr/{id} — [Admin] deactivate QR code.
+/// </summary>
+[Route("api/v1/tourist")]
+public class TouristController(ITouristSessionService svc) : BaseApiController
+{
+    /// <summary>Exchange a QR session token for a 24-hour tourist JWT. No account needed.</summary>
+    [HttpPost("session")]
+    [AllowAnonymous]
+    public async Task<IActionResult> StartSession([FromBody] StartSessionRequest req)
+        => ApiResult(await svc.StartSessionAsync(req));
+
+    /// <summary>Get current tourist session details from JWT claims.</summary>
+    [HttpGet("session/me")]
+    [Authorize(Roles = "Tourist")]
+    public async Task<IActionResult> GetMySession()
+    {
+        var sessionId = User.FindFirst("sessionId")?.Value ?? "";
+        return ApiResult(await svc.GetSessionAsync(sessionId));
+    }
+
+    /// <summary>End the tourist session (logout / app close).</summary>
+    [HttpDelete("session")]
+    [Authorize(Roles = "Tourist")]
+    public async Task<IActionResult> EndSession()
+    {
+        var sessionId = User.FindFirst("sessionId")?.Value ?? "";
+        return ApiResult(await svc.EndSessionAsync(sessionId));
+    }
+
+    // ── Admin: QR Management ────────────────────────────────────────────────
+
+    [HttpGet("qr")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ListQRCodes()
+        => ApiResult(await svc.GetQRCodesAsync());
+
+    [HttpPost("qr")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateQRCode([FromBody] CreateQRCodeRequest req)
+        => ApiResult(await svc.CreateQRCode(req));
+
+    [HttpGet("qr/{token}/png")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetQRPng(string token, [FromQuery] int pixels = 512)
+    {
+        var png = await svc.GetQRPngAsync(token, pixels);
+        if (png == null) return NotFound();
+        return File(png, "image/png");
+    }
+
+    [HttpDelete("qr/{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeactivateQRCode(int id)
+        => ApiResult(await svc.DeactivateQRCodeAsync(id));
+}
+
+// ================================
+// Presence Controller (Realtime GPS)
+// ================================
+
+/// <summary>
+/// Real-time GPS presence tracking for active tourists.
+/// POST /api/v1/presence/update   — tourist reports current position (Tourist JWT).
+/// GET  /api/v1/presence/snapshot — admin heatmap snapshot (Admin JWT).
+/// </summary>
+[Route("api/v1/presence")]
+public class PresenceController(IPresenceService presenceSvc) : BaseApiController
+{
+    /// <summary>
+    /// Tourist app calls this on every GPS tick or geofence event.
+    /// Updates the ActivePresence table and broadcasts to admin monitor via SignalR.
+    /// </summary>
+    [HttpPost("update")]
+    [Authorize(Roles = "Tourist")]
+    public async Task<IActionResult> Update([FromBody] PresenceUpdateRequest req)
+    {
+        var sessionId = User.FindFirst("sessionId")?.Value ?? "";
+
+        switch (req.EventType.ToLower())
+        {
+            case "enter" when req.PoiId.HasValue:
+                await presenceSvc.TrackEnterAsync(sessionId, req.PoiId.Value, req.Latitude, req.Longitude);
+                break;
+            case "exit":
+                await presenceSvc.TrackExitAsync(sessionId, req.PoiId);
+                break;
+            default:
+                await presenceSvc.UpdateLocationAsync(sessionId, req.Latitude, req.Longitude);
+                break;
+        }
+
+        return Ok(new { ok = true });
+    }
+
+    /// <summary>
+    /// Visitor website heartbeat (anonymous).
+    /// Keeps live monitor "online visitors" count updated for public web sessions.
+    /// </summary>
+    [HttpPost("web-visitor")]
+    [AllowAnonymous]
+    public async Task<IActionResult> UpdateWebVisitor([FromBody] WebVisitorPresenceRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.VisitorId))
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "visitorId is required"));
+
+        await presenceSvc.TrackWebVisitorHeartbeatAsync(req.VisitorId);
+        return Ok(ApiResponse<object>.Ok(new { ok = true }));
+    }
+
+    /// <summary>
+    /// Visitor website explicit exit signal (best-effort).
+    /// </summary>
+    [HttpPost("web-visitor/exit")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExitWebVisitor([FromBody] WebVisitorPresenceRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.VisitorId))
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "visitorId is required"));
+
+        await presenceSvc.TrackWebVisitorExitAsync(req.VisitorId);
+        return Ok(ApiResponse<object>.Ok(new { ok = true }));
+    }
+
+    /// <summary>
+    /// Visitor website reports its GPS position (anonymous).
+    /// Position is stored in-memory and shown on the admin heatmap.
+    /// Automatically refreshes the web-visitor heartbeat so no separate heartbeat call is needed.
+    /// </summary>
+    [HttpPost("web-location")]
+    [AllowAnonymous]
+    public async Task<IActionResult> UpdateWebLocation([FromBody] WebVisitorLocationRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.VisitorId))
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "visitorId is required"));
+        if (req.Latitude < -90 || req.Latitude > 90)
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "lat must be between -90 and 90"));
+        if (req.Longitude < -180 || req.Longitude > 180)
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "lng must be between -180 and 180"));
+
+        await presenceSvc.TrackWebVisitorLocationAsync(req.VisitorId, req.Latitude, req.Longitude);
+        return Ok(ApiResponse<object>.Ok(new { ok = true }));
+    }
+
+    /// <summary>
+    /// Returns a snapshot of all active tourists for the admin heatmap.
+    /// </summary>
+    [HttpGet("snapshot")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetSnapshot()
+        => ApiResult(await presenceSvc.GetSnapshotAsync());
+
+    /// <summary>
+    /// Returns aggregated monitor stats: active sessions (24h + now), tourists at POI,
+    /// active POIs, visits today/this week, active QR codes, web visitors.
+    /// Combines realtime ActivePresence with historical TouristSession + VisitHistory data.
+    /// </summary>
+    [HttpGet("stats")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetStats()
+        => ApiResult(await presenceSvc.GetDashboardStatsAsync());
+}
+

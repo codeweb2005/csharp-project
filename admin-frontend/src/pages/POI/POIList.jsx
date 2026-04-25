@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { PlusOutlined, StarFilled, StarOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons'
-import { Card, Table, Popconfirm, Select, Input, Button, Switch, Space, Tooltip, Row, Col, Typography, Tag, message } from 'antd'
+import { Card, Table, Popconfirm, Select, Input, Button, Switch, Space, Tooltip, Typography, Tag, message } from 'antd'
 import { pois as poisApi, categories as catsApi } from '../../api.js'
 import POIForm from '../../components/POIForm/POIForm.jsx'
 import POIMiniMap from '../../components/POIMiniMap/POIMiniMap.jsx'
@@ -201,7 +201,7 @@ export default function POIList() {
                         </Tooltip>
                     )}
                     <Tooltip title="Edit">
-                        <Button type="text" icon={<EditOutlined style={{ color: '#00246a' }} />} onClick={() => openEdit(record.id)} />
+                        <Button type="text" icon={<EditOutlined style={{ color: '#C92127' }} />} onClick={() => openEdit(record.id)} />
                     </Tooltip>
                     <Popconfirm
                         title={`Delete "${record.name}"?`}
@@ -219,7 +219,6 @@ export default function POIList() {
             )
         }
     ]
-
     return (
         <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
             {isVendor ? (
@@ -241,123 +240,221 @@ export default function POIList() {
                                 optionFilterProp="label"
                                 options={vendorPOIOptions.map(p => ({ label: p.name, value: p.id }))}
                                 onChange={id => openEdit(id)}
-                                value={null}  // always reset after selection
+                                value={null}
                             />
                         ) : (
                             <Text type="secondary">No POIs assigned</Text>
                         )}
                     </Space>
                 </div>
-            ) : (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-                    <Space align="center" size="middle" wrap>
-                        <Input
-                            placeholder="Search by name…"
-                            prefix={<SearchOutlined style={{ color: '#cbd5e1' }} />}
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            style={{ width: 250, borderRadius: 20 }}
-                            allowClear
-                        />
-                        <Select
-                            value={categoryFilter}
-                            onChange={setCategoryFilter}
-                            style={{ width: 200 }}
-                            options={[
-                                { value: 'all', label: 'All categories' },
-                                ...categories.map(c => ({
-                                    value: c.id,
-                                    label: `${c.icon} ${c.translations?.[0]?.name ?? `Category ${c.id}`}`
-                                }))
-                            ]}
-                        />
-                    </Space>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                        Add POI
-                    </Button>
-                </div>
-            )}
+            ) : null}
 
-            {/* Vendor: compact full-width table; Admin: table + mini-map side-by-side */}
-            {isVendor ? (
-                <Card variant="borderless" styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+            {/* ── VENDOR: compact full-width table ── */}
+            {isVendor && (
+                <Card variant="borderless" styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                     <Table
                         columns={columns}
                         dataSource={data}
                         rowKey="id"
                         loading={loading}
                         pagination={{
-                            current: page,
-                            pageSize: PAGE_SIZE,
-                            total: total,
-                            onChange: (p) => setPage(p),
+                            current: page, pageSize: PAGE_SIZE, total,
+                            onChange: p => setPage(p),
                             showSizeChanger: false,
-                            showTotal: (t, range) => `Showing ${range[0]}–${range[1]} of ${t} POIs`
+                            showTotal: (t, r) => `${r[0]}–${r[1]} of ${t} POIs`
                         }}
-                        onRow={(record) => ({
-                            onClick: () => openEdit(record.id),
-                            style: { cursor: 'pointer' }
-                        })}
-                        locale={{ emptyText: <div style={{ padding: '40px 0', color: '#94a3b8' }}>No POIs assigned to you</div> }}
+                        onRow={record => ({ onClick: () => openEdit(record.id), style: { cursor: 'pointer' } })}
+                        locale={{ emptyText: <div style={{ padding: '40px 0', color: '#CCC' }}>No POIs assigned to you</div> }}
                     />
                 </Card>
-            ) : (
-                <Row gutter={[24, 24]}>
-                    <Col xs={24} xl={16}>
-                        <Card variant="borderless" styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                            <Table
-                                columns={columns}
-                                dataSource={data}
-                                rowKey="id"
-                                loading={loading}
-                                pagination={{
-                                    current: page,
-                                    pageSize: PAGE_SIZE,
-                                    total: total,
-                                    onChange: (p) => setPage(p),
-                                    showSizeChanger: false,
-                                    showTotal: (t, range) => `Showing ${range[0]}–${range[1]} of ${t}`
-                                }}
-                                rowClassName={record => {
-                                    let classes = []
-                                    if (!record.isActive) classes.push('ant-table-row-disabled')
-                                    if (selectedPoiId === record.id) classes.push('ant-table-row-selected')
-                                    return classes.join(' ')
-                                }}
-                                onRow={(record) => ({
-                                    onClick: () => setSelectedPoiId(record.id === selectedPoiId ? null : record.id),
-                                    style: { cursor: 'pointer' }
-                                })}
-                                locale={{
-                                    emptyText: (
-                                        <Space orientation="vertical" align="center">
-                                            No POIs found.
-                                            <Button type="link" onClick={openCreate}>Add the first one?</Button>
-                                        </Space>
-                                    )
-                                }}
-                            />
-                        </Card>
-                    </Col>
+            )}
 
-                    <Col xs={24} xl={8}>
+            {/* ── ADMIN: Map LEFT + Card list RIGHT ── */}
+            {!isVendor && (
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 360px',
+                    gap: 14,
+                    height: 'calc(100vh - 128px)',
+                }}>
+
+                    {/* MAP — left, full height */}
+                    <div style={{
+                        borderRadius: 14, overflow: 'hidden',
+                        border: '1px solid #EEEEEE',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
+                    }}>
+                        <POIMiniMap
+                            pois={data}
+                            selectedPoiId={selectedPoiId}
+                            onSelectPoi={poi => setSelectedPoiId(poi.id === selectedPoiId ? null : poi.id)}
+                        />
+                    </div>
+
+                    {/* RIGHT PANEL */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, overflow: 'hidden' }}>
+
+                        {/* ── Toolbar ── */}
                         <div style={{
-                            height: 'calc(100vh - 180px)',
-                            position: 'sticky',
-                            top: 24,
-                            borderRadius: 12,
-                            overflow: 'hidden',
-                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-                            background: '#fff'
+                            background: '#FFFFFF', border: '1px solid #EEEEEE',
+                            borderRadius: 12, padding: '12px 14px',
+                            display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0,
                         }}>
-                            <POIMiniMap
-                                pois={data}
-                                selectedPoiId={selectedPoiId}
-                                onSelectPoi={poi => setSelectedPoiId(poi.id === selectedPoiId ? null : poi.id)}
+                            <Input
+                                placeholder="Search by name…"
+                                prefix={<SearchOutlined style={{ color: '#CCC' }}/>}
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                allowClear size="middle"
                             />
+                            <Select
+                                value={categoryFilter}
+                                onChange={setCategoryFilter}
+                                style={{ width: '100%' }}
+                                options={[
+                                    { value: 'all', label: 'All categories' },
+                                    ...categories.map(c => ({
+                                        value: c.id,
+                                        label: `${c.icon} ${c.translations?.[0]?.name ?? `Category ${c.id}`}`
+                                    }))
+                                ]}
+                            />
+                            <Button
+                                type="primary" icon={<PlusOutlined/>} onClick={openCreate} block
+                                style={{ fontWeight: 600 }}
+                            >
+                                Add POI
+                            </Button>
                         </div>
-                    </Col>
-                </Row>
+
+                        {/* ── POI Card List ── */}
+                        <div style={{
+                            flex: 1, overflowY: 'auto', overflowX: 'hidden',
+                            display: 'flex', flexDirection: 'column', gap: 8,
+                            paddingRight: 2,
+                        }}>
+                            {loading ? (
+                                <div style={{ textAlign: 'center', padding: '48px 0', color: '#CCC' }}>Loading…</div>
+                            ) : data.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                                    <div style={{ color: '#CCC', marginBottom: 8 }}>No POIs found.</div>
+                                    <Button type="link" onClick={openCreate} style={{ color: '#C92127' }}>Add one?</Button>
+                                </div>
+                            ) : data.map(poi => {
+                                const isSelected = selectedPoiId === poi.id
+                                return (
+                                    <div
+                                        key={poi.id}
+                                        onClick={() => setSelectedPoiId(poi.id === selectedPoiId ? null : poi.id)}
+                                        style={{
+                                            background: isSelected ? 'rgba(201,33,39,0.03)' : '#FFFFFF',
+                                            border: `1px solid ${isSelected ? '#C92127' : '#EEEEEE'}`,
+                                            borderLeft: `3px solid ${isSelected ? '#C92127' : 'transparent'}`,
+                                            borderRadius: 10,
+                                            padding: '10px 14px',
+                                            cursor: 'pointer',
+                                            transition: 'border-color 0.15s, background 0.15s',
+                                            opacity: poi.isActive ? 1 : 0.55,
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        {/* Row 1: Name + Status toggle */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 5 }}>
+                                            <div style={{ minWidth: 0, flex: 1, marginRight: 8 }}>
+                                                <div style={{
+                                                    fontSize: 13, fontWeight: 600, color: '#1A1A1A',
+                                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                }}>
+                                                    {poi.name}
+                                                </div>
+                                                {poi.isFeatured && (
+                                                    <span style={{
+                                                        fontSize: 10, color: '#D97706', fontWeight: 600,
+                                                        display: 'flex', alignItems: 'center', gap: 3, marginTop: 2,
+                                                    }}>
+                                                        <StarFilled style={{ fontSize: 9 }}/> Featured
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div onClick={e => e.stopPropagation()}>
+                                                <Switch
+                                                    size="small"
+                                                    checked={poi.isActive}
+                                                    onChange={() => handleToggleActive(poi.id)}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Row 2: Category + Rating + Visits */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                                            <span style={{
+                                                fontSize: 11, padding: '2px 7px', borderRadius: 5,
+                                                border: `1px solid ${poi.categoryColor || '#DDD'}`,
+                                                color: poi.categoryColor || '#666',
+                                                lineHeight: '18px',
+                                            }}>
+                                                {poi.categoryIcon} {poi.categoryName}
+                                            </span>
+                                            <span style={{ fontSize: 11, color: '#999', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                <StarFilled style={{ color: '#f59e0b', fontSize: 10 }}/>
+                                                {poi.rating?.toFixed(1) ?? '—'}
+                                            </span>
+                                            <span style={{ fontSize: 11, color: '#BBB' }}>
+                                                {poi.totalVisits?.toLocaleString() ?? 0} visits
+                                            </span>
+                                        </div>
+
+                                        {/* Row 3: Actions */}
+                                        <div
+                                            style={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            <Tooltip title={poi.isFeatured ? 'Unfeature' : 'Feature'}>
+                                                <Button type="text" size="small"
+                                                    icon={poi.isFeatured
+                                                        ? <StarFilled style={{ color: '#f59e0b', fontSize: 13 }}/>
+                                                        : <StarOutlined style={{ fontSize: 13, color: '#CCC' }}/>
+                                                    }
+                                                    onClick={() => handleToggleFeatured(poi.id)}
+                                                />
+                                            </Tooltip>
+                                            <Tooltip title="Edit">
+                                                <Button type="text" size="small"
+                                                    icon={<EditOutlined style={{ color: '#C92127', fontSize: 13 }}/>}
+                                                    onClick={() => openEdit(poi.id)}
+                                                />
+                                            </Tooltip>
+                                            <Popconfirm
+                                                title={`Delete "${poi.name}"?`}
+                                                description="This will delete the POI and all its audio/media."
+                                                onConfirm={() => handleDelete(poi)}
+                                                okText="Delete" cancelText="Cancel"
+                                                okButtonProps={{ danger: true }}
+                                            >
+                                                <Tooltip title="Delete">
+                                                    <Button type="text" size="small" danger
+                                                        icon={<DeleteOutlined style={{ fontSize: 13 }}/>}
+                                                    />
+                                                </Tooltip>
+                                            </Popconfirm>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+
+                            {/* Pagination */}
+                            {total > PAGE_SIZE && (
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, padding: '8px 0', flexShrink: 0 }}>
+                                    <Button size="small" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</Button>
+                                    <span style={{ fontSize: 12, color: '#999' }}>
+                                        {page} / {Math.ceil(total / PAGE_SIZE)}
+                                    </span>
+                                    <Button size="small" disabled={page >= Math.ceil(total / PAGE_SIZE)} onClick={() => setPage(p => p + 1)}>›</Button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
 
             {showForm && (
@@ -368,16 +465,6 @@ export default function POIList() {
                     onSaved={handleFormSaved}
                 />
             )}
-            
-            <style>{`
-                .ant-table-row-selected > td {
-                    background-color: #f0fdf4 !important;
-                }
-                .ant-table-row-disabled > td {
-                    opacity: 0.6;
-                    background-color: #f8fafc;
-                }
-            `}</style>
         </div>
     )
 }

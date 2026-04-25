@@ -48,7 +48,7 @@ export default function Audio() {
 
     const [audioFiles, setAudioFiles] = useState([])
     const [images, setImages] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(false)
 
     const [playingId, setPlayingId] = useState(null)
     const audioRef = useRef(null)
@@ -91,7 +91,7 @@ export default function Audio() {
     }, [isVendor, vendorPOIIds.join(',')])
 
     const fetchData = useCallback(async () => {
-        if (!selectedPOI) return
+        if (!selectedPOI) { setLoading(false); return }
         setLoading(true)
         try {
             const [audioRes, mediaRes] = await Promise.all([
@@ -339,8 +339,11 @@ export default function Audio() {
                                 value={uploadLangId}
                                 onChange={setUploadLangId}
                                 options={[
-                                    { label: 'VI', value: 1 },
-                                    { label: 'EN', value: 2 }
+                                    { label: '🇻🇳 VI', value: 1 },
+                                    { label: '🇬🇧 EN', value: 2 },
+                                    { label: '🇨🇳 ZH', value: 3 },
+                                    { label: '🇯🇵 JA', value: 4 },
+                                    { label: '🇰🇷 KO', value: 5 },
                                 ]}
                             />
                             <Button icon={<UploadOutlined />} onClick={() => fileInputRef.current?.click()} disabled={uploading || !selectedPOI} loading={uploading}>
@@ -362,7 +365,7 @@ export default function Audio() {
                     <Card title={<span><PictureOutlined /> Images — <Text type="secondary">{poiName}</Text></span>} variant="borderless" style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
                             {images.map(img => (
-                                <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: img.isPrimary ? '2px solid #00246a' : '1px solid #e2e8f0', aspectRatio: '1/1', backgroundColor: '#f8fafc' }}>
+                                <div key={img.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: img.isPrimary ? '2px solid #C92127' : '1px solid #e2e8f0', aspectRatio: '1/1', backgroundColor: '#f8fafc' }}>
                                     <div onClick={() => handleSetPrimary(img.id)} style={{ width: '100%', height: '100%', cursor: 'pointer' }} title="Click to set as primary">
                                         {img.url ? (
                                             <img src={resolveImageUrl(img.url)} alt={img.caption || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -394,7 +397,7 @@ export default function Audio() {
                             <div 
                                 onClick={() => imgInputRef.current?.click()} 
                                 style={{ borderRadius: 8, border: '2px dashed #cbd5e1', aspectRatio: '1/1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backgroundColor: '#f8fafc', transition: 'all 0.2s', padding: 12, textAlign: 'center' }}
-                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#00246a'; e.currentTarget.style.backgroundColor = '#eff6ff' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#C92127'; e.currentTarget.style.backgroundColor = '#fff5f5' }}
                                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.backgroundColor = '#f8fafc' }}
                             >
                                 <PlusOutlined style={{ fontSize: 24, color: '#94a3b8', marginBottom: 8 }} />
@@ -405,7 +408,7 @@ export default function Audio() {
                         </div>
                     </Card>
 
-                    <Card title={<span><AudioOutlined /> Narration Audio <Badge count={filtered.length} style={{ backgroundColor: '#00246a', marginLeft: 8 }} /></span>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <Card title={<span><AudioOutlined /> Narration Audio <Badge count={filtered.length} style={{ backgroundColor: '#C92127', marginLeft: 8 }} /></span>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <Table 
                             columns={columns} 
                             dataSource={filtered} 
@@ -437,21 +440,40 @@ export default function Audio() {
                     }
                     aria-hidden={!showTTS}
                 >
-                        <Card title={<Space><RobotOutlined style={{ color: '#00246a' }} /><span>Auto Generate TTS</span></Space>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'sticky', top: 24 }} extra={<Button type="text" onClick={() => setShowTTS(false)}>✕</Button>}>
+                        <Card title={<Space><RobotOutlined style={{ color: '#C92127' }} /><span>Auto Generate TTS</span></Space>} variant="borderless" style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'sticky', top: 24 }} extra={<Button type="text" onClick={() => setShowTTS(false)}>✕</Button>}>
                             <Form form={ttsForm} layout="vertical" onFinish={handleGenerateTTS}>
                                 <Form.Item name="languageId" label="Language">
                                     <Select>
-                                        <Select.Option value={1}>🇻🇳 Vietnamese</Select.Option>
+                                        <Select.Option value={1}>🇻🇳 Tiếng Việt</Select.Option>
                                         <Select.Option value={2}>🇬🇧 English</Select.Option>
+                                        <Select.Option value={3}>🇨🇳 中文 (Chinese)</Select.Option>
+                                        <Select.Option value={4}>🇯🇵 日本語 (Japanese)</Select.Option>
+                                        <Select.Option value={5}>🇰🇷 한국어 (Korean)</Select.Option>
                                     </Select>
                                 </Form.Item>
                                 
                                 <Form.Item name="voiceName" label="Voice">
                                     <Select>
-                                        <Select.Option value="vi-VN-HoaiMyNeural">vi-VN-HoaiMyNeural (Female)</Select.Option>
-                                        <Select.Option value="vi-VN-NamMinhNeural">vi-VN-NamMinhNeural (Male)</Select.Option>
-                                        <Select.Option value="en-US-JennyNeural">en-US-JennyNeural (Female)</Select.Option>
-                                        <Select.Option value="en-US-GuyNeural">en-US-GuyNeural (Male)</Select.Option>
+                                        <Select.OptGroup label="🇻🇳 Vietnamese">
+                                            <Select.Option value="vi-VN-HoaiMyNeural">HoaiMyNeural (Female)</Select.Option>
+                                            <Select.Option value="vi-VN-NamMinhNeural">NamMinhNeural (Male)</Select.Option>
+                                        </Select.OptGroup>
+                                        <Select.OptGroup label="🇬🇧 English">
+                                            <Select.Option value="en-US-JennyNeural">JennyNeural (Female)</Select.Option>
+                                            <Select.Option value="en-US-GuyNeural">GuyNeural (Male)</Select.Option>
+                                        </Select.OptGroup>
+                                        <Select.OptGroup label="🇨🇳 Chinese">
+                                            <Select.Option value="zh-CN-XiaoXiaoNeural">XiaoXiaoNeural (Female)</Select.Option>
+                                            <Select.Option value="zh-CN-YunXiNeural">YunXiNeural (Male)</Select.Option>
+                                        </Select.OptGroup>
+                                        <Select.OptGroup label="🇯🇵 Japanese">
+                                            <Select.Option value="ja-JP-NanamiNeural">NanamiNeural (Female)</Select.Option>
+                                            <Select.Option value="ja-JP-KeitaNeural">KeitaNeural (Male)</Select.Option>
+                                        </Select.OptGroup>
+                                        <Select.OptGroup label="🇰🇷 Korean">
+                                            <Select.Option value="ko-KR-SunHiNeural">SunHiNeural (Female)</Select.Option>
+                                            <Select.Option value="ko-KR-InJoonNeural">InJoonNeural (Male)</Select.Option>
+                                        </Select.OptGroup>
                                     </Select>
                                 </Form.Item>
 

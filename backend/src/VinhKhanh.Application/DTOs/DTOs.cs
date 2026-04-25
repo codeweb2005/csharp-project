@@ -63,8 +63,7 @@ public class RegisterRequest
 // ============ Language ============
 
 /// <summary>
-/// Language record returned by GET /api/v1/languages.
-/// Used by mobile app for language picker.
+/// Language record returned by GET /api/v1/languages (mobile/public).
 /// </summary>
 public class LanguageDto
 {
@@ -75,7 +74,33 @@ public class LanguageDto
     public string? TtsCode { get; set; }                        // "vi-VN", "en-US"
     public string? FlagEmoji { get; set; }
     public int SortOrder { get; set; }
+    public bool IsActive { get; set; }
 }
+
+/// <summary>
+/// Extended language record for Admin management (GET /api/v1/languages/admin).
+/// Includes IsActive and timestamp for the management table.
+/// </summary>
+public class LanguageAdminDto : LanguageDto
+{
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+/// <summary>POST /api/v1/languages — Admin creates a new language.</summary>
+public class CreateLanguageRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string NativeName { get; set; } = string.Empty;
+    public string? TtsCode { get; set; }
+    public string? FlagEmoji { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+/// <summary>PUT /api/v1/languages/{id} — Admin updates a language.</summary>
+public class UpdateLanguageRequest : CreateLanguageRequest { }
 
 public class LoginResponse
 {
@@ -549,8 +574,6 @@ public class VisitInput
     public double? Longitude { get; set; }
 }
 
-// ============ Audio Queue (Sequential Playback) ============
-
 /// <summary>
 /// Response for the audio queue endpoint. When a user is near multiple POIs,
 /// the mobile app should play audio narrations sequentially in this order
@@ -564,6 +587,16 @@ public class AudioQueueResponse
     public int TotalDurationSeconds { get; set; }
     /// <summary>Number of POIs included in the queue.</summary>
     public int POICount { get; set; }
+    /// <summary>
+    /// True when two or more POIs within range have overlapping geofences.
+    /// Mobile app should show a subtle indicator that overlap resolution was applied.
+    /// </summary>
+    public bool HasOverlappingPOIs { get; set; }
+    /// <summary>
+    /// Describes how overlapping POIs were resolved.
+    /// Values: "priority" | "distance" | "none" (no overlap).
+    /// </summary>
+    public string ResolvedBy { get; set; } = "none";
 }
 
 /// <summary>
@@ -600,4 +633,216 @@ public class AudioQueueItemDto
     public string? ShortDescription { get; set; }
     /// <summary>Narration text for display while audio plays.</summary>
     public string? NarrationText { get; set; }
+}
+
+// ============ Tourist Session (QR Walk-In) ============
+
+/// <summary>POST /api/v1/tourist/session — exchange QR token for a 24-hour JWT.</summary>
+public class StartSessionRequest
+{
+    /// <summary>UUID v4 embedded in the QR code. Required.</summary>
+    public string QRToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Anonymous device identifier (UUID stored in app Preferences).
+    /// Not required but helps analytics distinguish unique devices.
+    /// </summary>
+    public string? DeviceId { get; set; }
+
+    /// <summary>Preferred language ID selected by the tourist on first launch.</summary>
+    public int? LanguageId { get; set; }
+}
+
+/// <summary>Response for POST /api/v1/tourist/session.</summary>
+public class TouristTokenResponse
+{
+    /// <summary>Short-lived JWT (role = Tourist, expiry 24h).</summary>
+    public string AccessToken { get; set; } = string.Empty;
+    /// <summary>Session token from the QR code — used as the JWT "sessionId" claim.</summary>
+    public string SessionId { get; set; } = string.Empty;
+    /// <summary>Unix timestamp when the token expires.</summary>
+    public long ExpiresAt { get; set; }
+    /// <summary>Preferred language returned from the session, if any.</summary>
+    public int? LanguageId { get; set; }
+}
+
+/// <summary>GET /api/v1/tourist/session/me — info about the current tourist session.</summary>
+public class TouristSessionDto
+{
+    public string SessionId { get; set; } = string.Empty;
+    public DateTime StartedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public int? LanguageId { get; set; }
+    public bool IsActive { get; set; }
+}
+
+// ============ Tour QR Code (Admin) ============
+
+/// <summary>List item returned by GET /api/v1/tourist/qr.</summary>
+public class TourQRCodeDto
+{
+    public int Id { get; set; }
+    public string QRToken { get; set; } = string.Empty;
+    public string? Label { get; set; }
+    public int? MaxUses { get; set; }
+    public int UseCount { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>POST /api/v1/tourist/qr — admin creates a new QR code for a tour group.</summary>
+public class CreateQRCodeRequest
+{
+    /// <summary>Admin-friendly label, e.g. "Nhóm sáng 18/04".</summary>
+    public string? Label { get; set; }
+
+    /// <summary>Maximum number of tourists that can use this QR. Null = unlimited.</summary>
+    public int? MaxUses { get; set; }
+
+    /// <summary>Optional expiry date/time for the QR. Null = never expires.</summary>
+    public DateTime? ExpiresAt { get; set; }
+}
+
+// ============ Realtime Presence (Monitor) ============
+
+/// <summary>POST /api/v1/presence/update — mobile app reports current GPS position.</summary>
+public class PresenceUpdateRequest
+{
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    /// <summary>Current active POI ID, null if between POIs.</summary>
+    public int? PoiId { get; set; }
+    /// <summary>"enter" | "exit" | "move" — what triggered this update.</summary>
+    public string EventType { get; set; } = "move";
+}
+
+/// <summary>POST /api/v1/presence/web-visitor — visitor site heartbeat.</summary>
+public class WebVisitorPresenceRequest
+{
+    /// <summary>
+    /// Stable anonymous browser identifier generated by visitor frontend.
+    /// </summary>
+    public string VisitorId { get; set; } = string.Empty;
+}
+
+/// <summary>POST /api/v1/presence/web-location — anonymous visitor reports GPS position.</summary>
+public class WebVisitorLocationRequest
+{
+    /// <summary>Stable anonymous browser identifier generated by visitor frontend.</summary>
+    public string VisitorId { get; set; } = string.Empty;
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+}
+
+/// <summary>GPS position of an anonymous web visitor on the visitor site.</summary>
+public class WebVisitorPositionDto
+{
+    public string VisitorId { get; set; } = string.Empty;
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+/// <summary>GET /api/v1/presence/snapshot — admin realtime snapshot of all active tourists.</summary>
+public class PresenceSnapshot
+{
+    /// <summary>Total number of active tourist sessions right now.</summary>
+    public int ActiveTourists { get; set; }
+    /// <summary>Number of active anonymous website visitors.</summary>
+    public int WebVisitors { get; set; }
+    /// <summary>Total online visitors = ActiveTourists + WebVisitors.</summary>
+    public int TotalOnlineVisitors { get; set; }
+    /// <summary>Breakdown of tourists per POI.</summary>
+    public List<PoiPresenceCount> PerPOI { get; set; } = [];
+    /// <summary>Raw position list for heatmap rendering.</summary>
+    public List<TouristPositionDto> Positions { get; set; } = [];
+    /// <summary>GPS positions of anonymous web visitors (visitor site with geolocation).</summary>
+    public List<WebVisitorPositionDto> WebVisitorPositions { get; set; } = [];
+    public DateTime SnapshotAt { get; set; } = DateTime.UtcNow;
+}
+
+public class PoiPresenceCount
+{
+    public int PoiId { get; set; }
+    public string PoiName { get; set; } = string.Empty;
+    public int Count { get; set; }
+}
+
+public class TouristPositionDto
+{
+    public string SessionId { get; set; } = string.Empty;
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public int? PoiId { get; set; }
+    public string? PoiName { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+// ============ Visit Ingestion (Channel<T> Queue) ============
+
+/// <summary>
+/// Internal message sent to the VisitIngestionService's Channel.
+/// Contains all data needed to persist a batch of visits to the DB.
+/// </summary>
+public class VisitBatchMessage
+{
+    public List<VisitInput> Visits { get; set; } = [];
+    public int? UserId { get; set; }       // authenticated user (null for anonymous tourists)
+    public string? SessionId { get; set; } // tourist session ID (null for registered users)
+    public DateTime ReceivedAt { get; set; } = DateTime.UtcNow;
+}
+
+// ============ Presence Dashboard Stats ============
+
+/// <summary>
+/// Aggregated stats for the Live Monitor dashboard.
+/// Combines realtime ActivePresence data with historical TouristSession + VisitHistory counts.
+/// GET /api/v1/presence/stats — Admin only.
+/// </summary>
+public class PresenceDashboardStats
+{
+    /// <summary>Tourist sessions active in the last 24 hours (IsActive = true).</summary>
+    public int ActiveSessionsLast24h { get; set; }
+
+    /// <summary>Tourist sessions active right now (LastSeenAt within 15 min or IsActive = true + ExpiresAt future).</summary>
+    public int ActiveSessionsNow { get; set; }
+
+    /// <summary>Tourists currently inside a POI geofence (ActivePresence.PoiId IS NOT NULL).</summary>
+    public int TouristsAtPOI { get; set; }
+
+    /// <summary>Number of distinct POIs that currently have at least one tourist.</summary>
+    public int ActivePOIs { get; set; }
+
+    /// <summary>Total visit records created today (UTC midnight to now).</summary>
+    public int TotalVisitsToday { get; set; }
+
+    /// <summary>Total visit records this week (Mon–Sun UTC).</summary>
+    public int TotalVisitsThisWeek { get; set; }
+
+    /// <summary>Number of active (non-expired, IsActive) TourQRCodes.</summary>
+    public int ActiveQRCodes { get; set; }
+
+    /// <summary>Anonymous web heartbeat visitor count (in-memory, approx 2 min window).</summary>
+    public int WebVisitors { get; set; }
+
+    /// <summary>Total online = ActiveSessionsNow + WebVisitors.</summary>
+    public int TotalOnline { get; set; }
+
+    /// <summary>Per-POI tourist breakdown (realtime from ActivePresence).</summary>
+    public List<PoiPresenceCount> PerPOI { get; set; } = [];
+
+    /// <summary>Number of distinct POIs visited today (from VisitHistory — historical fallback).</summary>
+    public int VisitedPOIsToday { get; set; }
+
+    /// <summary>Number of distinct sessions/users who visited any POI today.</summary>
+    public int UniqueVisitorsToday { get; set; }
+
+    /// <summary>
+    /// Per-POI visit counts for today (from VisitHistory).
+    /// Used as fallback for sidebar list when PerPOI (realtime) is empty.
+    /// </summary>
+    public List<PoiPresenceCount> PerPOIToday { get; set; } = [];
+
+    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
 }
