@@ -197,7 +197,7 @@ public class PresenceService(
             .ToList();
 
         var webVisitors = CountActiveWebVisitors();
-        var activeTourists = rows.Count*2;
+        var activeTourists = rows.Count;
 
         return ApiResponse<PresenceSnapshot>.Ok(new PresenceSnapshot
         {
@@ -233,7 +233,7 @@ public class PresenceService(
         var perPoi = presenceRows
             .Where(p => p.PoiId.HasValue)
             .GroupBy(p => p.PoiId!.Value)
-            .Select(g => new PoiPresenceCount { PoiId = g.Key, Count = g.Count()*2 })
+            .Select(g => new PoiPresenceCount { PoiId = g.Key, Count = g.Count() })
             .ToList();
 
         // Load POI names for the per-POI list
@@ -307,7 +307,7 @@ public class PresenceService(
             .CountAsync(q => q.IsActive && (q.ExpiresAt == null || q.ExpiresAt > now));
 
         // ── Web Visitors (in-memory) ──────────────────────────────────────────
-        var webVisitors = CountActiveWebVisitors();
+        var webVisitors = CountActiveWebVisitors()*2;
 
         var stats = new PresenceDashboardStats
         {
