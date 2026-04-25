@@ -41,6 +41,45 @@ public class PresenceService(
     {
         await UpsertPresenceAsync(sessionId, poiId, lat, lng);
 
+        // ── Record a VisitHistory entry so analytics (Visits by Hour etc.) reflect this POI visit ──
+        // Guard: skip if this session already has a visit for the same POI in the last 5 minutes
+        // to avoid duplicates when presence pings fire multiple "enter" events in quick succession.
+        var recentCutoff = DateTime.UtcNow.AddMinutes(-5);
+        var alreadyRecorded = await db.VisitHistory.AnyAsync(v =>
+            v.DeviceId == sessionId &&
+            v.POIId == poiId &&
+            v.VisitedAt >= recentCutoff);
+
+        if (!alreadyRecorded)
+        {
+            // Look up the tourist's preferred language from their session
+            var session = await db.TouristSessions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.SessionToken == sessionId);
+
+            db.VisitHistory.Add(new Domain.Entities.VisitHistory
+            {
+                POIId           = poiId,
+                UserId          = null,           // anonymous tourist — no registered account
+                LanguageId      = session?.LanguageId ?? 1, // fallback to Vietnamese (id=1)
+                TriggerType     = Domain.Enums.TriggerType.GeofenceEnter,
+                NarrationPlayed = false,          // unknown at enter time; updated later by sync
+                ListenDuration  = 0,
+                VisitedAt       = DateTime.UtcNow,
+                Latitude        = lat,
+                Longitude       = lng,
+                DeviceId        = sessionId       // used as duplicate-check key above
+            });
+            await db.SaveChangesAsync();
+
+            // Bump denormalized TotalVisits counter on the POI
+            await db.POIs
+                .Where(p => p.Id == poiId)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.TotalVisits, p => p.TotalVisits + 1));
+
+            logger.LogDebug("[Presence] Recorded VisitHistory for session {S} → POI {P}", sessionId[..8], poiId);
+        }
+
         // Broadcast to admin monitor group
         var poiName = await db.POIs
             .Where(p => p.Id == poiId)

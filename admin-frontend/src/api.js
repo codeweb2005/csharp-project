@@ -217,7 +217,10 @@ export const analytics = {
     return request(`/analytics/visits-by-day?${q}`)
   },
   getVisitsByHour: (date, poiId = null) => {
-    const q = new URLSearchParams({ date })
+    // `date` is a LOCAL date string "YYYY-MM-DD"
+    // tzOffset = minutes east of UTC (e.g. GMT+7 → 420)
+    const tzOffset = -new Date().getTimezoneOffset() // JS getTimezoneOffset returns negative for east
+    const q = new URLSearchParams({ date, tzOffset })
     if (poiId) q.set('poiId', poiId)
     return request(`/analytics/visits-by-hour?${q}`)
   },

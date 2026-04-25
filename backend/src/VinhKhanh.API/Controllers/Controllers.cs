@@ -557,21 +557,51 @@ public class DashboardController(IDashboardService svc, IUserService userSvc) : 
 [Authorize(Roles = "Admin,Vendor")]
 public class AnalyticsController(IAnalyticsService svc, IUserService userSvc) : BaseApiController
 {
+    /// <summary>
+    /// Resolves the effective POI filter list:
+    /// - Vendor: always scoped to their own POIs (optionally narrowed to one).
+    /// - Admin: if poiId is specified filter to that one POI; otherwise global.
+    /// </summary>
+    private async Task<List<int>?> ResolvePoiFilter(int? poiId)
+    {
+        var vendorIds = await GetVendorPOIIdsAsync(userSvc); // null for Admin
+        if (vendorIds != null)
+        {
+            // Vendor: only allow selecting among their own POIs
+            return poiId.HasValue && vendorIds.Contains(poiId.Value)
+                ? [poiId.Value]
+                : vendorIds;
+        }
+        // Admin: single POI filter or global
+        return poiId.HasValue ? [poiId.Value] : null;
+    }
+
     [HttpGet("trends")]
-    public async Task<IActionResult> GetTrends([FromQuery] string period = "30d")
-        => ApiResult(await svc.GetTrendsAsync(period, await GetVendorPOIIdsAsync(userSvc)));
+    public async Task<IActionResult> GetTrends(
+        [FromQuery] string period = "30d",
+        [FromQuery] int? poiId = null)
+        => ApiResult(await svc.GetTrendsAsync(period, await ResolvePoiFilter(poiId)));
 
     [HttpGet("visits-by-day")]
-    public async Task<IActionResult> GetVisitsByDay([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetVisitsByDayAsync(from, to, await GetVendorPOIIdsAsync(userSvc)));
+    public async Task<IActionResult> GetVisitsByDay(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        [FromQuery] int? poiId = null)
+        => ApiResult(await svc.GetVisitsByDayAsync(from, to, await ResolvePoiFilter(poiId)));
 
     [HttpGet("visits-by-hour")]
-    public async Task<IActionResult> GetVisitsByHour([FromQuery] DateTime date)
-        => ApiResult(await svc.GetVisitsByHourAsync(date, await GetVendorPOIIdsAsync(userSvc)));
+    public async Task<IActionResult> GetVisitsByHour(
+        [FromQuery] DateTime date,
+        [FromQuery] int? poiId = null,
+        [FromQuery] int tzOffset = 420)
+        => ApiResult(await svc.GetVisitsByHourAsync(date, await ResolvePoiFilter(poiId), tzOffset));
 
     [HttpGet("language-distribution")]
-    public async Task<IActionResult> GetLanguages([FromQuery] DateTime from, [FromQuery] DateTime to)
-        => ApiResult(await svc.GetLanguageDistributionAsync(from, to, await GetVendorPOIIdsAsync(userSvc)));
+    public async Task<IActionResult> GetLanguages(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        [FromQuery] int? poiId = null)
+        => ApiResult(await svc.GetLanguageDistributionAsync(from, to, await ResolvePoiFilter(poiId)));
 }
 
 // ================================

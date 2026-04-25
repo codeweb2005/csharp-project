@@ -48,7 +48,9 @@ export default function Analytics() {
         try {
             const to = new Date().toISOString()
             const from = new Date(Date.now() - daysFromPeriod(period) * 86400000).toISOString()
-            const today = new Date().toISOString().split('T')[0]
+            // Use LOCAL date string (YYYY-MM-DD) so "today" matches the user's timezone,
+            // not UTC (which would be wrong for VN in the early morning GMT+7 hours).
+            const today = new Date().toLocaleDateString('en-CA') // en-CA → "YYYY-MM-DD"
 
             // poiId param is passed to API so backend can filter by specific POI.
             // For vendors with no selection (null) the backend scopes by all vendorPoiIds from JWT.
@@ -82,7 +84,7 @@ export default function Analytics() {
         { label: 'Total Visits', value: trends.totalVisits?.value ?? 0, change: trends.totalVisits?.changePercent ?? 0, color: '#00246a', bg: '#eff6ff' },
         { label: 'Narrations Played', value: trends.narrations?.value ?? 0, change: trends.narrations?.changePercent ?? 0, color: '#22c55e', bg: '#f0fdf4' },
         { label: 'New Users', value: trends.newUsers?.value ?? 0, change: trends.newUsers?.changePercent ?? 0, color: '#4059aa', bg: '#f5f3ff' },
-        { label: 'Avg Listen Time', value: `${trends.avgListenTime?.value ?? 0}s`, change: trends.avgListenTime?.changePercent ?? 0, color: '#5c3800', bg: '#fff7ed' },
+        { label: 'Avg Listen Time', value: `${trends.avgListenDuration?.value ?? 0}s`, change: trends.avgListenDuration?.changePercent ?? 0, color: '#5c3800', bg: '#fff7ed' },
     ] : []
 
     if (loading && !trends) {

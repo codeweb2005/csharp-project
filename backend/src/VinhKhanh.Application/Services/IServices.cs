@@ -169,7 +169,7 @@ public interface IAnalyticsService
 {
     Task<ApiResponse<Dictionary<string, TrendDto>>> GetTrendsAsync(string period, List<int>? vendorPOIIds = null);
     Task<ApiResponse<List<VisitChartDto>>>   GetVisitsByDayAsync(DateTime from, DateTime to, List<int>? vendorPOIIds = null);
-    Task<ApiResponse<List<HourlyVisitDto>>>  GetVisitsByHourAsync(DateTime date, List<int>? vendorPOIIds = null);
+    Task<ApiResponse<List<HourlyVisitDto>>>  GetVisitsByHourAsync(DateTime date, List<int>? vendorPOIIds = null, int tzOffsetMinutes = 420);
     Task<ApiResponse<List<LanguageStatDto>>> GetLanguageDistributionAsync(DateTime from, DateTime to, List<int>? vendorPOIIds = null);
 }
 
