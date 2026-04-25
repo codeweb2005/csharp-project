@@ -307,7 +307,7 @@ public class PresenceService(
             .CountAsync(q => q.IsActive && (q.ExpiresAt == null || q.ExpiresAt > now));
 
         // ── Web Visitors (in-memory) ──────────────────────────────────────────
-        var webVisitors = CountActiveWebVisitors()*2;
+        var webVisitors = CountActiveWebVisitors();
 
         var stats = new PresenceDashboardStats
         {
