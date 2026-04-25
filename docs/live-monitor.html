@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Monitor Sequences - Vinh Khanh Docs</title>
+  <meta name="description" content="Sequence diagrams for Live Tour Monitor: SignalR connection, presence broadcast, REST polling.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="progress-bar" id="progressBar"></div>
+  <nav>
+    <div class="nav-inner">
+      <a href="index.html" class="logo">🍜 Vinh Khanh<span class="logo-dot">.</span>docs</a>
+      <button class="nav-toggle">☰</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="overview.html">Kien truc</a></li>
+        <li><a href="geofence.html">Geofence</a></li>
+        <li><a href="audio.html">Audio/TTS</a></li>
+        <li><a href="auth.html">Auth/JWT</a></li>
+        <li><a href="uml.html">UML</a></li>
+        <li><a href="live-monitor.html" class="active">Live Monitor</a></li>
+        <li><a href="features.html">Chuc nang</a></li>
+        <li><a href="appendix.html">Tech Stack</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="page-hero">
+    <h1>Live Tour Monitor - Sequence Diagrams</h1>
+    <p class="subtitle">
+      Ba luong chinh cua tinh nang Live Monitor, ten phuong thuc khop chinh xac theo source code:
+      <strong>useMonitorHub.js</strong>, <strong>TourMonitorHub.cs</strong>,
+      <strong>PresenceService.cs</strong>, <strong>LiveMonitorPage.jsx</strong>.
+    </p>
+    <div class="badges">
+      <span class="badge teal">SignalR WebSocket</span>
+      <span class="badge">REST Polling</span>
+      <span class="badge indigo">Real-time Broadcast</span>
+      <span class="badge">Background Cleanup</span>
+    </div>
+  </div>
+
+  <div class="breadcrumb">
+    <a href="index.html">Home</a> › <a href="uml.html">UML</a> › <strong>Live Monitor Sequences</strong>
+  </div>
+
+  <div class="page-content">
+
+    <!-- SOURCE REFERENCE -->
+    <div class="section-block">
+      <div class="section-header">
+        <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">📂</div>
+        <div>
+          <div class="section-num">Source Reference - Verified From Codebase</div>
+          <h2>Files Da Duoc Kiem Tra Truc Tiep</h2>
+        </div>
+      </div>
+      <div class="card-grid">
+        <div class="card">
+          <h3>Frontend</h3>
+          <ul>
+            <li><code>hooks/useMonitorHub.js</code></li>
+            <li><code>pages/Monitor/LiveMonitorPage.jsx</code></li>
+            <li><code>api.js</code> — <code>presence.getSnapshot()</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Backend</h3>
+          <ul>
+            <li><code>TourMonitorHub.cs</code></li>
+            <li><code>PresenceService.cs</code></li>
+            <li><code>PresenceCleanupService</code> (BackgroundService)</li>
+            <li><code>Controllers.cs</code> — PresenceController</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Endpoints (verified)</h3>
+          <ul>
+            <li>Hub: <code>ws://.../hubs/monitor</code></li>
+            <li><code>POST /api/v1/presence/update</code> [Tourist]</li>
+            <li><code>GET  /api/v1/presence/snapshot</code> [Admin]</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Key Design Notes</h3>
+          <ul>
+            <li>One unified endpoint for all tourist events</li>
+            <li><code>EventType</code> field drives dispatch</li>
+            <li><code>sessionId</code> from JWT claim (not body)</li>
+            <li>Polling interval: <code>10_000</code> ms</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIAGRAM 1: Admin SignalR Connection -->
+    <div class="section-block">
+      <div class="section-header">
+        <div class="icon" style="background:rgba(20,184,166,.1);color:var(--teal)">1</div>
+        <div>
+          <div class="section-num">Luong 1 — Admin Ket Noi SignalR</div>
+          <h2>useMonitorHub connects to TourMonitorHub via SignalR WebSocket</h2>
+        </div>
+      </div>
+      <div class="highlight" style="margin-bottom:1.2rem">
+        <strong>Entry point:</strong> <code>LiveMonitorPage</code> renders →
+        <code>useMonitorHub({ onEnter, onExit, onMove })</code> → <code>useEffect</code> fires
+        → <code>connect()</code> async → <code>connection.start()</code> → <code>connection.invoke("JoinMonitorGroup")</code>.
+      </div>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor Admin as Admin Browser
+  participant LMP as LiveMonitorPage.jsx
+  participant UMH as useMonitorHub.js
+  participant HBC as HubConnectionBuilder
+  participant HUB as TourMonitorHub.cs
+  participant GRP as SignalR Group Admins
+
+  Admin->>LMP: Navigate to /monitor
+  activate LMP
+
+  LMP->>UMH: useMonitorHub({ onEnter: handleEnter, onExit: handleExit, onMove: handleMove })
+  activate UMH
+
+  Note over UMH: useEffect([enabled, connect]) triggered
+
+  UMH->>HBC: new HubConnectionBuilder()<br/>.withUrl("/hubs/monitor", { accessTokenFactory: () => token })<br/>.withAutomaticReconnect([0, 2000, 5000, 10000, 30000])<br/>.configureLogging(LogLevel.Warning)<br/>.build()
+  HBC-->>UMH: connection (HubConnection instance)
+
+  UMH->>UMH: connection.on("TouristEnteredPOI",     msg => onEnter?.(msg))
+  UMH->>UMH: connection.on("TouristExitedPOI",      msg => onExit?.(msg))
+  UMH->>UMH: connection.on("TouristLocationUpdate", msg => onMove?.(msg))
+
+  UMH->>UMH: connection.onreconnected(() => connection.invoke("JoinMonitorGroup"))
+
+  UMH->>HUB: await connection.start()
+  activate HUB
+  Note over HUB: [Authorize(Roles = "Admin")] validated
+  HUB-->>UMH: 101 Switching Protocols — WebSocket established
+  deactivate HUB
+
+  UMH->>HUB: await connection.invoke("JoinMonitorGroup")
+  activate HUB
+  HUB->>GRP: Groups.AddToGroupAsync(Context.ConnectionId, "Admins")
+  GRP-->>HUB: OK
+  HUB-->>UMH: Task completed (void return)
+  deactivate HUB
+
+  Note over UMH: connRef.current = connection
+
+  UMH-->>LMP: { connection: connRef }
+  deactivate UMH
+
+  Note over LMP: Concurrently: fetchSnapshot() + setInterval(fetchSnapshot, 10_000)
+  deactivate LMP
+        </div>
+        <div class="mermaid-caption">
+          Diagram 1: <code>useMonitorHub.js</code> builds SignalR connection to <code>/hubs/monitor</code>,
+          registers 3 event listeners, invokes <code>JoinMonitorGroup()</code> on <code>TourMonitorHub.cs</code>
+          which calls <code>Groups.AddToGroupAsync(ConnectionId, "Admins")</code>.
+          On reconnect, <code>JoinMonitorGroup()</code> is re-invoked automatically.
+        </div>
+      </div>
+    </div>
+
+    <!-- DIAGRAM 2: Tourist Triggers Broadcast (CORRECTED) -->
+    <div class="section-block">
+      <div class="section-header">
+        <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">2</div>
+        <div>
+          <div class="section-num">Luong 2 — Tourist Kich Hoat Broadcast Real-time</div>
+          <h2>POST /api/v1/presence/update (single endpoint, EventType dispatch)</h2>
+        </div>
+      </div>
+      <div class="highlight" style="margin-bottom:1.2rem">
+        <strong>IMPORTANT — verified from Controllers.cs:</strong> There is only
+        <strong>one</strong> endpoint: <code>POST /api/v1/presence/update</code>
+        [Authorize(Roles = "Tourist")]. The field <code>req.EventType</code> drives a
+        <code>switch</code> to call different <code>PresenceService</code> methods.
+        <code>sessionId</code> is extracted from the <strong>JWT claim</strong>
+        (<code>User.FindFirst("sessionId")?.Value</code>) — it is NOT in the request body.
+      </div>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor Tourist as Tourist App (Role=Tourist JWT)
+  participant CTRL as PresenceController.Update()
+  participant SVC as PresenceService.cs
+  participant DB as ActivePresence (MySQL)
+  participant HUB as IHubContext TourMonitorHub
+  participant GRP as Group Admins (SignalR)
+  participant UMH as useMonitorHub.js
+  participant LMP as LiveMonitorPage.jsx
+
+  Tourist->>CTRL: POST /api/v1/presence/update<br/>Header: Authorization Bearer Tourist-JWT<br/>Body: PresenceUpdateRequest { EventType, PoiId?, Latitude, Longitude }
+  activate CTRL
+
+  Note over CTRL: sessionId = User.FindFirst("sessionId")?.Value ?? ""<br/>Extracted from JWT claim — NOT from request body
+
+  alt EventType.ToLower() == "enter" AND PoiId.HasValue
+    Note over CTRL,LMP: case "enter" with PoiId
+    CTRL->>SVC: TrackEnterAsync(sessionId, req.PoiId.Value, req.Latitude, req.Longitude)
+    activate SVC
+
+    SVC->>SVC: UpsertPresenceAsync(sessionId, poiId, lat, lng)
+    SVC->>DB: ActivePresence.FindAsync(sessionId)
+    DB-->>SVC: existing row or null
+    SVC->>DB: Upsert row (PoiId, Latitude, Longitude, UpdatedAt=UtcNow) - SaveChangesAsync
+    DB-->>SVC: OK
+
+    SVC->>DB: POIs.Where(Id==poiId).SelectMany(Translations)<br/>.OrderBy(LanguageId).Select(Name).FirstOrDefaultAsync()
+    DB-->>SVC: poiName
+
+    SVC->>HUB: hub.Clients.Group("Admins").SendAsync("TouristEnteredPOI",<br/>  { eventType="enter", sessionId[..8]+"...", poiId, poiName, lat, lng, timestamp=UtcNow })
+    HUB->>GRP: Broadcast TouristEnteredPOI to all Admins
+    GRP->>UMH: connection.on("TouristEnteredPOI") fires
+    UMH->>LMP: onEnter(msg) -> handleEnter(msg)
+    LMP->>LMP: setConnected(true)
+    LMP->>LMP: pushEvent({ ...msg, eventType: "enter" })
+    LMP->>LMP: fetchSnapshot()
+    deactivate SVC
+
+  else EventType.ToLower() == "exit"
+    Note over CTRL,LMP: case "exit"
+    CTRL->>SVC: TrackExitAsync(sessionId, req.PoiId)
+    activate SVC
+
+    SVC->>DB: ActivePresence.FindAsync(sessionId)
+    DB-->>SVC: presence row (no-op if null)
+    SVC->>DB: presence.PoiId=null; presence.UpdatedAt=UtcNow; SaveChangesAsync()
+    DB-->>SVC: OK
+
+    Note over SVC: Only broadcasts if req.PoiId.HasValue
+    SVC->>HUB: hub.Clients.Group("Admins").SendAsync("TouristExitedPOI",<br/>  { eventType="exit", sessionId[..8]+"...", poiId, timestamp=UtcNow })
+    HUB->>GRP: Broadcast TouristExitedPOI
+    GRP->>UMH: connection.on("TouristExitedPOI") fires
+    UMH->>LMP: onExit(msg) -> handleExit(msg)
+    LMP->>LMP: pushEvent({ ...msg, eventType: "exit" })
+    LMP->>LMP: fetchSnapshot()
+    deactivate SVC
+
+  else default (any other EventType, e.g. "location")
+    Note over CTRL,LMP: default case (GPS ping)
+    CTRL->>SVC: UpdateLocationAsync(sessionId, req.Latitude, req.Longitude)
+    activate SVC
+
+    SVC->>DB: ActivePresence.FindAsync(sessionId)
+    DB-->>SVC: presence row (returns early if null)
+    SVC->>DB: presence.Latitude=lat; presence.Longitude=lng;<br/>presence.UpdatedAt=UtcNow; SaveChangesAsync()
+    DB-->>SVC: OK
+
+    SVC->>HUB: hub.Clients.Group("Admins").SendAsync("TouristLocationUpdate",<br/>  { sessionId[..8]+"...", lat, lng, poiId=presence.PoiId, timestamp=UtcNow })
+    HUB->>GRP: Broadcast TouristLocationUpdate
+    GRP->>UMH: connection.on("TouristLocationUpdate") fires
+    UMH->>LMP: onMove(msg) -> handleMove(msg)
+    LMP->>LMP: pushEvent({ ...msg, eventType: "move" })
+    LMP->>LMP: fetchSnapshot()
+    deactivate SVC
+  end
+
+  CTRL-->>Tourist: 200 OK { ok: true }
+  deactivate CTRL
+        </div>
+        <div class="mermaid-caption">
+          Diagram 2 (corrected): A single <code>PresenceController.Update()</code> action handles all tourist events.
+          <code>sessionId</code> comes from JWT claim. <code>switch(req.EventType.ToLower())</code> dispatches to
+          <code>TrackEnterAsync</code> / <code>TrackExitAsync</code> / <code>UpdateLocationAsync</code>.
+          Each path ends with a <code>hub.Clients.Group("Admins").SendAsync(...)</code> broadcast.
+        </div>
+      </div>
+    </div>
+
+    <!-- DIAGRAM 3: REST Polling + Cleanup -->
+    <div class="section-block">
+      <div class="section-header">
+        <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">3</div>
+        <div>
+          <div class="section-num">Luong 3 — REST Polling + PresenceCleanupService</div>
+          <h2>fetchSnapshot() every 10s + PurgeStaleAsync every 5min</h2>
+        </div>
+      </div>
+      <div class="highlight" style="margin-bottom:1.2rem">
+        <strong>REST Polling:</strong> <code>LiveMonitorPage</code> calls <code>presence.getSnapshot()</code>
+        → <code>GET /api/v1/presence/snapshot</code> [Admin] every <strong>10 000 ms</strong>
+        (SNAPSHOT_INTERVAL_MS = 10_000). Also called immediately after each SignalR event via <code>pushEvent()</code>.
+        <strong>Cleanup:</strong> <code>PresenceCleanupService</code> (BackgroundService) calls
+        <code>PurgeStaleAsync(TimeSpan.FromMinutes(15))</code> every 5 minutes.
+      </div>
+      <div class="mermaid-wrap">
+        <div class="mermaid">
+sequenceDiagram
+  autonumber
+  participant LMP as LiveMonitorPage.jsx
+  participant API as api.js - presence
+  participant CTRL as PresenceController.GetSnapshot()
+  participant SVC as PresenceService.cs
+  participant DB as ActivePresence (MySQL)
+  participant CLN as PresenceCleanupService
+
+  rect rgb(12, 26, 46)
+    Note over LMP,DB: REST Polling — every SNAPSHOT_INTERVAL_MS = 10_000 ms
+    Note over LMP: useEffect -> fetchSnapshot() + setInterval(fetchSnapshot, 10_000)
+
+    loop Every 10 seconds (or immediately after SignalR event via pushEvent)
+      LMP->>API: presence.getSnapshot()
+      API->>CTRL: GET /api/v1/presence/snapshot<br/>Authorization: Bearer Admin-JWT
+      activate CTRL
+
+      CTRL->>SVC: presenceSvc.GetSnapshotAsync()
+      activate SVC
+
+      Note over SVC: staleThreshold = UtcNow.AddMinutes(-15)
+      SVC->>DB: db.ActivePresence<br/>.Where(p => p.UpdatedAt >= staleThreshold)<br/>.Include(p => p.Poi).ThenInclude(poi => poi.Translations)<br/>.AsNoTracking().ToListAsync()
+      DB-->>SVC: List of ActivePresence rows
+
+      SVC->>SVC: positions = rows.Select(p => new TouristPositionDto {<br/>  SessionId = p.SessionId[..8]+"...",<br/>  Latitude, Longitude, PoiId,<br/>  PoiName = p.Poi.Translations.OrderBy(LanguageId).Select(Name).FirstOrDefault(),<br/>  UpdatedAt })
+
+      SVC->>SVC: perPoi = rows.Where(PoiId.HasValue)<br/>.GroupBy(PoiId.Value)<br/>.Select(g => new PoiPresenceCount {<br/>  PoiId=g.Key, PoiName, Count=g.Count() })<br/>.OrderByDescending(Count).ToList()
+
+      SVC-->>CTRL: ApiResponse.Ok(new PresenceSnapshot {<br/>  ActiveTourists = rows.Count,<br/>  PerPOI = perPoi,<br/>  Positions = positions,<br/>  SnapshotAt = UtcNow })
+      deactivate SVC
+
+      CTRL-->>API: 200 OK — PresenceSnapshot JSON
+      deactivate CTRL
+
+      API-->>LMP: res.data (PresenceSnapshot)
+      LMP->>LMP: if (res?.success) { setSnapshot(res.data); setLastUpdate(new Date()) }
+      Note over LMP: UI updates:<br/>activeTourists = snapshot.activeTourists<br/>perPOI = snapshot.perPOI (PoiPresenceList badges)<br/>positions = snapshot.positions (CircleMarker on Leaflet map)
+    end
+  end
+
+  rect rgb(20, 10, 10)
+    Note over CLN,DB: PresenceCleanupService (BackgroundService) — every 5 minutes
+    loop Every 5 minutes via Task.Delay(TimeSpan.FromMinutes(5), stoppingToken)
+      CLN->>CLN: scopeFactory.CreateScope()
+      CLN->>CLN: scope.ServiceProvider.GetRequiredService of IPresenceService
+      CLN->>SVC: presenceSvc.PurgeStaleAsync(TimeSpan.FromMinutes(15))
+      activate SVC
+
+      Note over SVC: cutoff = UtcNow - 15min
+      SVC->>DB: db.ActivePresence.Where(p => p.UpdatedAt < cutoff).ToListAsync()
+      DB-->>SVC: stale rows list
+
+      alt stale.Count > 0
+        SVC->>DB: db.ActivePresence.RemoveRange(stale); SaveChangesAsync()
+        DB-->>SVC: OK
+        Note over SVC: LogInformation("[Presence] Purged N stale rows (older than 15min)")
+      else stale.Count == 0
+        Note over SVC: return — no-op
+      end
+
+      deactivate SVC
+    end
+  end
+
+  rect rgb(10, 20, 10)
+    Note over LMP: Admin Leaves Page — useEffect cleanup
+    LMP->>LMP: connRef.current?.stop() — WebSocket disconnected
+    LMP->>LMP: connRef.current = null
+    LMP->>LMP: clearInterval(timer) — polling stopped
+    Note over LMP: TourMonitorHub.OnDisconnectedAsync fires on server
+  end
+        </div>
+        <div class="mermaid-caption">
+          Diagram 3: <strong>Polling</strong> — <code>presence.getSnapshot()</code> →
+          <code>GET /api/v1/presence/snapshot</code> [Admin] →
+          <code>PresenceService.GetSnapshotAsync()</code> queries <code>ActivePresence</code>
+          within a 15-min window, groups by <code>PoiId</code>, returns <code>PresenceSnapshot</code>.
+          <strong>Cleanup</strong> — <code>PresenceCleanupService</code> calls
+          <code>PurgeStaleAsync(TimeSpan.FromMinutes(15))</code> every 5 minutes via
+          <code>Task.Delay(TimeSpan.FromMinutes(5))</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- METHOD REFERENCE TABLE -->
+    <div class="section-block">
+      <div class="section-header">
+        <div class="icon" style="background:rgba(16,185,129,.1);color:var(--success)">📋</div>
+        <div>
+          <div class="section-num">Reference</div>
+          <h2>Method Map — Verified Against Source Code</h2>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:.88rem">
+          <thead>
+            <tr style="background:#1e293b;color:#e2e8f0">
+              <th style="padding:10px 14px;text-align:left;border-bottom:2px solid #334155">Layer</th>
+              <th style="padding:10px 14px;text-align:left;border-bottom:2px solid #334155">File</th>
+              <th style="padding:10px 14px;text-align:left;border-bottom:2px solid #334155">Method / Event</th>
+              <th style="padding:10px 14px;text-align:left;border-bottom:2px solid #334155">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#14b8a6;font-weight:600">Hook</td><td style="padding:9px 14px"><code>useMonitorHub.js</code></td><td style="padding:9px 14px"><code>connect()</code> — async</td><td style="padding:9px 14px">useCallback; guarded by connRef.current check</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#0f172a"><td style="padding:9px 14px;color:#14b8a6;font-weight:600">Hook</td><td style="padding:9px 14px"><code>useMonitorHub.js</code></td><td style="padding:9px 14px"><code>connection.invoke("JoinMonitorGroup")</code></td><td style="padding:9px 14px">Called on start + on reconnect</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#14b8a6;font-weight:600">Hook</td><td style="padding:9px 14px"><code>useMonitorHub.js</code></td><td style="padding:9px 14px"><code>connection.on("TouristEnteredPOI")</code><br/><code>connection.on("TouristExitedPOI")</code><br/><code>connection.on("TouristLocationUpdate")</code></td><td style="padding:9px 14px">3 event listeners → onEnter / onExit / onMove callbacks</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#0f172a"><td style="padding:9px 14px;color:#6366f1;font-weight:600">Page</td><td style="padding:9px 14px"><code>LiveMonitorPage.jsx</code></td><td style="padding:9px 14px"><code>fetchSnapshot()</code></td><td style="padding:9px 14px">useCallback; calls presence.getSnapshot(); runs every 10s + after each event</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#6366f1;font-weight:600">Page</td><td style="padding:9px 14px"><code>LiveMonitorPage.jsx</code></td><td style="padding:9px 14px"><code>pushEvent(ev)</code></td><td style="padding:9px 14px">setEvents(prev => [...prev.slice(-49), ev]); fetchSnapshot()</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#0f172a"><td style="padding:9px 14px;color:#6366f1;font-weight:600">Page</td><td style="padding:9px 14px"><code>LiveMonitorPage.jsx</code></td><td style="padding:9px 14px"><code>handleEnter / handleExit / handleMove</code></td><td style="padding:9px 14px">3 useCallback handlers passed into useMonitorHub</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#f59e0b;font-weight:600">API</td><td style="padding:9px 14px"><code>api.js</code></td><td style="padding:9px 14px"><code>presence.getSnapshot()</code></td><td style="padding:9px 14px">request('/presence/snapshot') — GET /api/v1/presence/snapshot</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#0f172a"><td style="padding:9px 14px;color:#ef4444;font-weight:600">Controller</td><td style="padding:9px 14px"><code>Controllers.cs</code></td><td style="padding:9px 14px"><code>PresenceController.Update(req)</code></td><td style="padding:9px 14px">POST /api/v1/presence/update [Tourist]; sessionId from JWT claim User.FindFirst("sessionId")</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#ef4444;font-weight:600">Controller</td><td style="padding:9px 14px"><code>Controllers.cs</code></td><td style="padding:9px 14px"><code>PresenceController.GetSnapshot()</code></td><td style="padding:9px 14px">GET /api/v1/presence/snapshot [Admin]</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#0f172a"><td style="padding:9px 14px;color:#ef4444;font-weight:600">Hub</td><td style="padding:9px 14px"><code>TourMonitorHub.cs</code></td><td style="padding:9px 14px"><code>JoinMonitorGroup()</code> — async Task</td><td style="padding:9px 14px">Groups.AddToGroupAsync(ConnectionId, "Admins")</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#ef4444;font-weight:600">Hub</td><td style="padding:9px 14px"><code>TourMonitorHub.cs</code></td><td style="padding:9px 14px"><code>LeaveMonitorGroup()</code> — async Task</td><td style="padding:9px 14px">Groups.RemoveFromGroupAsync(ConnectionId, "Admins")</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#0f172a"><td style="padding:9px 14px;color:#ef4444;font-weight:600">Service</td><td style="padding:9px 14px"><code>PresenceService.cs</code></td><td style="padding:9px 14px"><code>TrackEnterAsync(sessionId, poiId, lat?, lng?)</code></td><td style="padding:9px 14px">UpsertPresenceAsync → SendAsync("TouristEnteredPOI")</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#ef4444;font-weight:600">Service</td><td style="padding:9px 14px"><code>PresenceService.cs</code></td><td style="padding:9px 14px"><code>TrackExitAsync(sessionId, poiId?)</code></td><td style="padding:9px 14px">Set PoiId=null → SendAsync("TouristExitedPOI") if poiId has value</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#0f172a"><td style="padding:9px 14px;color:#ef4444;font-weight:600">Service</td><td style="padding:9px 14px"><code>PresenceService.cs</code></td><td style="padding:9px 14px"><code>UpdateLocationAsync(sessionId, lat, lng)</code></td><td style="padding:9px 14px">Update GPS coords → SendAsync("TouristLocationUpdate"); no-op if not found</td></tr>
+            <tr style="border-bottom:1px solid #1e293b"><td style="padding:9px 14px;color:#ef4444;font-weight:600">Service</td><td style="padding:9px 14px"><code>PresenceService.cs</code></td><td style="padding:9px 14px"><code>GetSnapshotAsync()</code></td><td style="padding:9px 14px">15-min window; groups by PoiId; returns PresenceSnapshot</td></tr>
+            <tr style="border-bottom:1px solid #1e293b;background:#0f172a"><td style="padding:9px 14px;color:#ef4444;font-weight:600">Service</td><td style="padding:9px 14px"><code>PresenceService.cs</code></td><td style="padding:9px 14px"><code>UpsertPresenceAsync(sessionId, poiId?, lat?, lng?)</code></td><td style="padding:9px 14px">private; FindAsync then Add or update existing row</td></tr>
+            <tr><td style="padding:9px 14px;color:#22c55e;font-weight:600">Background</td><td style="padding:9px 14px"><code>PresenceCleanupService</code></td><td style="padding:9px 14px"><code>PurgeStaleAsync(TimeSpan.FromMinutes(15))</code></td><td style="padding:9px 14px">Called every 5min via Task.Delay(TimeSpan.FromMinutes(5))</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="sibling-nav">
+    <a href="uml.html">← UML Diagrams</a>
+    <a href="features.html">Features →</a>
+  </div>
+  <footer>
+    <p><strong>Vinh Khanh Food Tour</strong> — Audio tour platform, Vinh Khanh food street, HCMC</p>
+    <div class="footer-links">
+      <a href="index.html">Home</a><a href="uml.html">UML</a>
+      <a href="features.html">Features</a><a href="appendix.html">Tech Stack</a>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#1e3a5f',
+        primaryTextColor: '#e2e8f0',
+        primaryBorderColor: '#0ea5e9',
+        lineColor: '#64748b',
+        secondaryColor: '#0f172a',
+        tertiaryColor: '#1e293b',
+        background: '#0f172a',
+        mainBkg: '#1e293b',
+        actorBkg: '#1e293b',
+        actorBorder: '#0ea5e9',
+        actorTextColor: '#e2e8f0',
+        actorLineColor: '#475569',
+        signalColor: '#94a3b8',
+        signalTextColor: '#e2e8f0',
+        labelBoxBkgColor: '#1e293b',
+        labelBoxBorderColor: '#334155',
+        labelTextColor: '#e2e8f0',
+        loopTextColor: '#e2e8f0',
+        noteBorderColor: '#f59e0b',
+        noteBkgColor: '#1a1204',
+        noteTextColor: '#fcd34d',
+        activationBorderColor: '#14b8a6',
+        activationBkgColor: '#071a12',
+        sequenceNumberColor: '#e2e8f0'
+      },
+      sequence: {
+        diagramMarginX: 20,
+        diagramMarginY: 10,
+        actorMargin: 60,
+        width: 160,
+        height: 50,
+        messageMargin: 35,
+        mirrorActors: false,
+        useMaxWidth: true
+      }
+    });
+  </script>
+  <script src="js/main.js"></script>
+
+  <style>
+    .mermaid-wrap {
+      background: #0a1628;
+      border: 1px solid #1e3a5f;
+      border-radius: 12px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      margin-top: .5rem;
+    }
+    .mermaid-wrap .mermaid { min-width: 700px; }
+    .mermaid-caption {
+      margin-top: 1rem;
+      font-size: .82rem;
+      color: #64748b;
+      border-top: 1px solid #1e293b;
+      padding-top: .75rem;
+      line-height: 1.6;
+    }
+    .mermaid-caption code, table code {
+      background: #1e293b;
+      color: #38bdf8;
+      padding: .1em .4em;
+      border-radius: 4px;
+      font-size: .9em;
+    }
+  </style>
+</body>
+</html>
