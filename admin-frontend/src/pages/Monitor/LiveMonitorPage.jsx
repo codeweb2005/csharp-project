@@ -6,7 +6,7 @@ import { presence } from '../../api';
 import { Users, MapPin, Store, Wifi, WifiOff, RefreshCw, Activity, QrCode } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const VINH_KHANH_CENTER  = [10.7538, 106.6932];
+const VINH_KHANH_CENTER = [10.7538, 106.6932];
 const SNAPSHOT_INTERVAL_MS = 10_000;
 
 // ─── StatCard ─────────────────────────────────────────────────────────────────
@@ -29,7 +29,7 @@ function StatCard({ icon: Icon, value, label, color, bg }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
       }}>
-        <Icon size={20} color={color}/>
+        <Icon size={20} color={color} />
       </div>
       <div>
         <div style={{
@@ -60,7 +60,7 @@ function PoiPresenceList({ perPOI, isHistorical }) {
           borderRadius: 8, padding: '8px 12px',
         }}>
           <span style={{ color: '#444', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <MapPin size={13} color="#C92127"/> {p.poiName || `POI #${p.poiId}`}
+            <MapPin size={13} color="#C92127" /> {p.poiName || `POI #${p.poiId}`}
           </span>
           <span style={{
             background: '#C92127', color: '#fff', borderRadius: 20,
@@ -99,7 +99,7 @@ function LiveEventLog({ events }) {
             width: 6, height: 6, borderRadius: '50%',
             background: colorMap[ev.eventType] || '#999',
             flexShrink: 0, marginTop: 5,
-          }}/>
+          }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12, color: '#333', lineHeight: 1.4 }}>
               <span style={{
@@ -115,7 +115,7 @@ function LiveEventLog({ events }) {
           </div>
         </div>
       ))}
-      <div ref={endRef}/>
+      <div ref={endRef} />
     </div>
   );
 }
@@ -130,16 +130,16 @@ function TouristMarkers({ positions }) {
         center={[p.latitude, p.longitude]}
         radius={p.poiId ? 10 : 7}
         pathOptions={{
-          fillColor:    p.poiId ? '#C92127' : '#E05B1A',
-          fillOpacity:  0.75,
-          color:        '#FFF',
-          weight:       2,
+          fillColor: p.poiId ? '#C92127' : '#E05B1A',
+          fillOpacity: 0.75,
+          color: '#FFF',
+          weight: 2,
         }}
       >
         <Popup>
           <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-            <strong>{p.sessionId}</strong><br/>
-            {p.poiName ? `📍 ${p.poiName}` : '🚶 Đang di chuyển'}<br/>
+            <strong>{p.sessionId}</strong><br />
+            {p.poiName ? `📍 ${p.poiName}` : '🚶 Đang di chuyển'}<br />
             <span style={{ color: '#999' }}>{new Date(p.updatedAt).toLocaleTimeString('vi-VN')}</span>
           </div>
         </Popup>
@@ -157,17 +157,17 @@ function WebVisitorMarkers({ positions }) {
         center={[p.latitude, p.longitude]}
         radius={8}
         pathOptions={{
-          fillColor:   '#2563EB',   // blue = web visitor
+          fillColor: '#2563EB',   // blue = web visitor
           fillOpacity: 0.70,
-          color:       '#FFF',
-          weight:      2,
-          dashArray:   '4 2',      // dashed border = web (not mobile)
+          color: '#FFF',
+          weight: 2,
+          dashArray: '4 2',      // dashed border = web (not mobile)
         }}
       >
         <Popup>
           <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-            <strong>🌐 Visitor web</strong><br/>
-            <span style={{ color: '#999' }}>{p.visitorId}</span><br/>
+            <strong>🌐 Visitor web</strong><br />
+            <span style={{ color: '#999' }}>{p.visitorId}</span><br />
             <span style={{ color: '#999' }}>{new Date(p.updatedAt).toLocaleTimeString('vi-VN')}</span>
           </div>
         </Popup>
@@ -184,10 +184,10 @@ function WebVisitorMarkers({ positions }) {
  * - Leaflet map: CircleMarker per tourist position
  */
 export default function LiveMonitorPage() {
-  const [stats,      setStats]      = useState(null);   // PresenceDashboardStats
-  const [snapshot,   setSnapshot]   = useState(null);   // PresenceSnapshot (heatmap)
-  const [events,     setEvents]     = useState([]);
-  const [connected,  setConnected]  = useState(false);
+  const [stats, setStats] = useState(null);   // PresenceDashboardStats
+  const [snapshot, setSnapshot] = useState(null);   // PresenceSnapshot (heatmap)
+  const [events, setEvents] = useState([]);
+  const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
 
   // ── REST fetch ──────────────────────────────────────────────────────────────
@@ -198,7 +198,7 @@ export default function LiveMonitorPage() {
         presence.getSnapshot(),
       ]);
       if (statsRes?.success) setStats(statsRes.data);
-      if (snapRes?.success)  setSnapshot(snapRes.data);
+      if (snapRes?.success) setSnapshot(snapRes.data);
       setLastUpdate(new Date());
     } catch (err) {
       console.error('[Monitor] Fetch error:', err);
@@ -218,8 +218,8 @@ export default function LiveMonitorPage() {
   }, [fetchAll]);
 
   const handleEnter = useCallback(msg => { setConnected(true); pushEvent({ ...msg, eventType: 'enter' }); }, [pushEvent]);
-  const handleExit  = useCallback(msg => pushEvent({ ...msg, eventType: 'exit' }),  [pushEvent]);
-  const handleMove  = useCallback(msg => pushEvent({ ...msg, eventType: 'move' }),  [pushEvent]);
+  const handleExit = useCallback(msg => pushEvent({ ...msg, eventType: 'exit' }), [pushEvent]);
+  const handleMove = useCallback(msg => pushEvent({ ...msg, eventType: 'move' }), [pushEvent]);
   const handleWebVisitorUpdate = useCallback(() => {
     setConnected(true);
     fetchAll();
@@ -238,26 +238,26 @@ export default function LiveMonitorPage() {
 
   // Realtime cards — fallback to historical data when no mobile app tourists active
   // "Đang tại điểm": realtime tourists inside geofence, fallback → unique visitors today
-  const touristsAtPOI  = (stats?.touristsAtPOI > 0)
+  const touristsAtPOI = (stats?.touristsAtPOI > 0)
     ? stats.touristsAtPOI
     : (stats?.uniqueVisitorsToday ?? 0);
 
   // "POI có người": distinct POIs with tourist now, fallback → distinct POIs visited today
-  const activePOIs     = (stats?.activePOIs > 0)
+  const activePOIs = (stats?.activePOIs > 0)
     ? stats.activePOIs
     : (stats?.visitedPOIsToday ?? 0);
 
-  const visitsToday    = stats?.totalVisitsToday      ?? 0;
-  const activeQRCodes  = stats?.activeQRCodes         ?? 0;
-  const sessions24h    = stats?.activeSessionsLast24h ?? 0;
+  const visitsToday = stats?.totalVisitsToday ?? 0;
+  const activeQRCodes = stats?.activeQRCodes ?? 0;
+  const sessions24h = stats?.activeSessionsLast24h ?? 0;
 
   // Heatmap uses /presence/snapshot (realtime positions)
   // Sidebar list: realtime perPOI if available, fallback → today's visit counts from VisitHistory
   const hasRealtimePOI = (stats?.perPOI?.length ?? 0) > 0;
-  const perPOI    = hasRealtimePOI
+  const perPOI = hasRealtimePOI
     ? stats.perPOI
     : (stats?.perPOIToday ?? snapshot?.perPOI ?? []);
-  const positions          = snapshot?.positions         ?? [];
+  const positions = snapshot?.positions ?? [];
   const webVisitorPositions = snapshot?.webVisitorPositions ?? [];
 
   const cardStyle = {
@@ -290,7 +290,7 @@ export default function LiveMonitorPage() {
               display: 'flex', alignItems: 'center', gap: 5,
               fontSize: 11, color: '#999',
             }}>
-              <RefreshCw size={11}/>
+              <RefreshCw size={11} />
               {lastUpdate.toLocaleTimeString('vi-VN')}
             </div>
           )}
@@ -301,8 +301,8 @@ export default function LiveMonitorPage() {
             borderRadius: 20, padding: '5px 12px',
           }}>
             {connected
-              ? <Wifi size={13} color="#16a34a"/>
-              : <WifiOff size={13} color="#D97706"/>
+              ? <Wifi size={13} color="#16a34a" />
+              : <WifiOff size={13} color="#D97706" />
             }
             <span style={{
               fontSize: 11, fontWeight: 600,
@@ -315,19 +315,25 @@ export default function LiveMonitorPage() {
               background: connected ? '#16a34a' : '#D97706',
               boxShadow: connected ? '0 0 6px rgba(22,163,74,0.5)' : 'none',
               animation: connected ? 'livePulse 2s infinite' : 'none',
-            }}/>
+            }} />
           </div>
         </div>
       </div>
 
       {/* ── Stat Cards ── */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <StatCard icon={Users}    value={onlineTourists} label="Du khách online"   color="#C92127" bg="rgba(201,33,39,0.08)"/>
-        <StatCard icon={MapPin}   value={touristsAtPOI}  label={stats?.touristsAtPOI > 0 ? "Đang tại điểm" : "Khách thăm hôm nay"}  color="#E05B1A" bg="rgba(224,91,26,0.08)"/>
-        <StatCard icon={Store}    value={activePOIs}     label={stats?.activePOIs > 0    ? "POI có người"   : "POI được thăm HN"}   color="#2563EB" bg="rgba(37,99,235,0.08)"/>
-        <StatCard icon={Activity} value={visitsToday}    label="Lượt thăm hôm nay" color="#16a34a" bg="rgba(22,163,74,0.08)"/>
-        <StatCard icon={QrCode}   value={activeQRCodes}  label="Mã QR đang dùng"  color="#7c3aed" bg="rgba(124,58,237,0.08)"/>
-        <StatCard icon={Users}    value={sessions24h}    label="Session 24h qua"   color="#0891b2" bg="rgba(8,145,178,0.08)"/>
+        <StatCard icon={Users} value={onlineTourists} label="Du khách online" color="#C92127" bg="rgba(201,33,39,0.08)" />
+        {/* Hiện "Đang tại điểm" khi có realtime; hiện "Khách thăm HN" khi > 0; ẩn nếu = 0 */}
+        {touristsAtPOI > 0 && (
+          <StatCard icon={MapPin} value={touristsAtPOI} label={stats?.touristsAtPOI > 0 ? "Đang tại điểm" : "Khách thăm hôm nay"} color="#E05B1A" bg="rgba(224,91,26,0.08)" />
+        )}
+        {activePOIs > 0 && (
+          <StatCard icon={Store} value={activePOIs} label={stats?.activePOIs > 0 ? "POI có người" : "POI được thăm HN"} color="#2563EB" bg="rgba(37,99,235,0.08)" />
+        )}
+        {visitsToday > 0 && (
+          <StatCard icon={Activity} value={visitsToday} label="Lượt thăm hôm nay" color="#16a34a" bg="rgba(22,163,74,0.08)" />
+        )}
+        <StatCard icon={QrCode} value={activeQRCodes} label="Mã QR đang dùng" color="#7c3aed" bg="rgba(124,58,237,0.08)" />
       </div>
 
       {/* ── Map + Sidebar ── */}
@@ -350,9 +356,9 @@ export default function LiveMonitorPage() {
               attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
             />
             {/* Mobile tourist positions (red) */}
-            <TouristMarkers positions={positions}/>
+            <TouristMarkers positions={positions} />
             {/* Web visitor positions (blue dashed) */}
-            <WebVisitorMarkers positions={webVisitorPositions}/>
+            <WebVisitorMarkers positions={webVisitorPositions} />
           </MapContainer>
         </div>
 
@@ -366,10 +372,10 @@ export default function LiveMonitorPage() {
               textTransform: 'uppercase', letterSpacing: '0.06em',
               marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6,
             }}>
-              <Store size={13} color="#C92127"/>
+              <Store size={13} color="#C92127" />
               {hasRealtimePOI ? 'Du khách theo POI' : 'Lượt thăm theo POI hôm nay'}
             </div>
-            <PoiPresenceList perPOI={perPOI} isHistorical={!hasRealtimePOI}/>
+            <PoiPresenceList perPOI={perPOI} isHistorical={!hasRealtimePOI} />
           </div>
 
           {/* Event Log */}
@@ -379,11 +385,11 @@ export default function LiveMonitorPage() {
               textTransform: 'uppercase', letterSpacing: '0.06em',
               marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6,
             }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#C92127' }}/>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#C92127' }} />
               Sự kiện gần đây
             </div>
             <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-              <LiveEventLog events={events}/>
+              <LiveEventLog events={events} />
             </div>
           </div>
 

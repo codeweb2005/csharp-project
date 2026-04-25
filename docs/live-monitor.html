@@ -105,9 +105,10 @@
         </div>
       </div>
       <div class="highlight" style="margin-bottom:1.2rem">
-        <strong>Entry point:</strong> <code>LiveMonitorPage</code> renders →
-        <code>useMonitorHub({ onEnter, onExit, onMove })</code> → <code>useEffect</code> fires
-        → <code>connect()</code> async → <code>connection.start()</code> → <code>connection.invoke("JoinMonitorGroup")</code>.
+        <strong>Entry point:</strong> <code>LiveMonitorPage</code> mount →
+        <code>useMonitorHub({ onEnter, onExit, onMove, onWebVisitorUpdate })</code> → <code>useEffect([enabled, connect])</code> fires
+        → <code>connect()</code> async → <code>connection.start()</code> → <code>connection.invoke("JoinMonitorGroup")</code>.<br/>
+        Đồng thời: <code>fetchAll()</code> gọi <strong>song song</strong> <code>presence.getStats()</code> và <code>presence.getSnapshot()</code> mỗi <code>SNAPSHOT_INTERVAL_MS = 10_000 ms</code>.
       </div>
       <div class="mermaid-wrap">
         <div class="mermaid">
@@ -118,159 +119,198 @@ sequenceDiagram
   participant UMH as useMonitorHub.js
   participant HBC as HubConnectionBuilder
   participant HUB as TourMonitorHub.cs
-  participant GRP as SignalR Group Admins
+  participant GRP as SignalR Group - Admins
 
   Admin->>LMP: Navigate to /monitor
   activate LMP
 
-  LMP->>UMH: useMonitorHub({ onEnter: handleEnter, onExit: handleExit, onMove: handleMove })
+  Note over LMP: fetchAll() runs immediately + setInterval fetchAll 10000ms
+
+  LMP->>UMH: useMonitorHub - onEnter, onExit, onMove, onWebVisitorUpdate
   activate UMH
 
-  Note over UMH: useEffect([enabled, connect]) triggered
+  Note over UMH: useEffect - enabled=true - calls connect()
 
-  UMH->>HBC: new HubConnectionBuilder()<br/>.withUrl("/hubs/monitor", { accessTokenFactory: () => token })<br/>.withAutomaticReconnect([0, 2000, 5000, 10000, 30000])<br/>.configureLogging(LogLevel.Warning)<br/>.build()
-  HBC-->>UMH: connection (HubConnection instance)
+  UMH->>HBC: new HubConnectionBuilder()
+  Note over HBC: withUrl(HUB_URL, accessTokenFactory from localStorage)<br/>WebSockets or SSE or LongPolling transport<br/>withAutomaticReconnect([0,2000,5000,10000,30000])<br/>configureLogging(Warning).build()
+  HBC-->>UMH: connection HubConnection
 
-  UMH->>UMH: connection.on("TouristEnteredPOI",     msg => onEnter?.(msg))
-  UMH->>UMH: connection.on("TouristExitedPOI",      msg => onExit?.(msg))
-  UMH->>UMH: connection.on("TouristLocationUpdate", msg => onMove?.(msg))
-
-  UMH->>UMH: connection.onreconnected(() => connection.invoke("JoinMonitorGroup"))
+  UMH->>UMH: on(TouristEnteredPOI, onEnter)
+  UMH->>UMH: on(TouristExitedPOI, onExit)
+  UMH->>UMH: on(TouristLocationUpdate, onMove)
+  UMH->>UMH: on(WebVisitorPresenceUpdated, onWebVisitorUpdate)
+  UMH->>UMH: onreconnecting - log Reconnecting
+  UMH->>UMH: onreconnected - invoke JoinMonitorGroup
+  UMH->>UMH: onclose - log error if any
 
   UMH->>HUB: await connection.start()
   activate HUB
-  Note over HUB: [Authorize(Roles = "Admin")] validated
-  HUB-->>UMH: 101 Switching Protocols — WebSocket established
+  Note over HUB: Authorize Roles=Admin - JWT validated
+  HUB-->>UMH: 101 Switching Protocols WebSocket established
   deactivate HUB
 
-  UMH->>HUB: await connection.invoke("JoinMonitorGroup")
+  UMH->>HUB: await connection.invoke(JoinMonitorGroup)
   activate HUB
-  HUB->>GRP: Groups.AddToGroupAsync(Context.ConnectionId, "Admins")
-  GRP-->>HUB: OK
-  HUB-->>UMH: Task completed (void return)
+  HUB->>GRP: Groups.AddToGroupAsync(Context.ConnectionId, Admins)
+  GRP-->>HUB: added
+  HUB-->>UMH: Task completed
   deactivate HUB
 
-  Note over UMH: connRef.current = connection
-
-  UMH-->>LMP: { connection: connRef }
+  Note over UMH: connRef.current = connection - log Connected and joined Admins group
+  UMH-->>LMP: connection connRef returned
   deactivate UMH
 
-  Note over LMP: Concurrently: fetchSnapshot() + setInterval(fetchSnapshot, 10_000)
+  Note over LMP: Cleanup on unmount - connRef.current.stop() + clearInterval
   deactivate LMP
         </div>
         <div class="mermaid-caption">
-          Diagram 1: <code>useMonitorHub.js</code> builds SignalR connection to <code>/hubs/monitor</code>,
-          registers 3 event listeners, invokes <code>JoinMonitorGroup()</code> on <code>TourMonitorHub.cs</code>
-          which calls <code>Groups.AddToGroupAsync(ConnectionId, "Admins")</code>.
-          On reconnect, <code>JoinMonitorGroup()</code> is re-invoked automatically.
+          Diagram 1: <code>useMonitorHub.js</code> kết nối <code>/hubs/monitor</code>, đăng ký
+          <strong>4 event listeners</strong>: <code>TouristEnteredPOI</code>, <code>TouristExitedPOI</code>,
+          <code>TouristLocationUpdate</code>, <code>WebVisitorPresenceUpdated</code>.
+          Sau <code>connection.start()</code> gọi ngay <code>JoinMonitorGroup()</code> để vào group <code>Admins</code>.
+          <code>LiveMonitorPage</code> đồng thời polling <code>fetchAll()</code> mỗi 10s gọi song song
+          <code>getStats()</code> → <code>GET /presence/stats</code> và <code>getSnapshot()</code> → <code>GET /presence/snapshot</code>.
         </div>
       </div>
     </div>
 
-    <!-- DIAGRAM 2: Tourist Triggers Broadcast (CORRECTED) -->
+    <!-- DIAGRAM 2: Tourist + WebVisitor Triggers Broadcast -->
     <div class="section-block">
       <div class="section-header">
         <div class="icon" style="background:rgba(99,102,241,.1);color:var(--indigo)">2</div>
         <div>
-          <div class="section-num">Luong 2 — Tourist Kich Hoat Broadcast Real-time</div>
-          <h2>POST /api/v1/presence/update (single endpoint, EventType dispatch)</h2>
+          <div class="section-num">Luong 2 — Tourist App + Visitor Website Kick Hoat Broadcast</div>
+          <h2>POST /presence/update (Tourist JWT) &amp; POST /presence/web-visitor* (Anonymous)</h2>
         </div>
       </div>
       <div class="highlight" style="margin-bottom:1.2rem">
-        <strong>IMPORTANT — verified from Controllers.cs:</strong> There is only
-        <strong>one</strong> endpoint: <code>POST /api/v1/presence/update</code>
-        [Authorize(Roles = "Tourist")]. The field <code>req.EventType</code> drives a
-        <code>switch</code> to call different <code>PresenceService</code> methods.
-        <code>sessionId</code> is extracted from the <strong>JWT claim</strong>
-        (<code>User.FindFirst("sessionId")?.Value</code>) — it is NOT in the request body.
+        <strong>Verified from Controllers.cs + PresenceService.cs:</strong>
+        Tourist dùng <code>POST /presence/update</code> [Tourist JWT] — <code>switch(req.EventType)</code> gọi 3 method khác nhau.
+        Web visitor (visitor site) dùng 3 endpoint riêng [AllowAnonymous]:
+        <code>POST /presence/web-visitor</code> (heartbeat),
+        <code>POST /presence/web-visitor/exit</code> (rời trang),
+        <code>POST /presence/web-location</code> (GPS).
+        Web visitor count được đếm từ <code>WebVisitorLastSeen</code> (ConcurrentDictionary in-memory, stale 2 min).
       </div>
       <div class="mermaid-wrap">
         <div class="mermaid">
 sequenceDiagram
   autonumber
-  actor Tourist as Tourist App (Role=Tourist JWT)
-  participant CTRL as PresenceController.Update()
-  participant SVC as PresenceService.cs
-  participant DB as ActivePresence (MySQL)
+  actor Tourist as Tourist App
+  actor WebApp as Visitor Website
+  participant CTRL as PresenceController
+  participant SVC as PresenceService
+  participant MEM as ConcurrentDictionary in-memory
+  participant DB as ActivePresence - MySQL
   participant HUB as IHubContext TourMonitorHub
-  participant GRP as Group Admins (SignalR)
+  participant GRP as SignalR Group Admins
   participant UMH as useMonitorHub.js
   participant LMP as LiveMonitorPage.jsx
 
-  Tourist->>CTRL: POST /api/v1/presence/update<br/>Header: Authorization Bearer Tourist-JWT<br/>Body: PresenceUpdateRequest { EventType, PoiId?, Latitude, Longitude }
-  activate CTRL
+  rect rgb(10, 20, 40)
+    Note over Tourist,LMP: --- Tourist Mobile App Flow ---
 
-  Note over CTRL: sessionId = User.FindFirst("sessionId")?.Value ?? ""<br/>Extracted from JWT claim — NOT from request body
+    Tourist->>CTRL: POST /api/v1/presence/update - Authorize Tourist
+    Note over CTRL: sessionId = User.FindFirst(sessionId).Value from JWT
+    activate CTRL
 
-  alt EventType.ToLower() == "enter" AND PoiId.HasValue
-    Note over CTRL,LMP: case "enter" with PoiId
-    CTRL->>SVC: TrackEnterAsync(sessionId, req.PoiId.Value, req.Latitude, req.Longitude)
-    activate SVC
+    alt req.EventType = enter AND req.PoiId.HasValue
+      CTRL->>SVC: TrackEnterAsync(sessionId, req.PoiId.Value, req.Latitude, req.Longitude)
+      activate SVC
+      SVC->>SVC: UpsertPresenceAsync(sessionId, poiId, lat, lng)
+      Note over SVC: FindAsync(sessionId) - Add or update existing row - SaveChangesAsync
+      SVC->>DB: query POI name - POIs.Where(p.Id==poiId).SelectMany(Translations).OrderBy(LanguageId).FirstOrDefaultAsync
+      DB-->>SVC: poiName
+      SVC->>HUB: hub.Clients.Group(Admins).SendAsync(TouristEnteredPOI, msg)
+      Note over SVC: msg - eventType=enter, sessionId trimmed, poiId, poiName, lat, lng, timestamp
+      HUB->>GRP: Broadcast TouristEnteredPOI
+      GRP->>UMH: on(TouristEnteredPOI) fires - onEnter callback
+      UMH->>LMP: handleEnter(msg)
+      LMP->>LMP: setConnected(true) - pushEvent enter - fetchAll()
+      deactivate SVC
 
-    SVC->>SVC: UpsertPresenceAsync(sessionId, poiId, lat, lng)
-    SVC->>DB: ActivePresence.FindAsync(sessionId)
-    DB-->>SVC: existing row or null
-    SVC->>DB: Upsert row (PoiId, Latitude, Longitude, UpdatedAt=UtcNow) - SaveChangesAsync
-    DB-->>SVC: OK
+    else req.EventType = exit
+      CTRL->>SVC: TrackExitAsync(sessionId, req.PoiId)
+      activate SVC
+      SVC->>DB: FindAsync(sessionId)
+      SVC->>DB: presence.PoiId=null - presence.UpdatedAt=UtcNow - SaveChangesAsync
+      Note over SVC: only broadcast if req.PoiId.HasValue
+      SVC->>HUB: hub.Clients.Group(Admins).SendAsync(TouristExitedPOI, msg)
+      HUB->>GRP: Broadcast TouristExitedPOI
+      GRP->>UMH: on(TouristExitedPOI) fires - onExit callback
+      UMH->>LMP: handleExit(msg) - pushEvent exit - fetchAll()
+      deactivate SVC
 
-    SVC->>DB: POIs.Where(Id==poiId).SelectMany(Translations)<br/>.OrderBy(LanguageId).Select(Name).FirstOrDefaultAsync()
-    DB-->>SVC: poiName
+    else default - location ping
+      CTRL->>SVC: UpdateLocationAsync(sessionId, req.Latitude, req.Longitude)
+      activate SVC
+      SVC->>DB: FindAsync(sessionId) - return if null
+      SVC->>DB: presence.Latitude=lat - presence.Longitude=lng - SaveChangesAsync
+      SVC->>HUB: hub.Clients.Group(Admins).SendAsync(TouristLocationUpdate, msg)
+      HUB->>GRP: Broadcast TouristLocationUpdate
+      GRP->>UMH: on(TouristLocationUpdate) fires - onMove callback
+      UMH->>LMP: handleMove(msg) - pushEvent move - fetchAll()
+      deactivate SVC
+    end
 
-    SVC->>HUB: hub.Clients.Group("Admins").SendAsync("TouristEnteredPOI",<br/>  { eventType="enter", sessionId[..8]+"...", poiId, poiName, lat, lng, timestamp=UtcNow })
-    HUB->>GRP: Broadcast TouristEnteredPOI to all Admins
-    GRP->>UMH: connection.on("TouristEnteredPOI") fires
-    UMH->>LMP: onEnter(msg) -> handleEnter(msg)
-    LMP->>LMP: setConnected(true)
-    LMP->>LMP: pushEvent({ ...msg, eventType: "enter" })
-    LMP->>LMP: fetchSnapshot()
-    deactivate SVC
-
-  else EventType.ToLower() == "exit"
-    Note over CTRL,LMP: case "exit"
-    CTRL->>SVC: TrackExitAsync(sessionId, req.PoiId)
-    activate SVC
-
-    SVC->>DB: ActivePresence.FindAsync(sessionId)
-    DB-->>SVC: presence row (no-op if null)
-    SVC->>DB: presence.PoiId=null; presence.UpdatedAt=UtcNow; SaveChangesAsync()
-    DB-->>SVC: OK
-
-    Note over SVC: Only broadcasts if req.PoiId.HasValue
-    SVC->>HUB: hub.Clients.Group("Admins").SendAsync("TouristExitedPOI",<br/>  { eventType="exit", sessionId[..8]+"...", poiId, timestamp=UtcNow })
-    HUB->>GRP: Broadcast TouristExitedPOI
-    GRP->>UMH: connection.on("TouristExitedPOI") fires
-    UMH->>LMP: onExit(msg) -> handleExit(msg)
-    LMP->>LMP: pushEvent({ ...msg, eventType: "exit" })
-    LMP->>LMP: fetchSnapshot()
-    deactivate SVC
-
-  else default (any other EventType, e.g. "location")
-    Note over CTRL,LMP: default case (GPS ping)
-    CTRL->>SVC: UpdateLocationAsync(sessionId, req.Latitude, req.Longitude)
-    activate SVC
-
-    SVC->>DB: ActivePresence.FindAsync(sessionId)
-    DB-->>SVC: presence row (returns early if null)
-    SVC->>DB: presence.Latitude=lat; presence.Longitude=lng;<br/>presence.UpdatedAt=UtcNow; SaveChangesAsync()
-    DB-->>SVC: OK
-
-    SVC->>HUB: hub.Clients.Group("Admins").SendAsync("TouristLocationUpdate",<br/>  { sessionId[..8]+"...", lat, lng, poiId=presence.PoiId, timestamp=UtcNow })
-    HUB->>GRP: Broadcast TouristLocationUpdate
-    GRP->>UMH: connection.on("TouristLocationUpdate") fires
-    UMH->>LMP: onMove(msg) -> handleMove(msg)
-    LMP->>LMP: pushEvent({ ...msg, eventType: "move" })
-    LMP->>LMP: fetchSnapshot()
-    deactivate SVC
+    CTRL-->>Tourist: 200 OK - ok=true
+    deactivate CTRL
   end
 
-  CTRL-->>Tourist: 200 OK { ok: true }
-  deactivate CTRL
+  rect rgb(10, 30, 20)
+    Note over WebApp,LMP: --- Visitor Website Web Flow ---
+
+    alt POST /api/v1/presence/web-visitor - heartbeat moi 30s
+      WebApp->>CTRL: POST /presence/web-visitor - AllowAnonymous
+      Note over CTRL: body - WebVisitorPresenceRequest - visitorId
+      activate CTRL
+      CTRL->>SVC: TrackWebVisitorHeartbeatAsync(req.VisitorId)
+      activate SVC
+      SVC->>MEM: WebVisitorLastSeen[visitorId] = DateTime.UtcNow
+      SVC->>SVC: BroadcastWebVisitorCountAsync()
+      SVC->>SVC: CountActiveWebVisitors() - PurgeStaleWebVisitors then WebVisitorLastSeen.Count
+      SVC->>HUB: hub.Clients.Group(Admins).SendAsync(WebVisitorPresenceUpdated, webVisitors - timestamp)
+      HUB->>GRP: Broadcast WebVisitorPresenceUpdated
+      GRP->>UMH: on(WebVisitorPresenceUpdated) fires - onWebVisitorUpdate callback
+      UMH->>LMP: handleWebVisitorUpdate - setConnected(true) - fetchAll()
+      deactivate SVC
+      CTRL-->>WebApp: 200 OK
+      deactivate CTRL
+
+    else POST /api/v1/presence/web-visitor/exit
+      WebApp->>CTRL: POST /presence/web-visitor/exit - AllowAnonymous
+      activate CTRL
+      CTRL->>SVC: TrackWebVisitorExitAsync(req.VisitorId)
+      activate SVC
+      SVC->>MEM: WebVisitorLastSeen.TryRemove(visitorId)
+      SVC->>MEM: WebVisitorLocations.TryRemove(visitorId)
+      SVC->>SVC: BroadcastWebVisitorCountAsync() - SendAsync WebVisitorPresenceUpdated
+      deactivate SVC
+      CTRL-->>WebApp: 200 OK
+      deactivate CTRL
+
+    else POST /api/v1/presence/web-location - GPS update
+      WebApp->>CTRL: POST /presence/web-location - AllowAnonymous
+      Note over CTRL: body - WebVisitorLocationRequest - visitorId - lat - lng
+      activate CTRL
+      CTRL->>SVC: TrackWebVisitorLocationAsync(req.VisitorId, req.Latitude, req.Longitude)
+      activate SVC
+      SVC->>MEM: WebVisitorLastSeen[id] = UtcNow - refresh heartbeat
+      SVC->>MEM: WebVisitorLocations[id] = new WebVisitorLocation(lat, lng, UtcNow)
+      Note over SVC: returns Task.CompletedTask - no broadcast here
+      deactivate SVC
+      CTRL-->>WebApp: 200 OK
+      deactivate CTRL
+    end
+  end
         </div>
         <div class="mermaid-caption">
-          Diagram 2 (corrected): A single <code>PresenceController.Update()</code> action handles all tourist events.
-          <code>sessionId</code> comes from JWT claim. <code>switch(req.EventType.ToLower())</code> dispatches to
-          <code>TrackEnterAsync</code> / <code>TrackExitAsync</code> / <code>UpdateLocationAsync</code>.
-          Each path ends with a <code>hub.Clients.Group("Admins").SendAsync(...)</code> broadcast.
+          Diagram 2: <strong>Tourist</strong> — <code>PresenceController.Update()</code> switch trên <code>req.EventType</code> gọi
+          <code>TrackEnterAsync</code> / <code>TrackExitAsync</code> / <code>UpdateLocationAsync</code> — mỗi path broadcast SignalR đến group <code>Admins</code>.
+          <strong>Web Visitor</strong> — 3 endpoint riêng [AllowAnonymous]:
+          <code>TrackWebVisitorHeartbeatAsync</code> ghi <code>WebVisitorLastSeen[id]=UtcNow</code> rồi gọi
+          <code>BroadcastWebVisitorCountAsync()</code> → <code>CountActiveWebVisitors()</code> → broadcast <code>WebVisitorPresenceUpdated</code>;
+          <code>TrackWebVisitorLocationAsync</code> ghi <code>WebVisitorLocations[id]</code> + refresh heartbeat (không broadcast).
         </div>
       </div>
     </div>
@@ -280,16 +320,17 @@ sequenceDiagram
       <div class="section-header">
         <div class="icon" style="background:rgba(14,165,233,.1);color:var(--primary)">3</div>
         <div>
-          <div class="section-num">Luong 3 — REST Polling + PresenceCleanupService</div>
-          <h2>fetchSnapshot() every 10s + PurgeStaleAsync every 5min</h2>
+          <div class="section-num">Luong 3 — REST Polling (fetchAll) + GetSnapshotAsync + GetDashboardStatsAsync + PresenceCleanupService</div>
+          <h2>fetchAll() every 10s: getStats() + getSnapshot() song song — PurgeStaleAsync moi 5 phut</h2>
         </div>
       </div>
       <div class="highlight" style="margin-bottom:1.2rem">
-        <strong>REST Polling:</strong> <code>LiveMonitorPage</code> calls <code>presence.getSnapshot()</code>
-        → <code>GET /api/v1/presence/snapshot</code> [Admin] every <strong>10 000 ms</strong>
-        (SNAPSHOT_INTERVAL_MS = 10_000). Also called immediately after each SignalR event via <code>pushEvent()</code>.
-        <strong>Cleanup:</strong> <code>PresenceCleanupService</code> (BackgroundService) calls
-        <code>PurgeStaleAsync(TimeSpan.FromMinutes(15))</code> every 5 minutes.
+        <strong>REST Polling:</strong> <code>fetchAll()</code> trong <code>LiveMonitorPage</code> dùng <code>Promise.all</code> gọi song song
+        <code>presence.getStats()</code> → <code>GET /presence/stats</code> [Admin] và
+        <code>presence.getSnapshot()</code> → <code>GET /presence/snapshot</code> [Admin],
+        mỗi <code>SNAPSHOT_INTERVAL_MS = 10_000 ms</code> và ngay sau mỗi SignalR event.<br/>
+        <strong>Cleanup:</strong> <code>PresenceCleanupService</code> (BackgroundService) gọi
+        <code>PurgeStaleAsync(TimeSpan.FromMinutes(15))</code> mỗi 5 phút.
       </div>
       <div class="mermaid-wrap">
         <div class="mermaid">
@@ -297,83 +338,116 @@ sequenceDiagram
   autonumber
   participant LMP as LiveMonitorPage.jsx
   participant API as api.js - presence
-  participant CTRL as PresenceController.GetSnapshot()
-  participant SVC as PresenceService.cs
-  participant DB as ActivePresence (MySQL)
+  participant CTRL as PresenceController
+  participant SVC as PresenceService
+  participant MEM as In-memory ConcurrentDictionary
+  participant DB as MySQL - ActivePresence etc
   participant CLN as PresenceCleanupService
 
   rect rgb(12, 26, 46)
-    Note over LMP,DB: REST Polling — every SNAPSHOT_INTERVAL_MS = 10_000 ms
-    Note over LMP: useEffect -> fetchSnapshot() + setInterval(fetchSnapshot, 10_000)
+    Note over LMP,DB: fetchAll() - Promise.all - moi SNAPSHOT_INTERVAL_MS=10000ms hoac sau SignalR event
 
-    loop Every 10 seconds (or immediately after SignalR event via pushEvent)
-      LMP->>API: presence.getSnapshot()
-      API->>CTRL: GET /api/v1/presence/snapshot<br/>Authorization: Bearer Admin-JWT
-      activate CTRL
+    loop Every 10s or after SignalR pushEvent
+      LMP->>API: Promise.all - presence.getStats() and presence.getSnapshot()
 
-      CTRL->>SVC: presenceSvc.GetSnapshotAsync()
-      activate SVC
+      par GET /api/v1/presence/stats - Authorize Admin
+        API->>CTRL: GET /presence/stats
+        activate CTRL
+        CTRL->>SVC: GetDashboardStatsAsync()
+        activate SVC
+        Note over SVC: stale15=UtcNow-15min - todayStart - weekStart - yesterday
+        SVC->>DB: ActivePresence.Where(UpdatedAt>=stale15).ToListAsync
+        DB-->>SVC: presenceRows
+        Note over SVC: touristsAtPOI=presenceRows.Count(PoiId.HasValue)<br/>activePOIs=distinct PoiIds<br/>perPoi=GroupBy PoiId - load POI names
+        SVC->>DB: TouristSessions.CountAsync(IsActive and StartedAt>=yesterday)
+        DB-->>SVC: activeLast24h
+        SVC->>DB: VisitHistory.CountAsync(VisitedAt>=todayStart)
+        DB-->>SVC: visitsToday
+        SVC->>DB: VisitHistory.CountAsync(VisitedAt>=weekStart)
+        DB-->>SVC: visitsThisWeek
+        SVC->>DB: VisitHistory.Where(today).Select(POIId).Distinct().CountAsync
+        DB-->>SVC: visitedPOIsToday
+        SVC->>DB: VisitHistory.Where(today and UserId!=null).Select(UserId).Distinct().CountAsync
+        DB-->>SVC: uniqueVisitorsToday
+        SVC->>DB: VisitHistory.GroupBy(POIId).Top20.ToListAsync - load POI names
+        DB-->>SVC: perPoiToday
+        SVC->>DB: TourQRCodes.CountAsync(IsActive and not expired)
+        DB-->>SVC: activeQRCodes
+        SVC->>SVC: CountActiveWebVisitors()
+        Note over SVC: PurgeStaleWebVisitors - cutoff=UtcNow-2min<br/>remove stale from WebVisitorLastSeen and WebVisitorLocations<br/>return WebVisitorLastSeen.Count
+        SVC->>MEM: read WebVisitorLastSeen.Count
+        MEM-->>SVC: webVisitors
+        SVC-->>CTRL: ApiResponse.Ok(PresenceDashboardStats)
+        deactivate SVC
+        CTRL-->>API: 200 OK PresenceDashboardStats JSON
+        deactivate CTRL
+      and GET /api/v1/presence/snapshot - Authorize Admin
+        API->>CTRL: GET /presence/snapshot
+        activate CTRL
+        CTRL->>SVC: GetSnapshotAsync()
+        activate SVC
+        Note over SVC: staleThreshold = UtcNow.AddMinutes(-15)
+        SVC->>DB: ActivePresence.Where(UpdatedAt>=staleThreshold).Include(Poi.Translations).AsNoTracking.ToListAsync
+        DB-->>SVC: rows - List of ActivePresence
+        SVC->>SVC: PurgeStaleWebVisitors() - inline cleanup
+        SVC->>MEM: WebVisitorLocations.Where(key in WebVisitorLastSeen)
+        MEM-->>SVC: active web visitor locations
+        Note over SVC: webPositions = Select WebVisitorPositionDto - VisitorId truncated - Lat - Lng - UpdatedAt
+        Note over SVC: positions = rows.Select TouristPositionDto - SessionId truncated etc
+        Note over SVC: perPoi = rows.Where(PoiId.HasValue).GroupBy(PoiId).Select PoiPresenceCount
+        SVC->>SVC: webVisitors = CountActiveWebVisitors()
+        Note over SVC: CountActiveWebVisitors - PurgeStaleWebVisitors() then WebVisitorLastSeen.Count
+        SVC-->>CTRL: ApiResponse.Ok(PresenceSnapshot - ActiveTourists - WebVisitors - TotalOnlineVisitors - PerPOI - Positions - WebVisitorPositions - SnapshotAt)
+        deactivate SVC
+        CTRL-->>API: 200 OK PresenceSnapshot JSON
+        deactivate CTRL
+      end
 
-      Note over SVC: staleThreshold = UtcNow.AddMinutes(-15)
-      SVC->>DB: db.ActivePresence<br/>.Where(p => p.UpdatedAt >= staleThreshold)<br/>.Include(p => p.Poi).ThenInclude(poi => poi.Translations)<br/>.AsNoTracking().ToListAsync()
-      DB-->>SVC: List of ActivePresence rows
-
-      SVC->>SVC: positions = rows.Select(p => new TouristPositionDto {<br/>  SessionId = p.SessionId[..8]+"...",<br/>  Latitude, Longitude, PoiId,<br/>  PoiName = p.Poi.Translations.OrderBy(LanguageId).Select(Name).FirstOrDefault(),<br/>  UpdatedAt })
-
-      SVC->>SVC: perPoi = rows.Where(PoiId.HasValue)<br/>.GroupBy(PoiId.Value)<br/>.Select(g => new PoiPresenceCount {<br/>  PoiId=g.Key, PoiName, Count=g.Count() })<br/>.OrderByDescending(Count).ToList()
-
-      SVC-->>CTRL: ApiResponse.Ok(new PresenceSnapshot {<br/>  ActiveTourists = rows.Count,<br/>  PerPOI = perPoi,<br/>  Positions = positions,<br/>  SnapshotAt = UtcNow })
-      deactivate SVC
-
-      CTRL-->>API: 200 OK — PresenceSnapshot JSON
-      deactivate CTRL
-
-      API-->>LMP: res.data (PresenceSnapshot)
-      LMP->>LMP: if (res?.success) { setSnapshot(res.data); setLastUpdate(new Date()) }
-      Note over LMP: UI updates:<br/>activeTourists = snapshot.activeTourists<br/>perPOI = snapshot.perPOI (PoiPresenceList badges)<br/>positions = snapshot.positions (CircleMarker on Leaflet map)
+      API-->>LMP: [statsRes, snapRes]
+      LMP->>LMP: if statsRes.success - setStats(statsRes.data)
+      LMP->>LMP: if snapRes.success - setSnapshot(snapRes.data)
+      LMP->>LMP: setLastUpdate(new Date())
+      Note over LMP: UI cards - onlineTourists=stats.webVisitors<br/>touristsAtPOI fallback to uniqueVisitorsToday<br/>activePOIs fallback to visitedPOIsToday<br/>Leaflet TouristMarkers red + WebVisitorMarkers blue-dashed
     end
   end
 
   rect rgb(20, 10, 10)
-    Note over CLN,DB: PresenceCleanupService (BackgroundService) — every 5 minutes
-    loop Every 5 minutes via Task.Delay(TimeSpan.FromMinutes(5), stoppingToken)
+    Note over CLN,DB: PresenceCleanupService BackgroundService - moi 5 phut
+    loop Every 5min via Task.Delay(TimeSpan.FromMinutes(5), stoppingToken)
       CLN->>CLN: scopeFactory.CreateScope()
       CLN->>CLN: scope.ServiceProvider.GetRequiredService of IPresenceService
       CLN->>SVC: presenceSvc.PurgeStaleAsync(TimeSpan.FromMinutes(15))
       activate SVC
-
-      Note over SVC: cutoff = UtcNow - 15min
-      SVC->>DB: db.ActivePresence.Where(p => p.UpdatedAt < cutoff).ToListAsync()
-      DB-->>SVC: stale rows list
-
+      Note over SVC: cutoff = DateTime.UtcNow - staleThreshold
+      SVC->>DB: ActivePresence.Where(UpdatedAt less than cutoff).ToListAsync
+      DB-->>SVC: stale rows
       alt stale.Count > 0
-        SVC->>DB: db.ActivePresence.RemoveRange(stale); SaveChangesAsync()
+        SVC->>DB: db.ActivePresence.RemoveRange(stale) - SaveChangesAsync
         DB-->>SVC: OK
-        Note over SVC: LogInformation("[Presence] Purged N stale rows (older than 15min)")
-      else stale.Count == 0
-        Note over SVC: return — no-op
+        Note over SVC: LogInformation Purged N stale presence rows older than 15min
+      else stale.Count == 0 - no-op
       end
-
+      SVC->>SVC: PurgeStaleWebVisitors() - always called at end
+      Note over SVC: remove WebVisitorLastSeen and WebVisitorLocations entries older than 2min
       deactivate SVC
     end
   end
 
   rect rgb(10, 20, 10)
-    Note over LMP: Admin Leaves Page — useEffect cleanup
-    LMP->>LMP: connRef.current?.stop() — WebSocket disconnected
+    Note over LMP: Admin roi trang - useEffect cleanup
+    LMP->>LMP: connRef.current.stop() - WebSocket disconnected
     LMP->>LMP: connRef.current = null
-    LMP->>LMP: clearInterval(timer) — polling stopped
+    LMP->>LMP: clearInterval(timer) - polling stopped
     Note over LMP: TourMonitorHub.OnDisconnectedAsync fires on server
   end
         </div>
         <div class="mermaid-caption">
-          Diagram 3: <strong>Polling</strong> — <code>presence.getSnapshot()</code> →
-          <code>GET /api/v1/presence/snapshot</code> [Admin] →
-          <code>PresenceService.GetSnapshotAsync()</code> queries <code>ActivePresence</code>
-          within a 15-min window, groups by <code>PoiId</code>, returns <code>PresenceSnapshot</code>.
-          <strong>Cleanup</strong> — <code>PresenceCleanupService</code> calls
-          <code>PurgeStaleAsync(TimeSpan.FromMinutes(15))</code> every 5 minutes via
-          <code>Task.Delay(TimeSpan.FromMinutes(5))</code>.
+          Diagram 3: <code>fetchAll()</code> gọi song song <code>presence.getStats()</code> →
+          <code>GetDashboardStatsAsync()</code> (6 DB queries + <code>CountActiveWebVisitors()</code> in-memory) và
+          <code>presence.getSnapshot()</code> → <code>GetSnapshotAsync()</code> (1 DB query + <code>PurgeStaleWebVisitors()</code> +
+          <code>WebVisitorLocations</code> in-memory + <code>CountActiveWebVisitors()</code>).
+          <code>PresenceCleanupService</code> (.NET BackgroundService) gọi <code>PurgeStaleAsync(15min)</code> mỗi 5 phút —
+          trong đó luôn gọi <code>PurgeStaleWebVisitors()</code> (stale threshold = 2 phút).
         </div>
       </div>
     </div>
