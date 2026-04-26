@@ -20,17 +20,38 @@ import { useState, useEffect } from 'react'
 import { X, MapPin, Save, Globe } from 'lucide-react'
 import MapPicker from '../MapPicker/MapPicker.jsx'
 import AudioPreview from '../AudioPreview/AudioPreview.jsx'
-import { pois } from '../../api.js'
+import { pois, languages as languagesApi } from '../../api.js'
 import useCurrentUser from '../../hooks/useCurrentUser.js'
 import './POIForm.css'
 
-// Language tabs supported in the form
-const LANGUAGES = [
-    { id: 1, code: 'vi', label: '🇻🇳 Vietnamese', flag: '🇻🇳' },
-    { id: 2, code: 'en', label: '🇬🇧 English', flag: '🇬🇧' },
-]
+/** Map language code/countryCode → flag emoji */
+function langFlag(lang) {
+    const code = (lang.countryCode || lang.code || '').toLowerCase()
+    const map = {
+        vi: '🇻🇳', vn: '🇻🇳',
+        en: '🇬🇧', gb: '🇬🇧',
+        zh: '🇨🇳', cn: '🇨🇳',
+        ja: '🇯🇵', jp: '🇯🇵',
+        ko: '🇰🇷', kr: '🇰🇷',
+        fr: '🇫🇷',
+        de: '🇩🇪',
+        es: '🇪🇸',
+        ru: '🇷🇺',
+        th: '🇹🇭',
+    }
+    return map[code] ?? '🌐'
+}
 
-const DEFAULT_FORM = {
+const DEFAULT_TRANSLATIONS = (langs) => langs.map(l => ({
+    languageId: l.id,
+    name: '',
+    shortDescription: '',
+    fullDescription: '',
+    narrationText: '',
+    highlights: [],
+}))
+
+const DEFAULT_FORM = (langs) => ({
     categoryId: '',
     address: '',
     phone: '',
@@ -44,54 +65,88 @@ const DEFAULT_FORM = {
     openingHours: '',
     vendorUserId: '',
     isFeatured: false,
-    translations: LANGUAGES.map(l => ({
-        languageId: l.id,
-        name: '',
-        shortDescription: '',
-        fullDescription: '',
-        narrationText: '',
-        highlights: [],
-    })),
-}
+    translations: DEFAULT_TRANSLATIONS(langs),
+})
 
 export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
     const isEdit = Boolean(poi?.id)
     const { isVendor } = useCurrentUser()
 
+    // ── Languages (loaded from API) ────────────────────────────────────
+    const [languages, setLanguages] = useState([])
+    const [langsLoaded, setLangsLoaded] = useState(false)
+
+    useEffect(() => {
+        languagesApi.getActive()
+            .then(res => {
+                const list = (res?.data ?? []).map(l => ({
+                    id: l.id,
+                    code: l.code,
+                    label: `${langFlag(l)} ${l.name}`,
+                    flag: langFlag(l),
+                }))
+                setLanguages(list)
+                // Init form now that we have the languages
+                setForm(() => {
+                    if (!poi) return DEFAULT_FORM(list)
+                    return {
+                        categoryId: poi.categoryId ?? '',
+                        address: poi.address ?? '',
+                        phone: poi.phone ?? '',
+                        website: poi.website ?? '',
+                        latitude: poi.latitude ?? '',
+                        longitude: poi.longitude ?? '',
+                        geofenceRadius: poi.geofenceRadius ?? 25,
+                        priority: poi.priority ?? 0,
+                        priceRangeMin: poi.priceRangeMin ?? '',
+                        priceRangeMax: poi.priceRangeMax ?? '',
+                        openingHours: poi.openingHours ?? '',
+                        vendorUserId: poi.vendorUserId ?? '',
+                        isFeatured: poi.isFeatured ?? false,
+                        translations: list.map(l => {
+                            const existing = poi.translations?.find(t => t.languageId === l.id)
+                            return {
+                                languageId: l.id,
+                                name: existing?.name ?? '',
+                                shortDescription: existing?.shortDescription ?? '',
+                                fullDescription: existing?.fullDescription ?? '',
+                                narrationText: existing?.narrationText ?? '',
+                                highlights: existing?.highlights ?? [],
+                            }
+                        }),
+                    }
+                })
+                setLangsLoaded(true)
+            })
+            .catch(() => {
+                // Fallback to VI+EN if API fails
+                const fallback = [
+                    { id: 1, code: 'vi', label: '🇻🇳 Vietnamese', flag: '🇻🇳' },
+                    { id: 2, code: 'en', label: '🇬🇧 English', flag: '🇬🇧' },
+                ]
+                setLanguages(fallback)
+                setForm(poi ? {
+                    categoryId: poi.categoryId ?? '', address: poi.address ?? '',
+                    phone: poi.phone ?? '', website: poi.website ?? '',
+                    latitude: poi.latitude ?? '', longitude: poi.longitude ?? '',
+                    geofenceRadius: poi.geofenceRadius ?? 25, priority: poi.priority ?? 0,
+                    priceRangeMin: poi.priceRangeMin ?? '', priceRangeMax: poi.priceRangeMax ?? '',
+                    openingHours: poi.openingHours ?? '', vendorUserId: poi.vendorUserId ?? '',
+                    isFeatured: poi.isFeatured ?? false,
+                    translations: fallback.map(l => {
+                        const ex = poi.translations?.find(t => t.languageId === l.id)
+                        return { languageId: l.id, name: ex?.name ?? '', shortDescription: ex?.shortDescription ?? '', fullDescription: ex?.fullDescription ?? '', narrationText: ex?.narrationText ?? '', highlights: ex?.highlights ?? [] }
+                    }),
+                } : DEFAULT_FORM(fallback))
+                setLangsLoaded(true)
+            })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
     // ── Form state ─────────────────────────────────────────────────────
-    const [form, setForm] = useState(() => {
-        if (!poi) return { ...DEFAULT_FORM }
+    const [form, setForm] = useState(DEFAULT_FORM([]))
 
-        // Pre-fill from POI object when editing
-        return {
-            categoryId: poi.categoryId ?? '',
-            address: poi.address ?? '',
-            phone: poi.phone ?? '',
-            website: poi.website ?? '',
-            latitude: poi.latitude ?? '',
-            longitude: poi.longitude ?? '',
-            geofenceRadius: poi.geofenceRadius ?? 25,
-            priority: poi.priority ?? 0,
-            priceRangeMin: poi.priceRangeMin ?? '',
-            priceRangeMax: poi.priceRangeMax ?? '',
-            openingHours: poi.openingHours ?? '',
-            vendorUserId: poi.vendorUserId ?? '',
-            isFeatured: poi.isFeatured ?? false,
-            translations: LANGUAGES.map(l => {
-                const existing = poi.translations?.find(t => t.languageId === l.id)
-                return {
-                    languageId: l.id,
-                    name: existing?.name ?? '',
-                    shortDescription: existing?.shortDescription ?? '',
-                    fullDescription: existing?.fullDescription ?? '',
-                    narrationText: existing?.narrationText ?? '',
-                    highlights: existing?.highlights ?? [],
-                }
-            }),
-        }
-    })
-
-    const [activeLang, setActiveLang] = useState(0)   // index into LANGUAGES
+    const [activeLang, setActiveLang] = useState(0)   // index into languages
     const [saving, setSaving] = useState(false)
     const [geocoding, setGeocoding] = useState(false)
     const [error, setError] = useState(null)
@@ -401,16 +456,20 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
                         </div>
                     </div>
 
-                    {/* ── Translations section ───────────────────── */}
+                    {/* ── Translations section ────────────────── */}
                     <div className="poi-form-translations">
                         <div className="poi-form-section-title-row">
                             <Globe size={16} />
                             <h3 className="poi-form-section-title">Content &amp; Translations</h3>
                         </div>
 
+                        {!langsLoaded ? (
+                            <div style={{ padding: '24px', textAlign: 'center', color: '#999' }}>Loading languages…</div>
+                        ) : (
+                        <>
                         {/* Language tabs */}
                         <div className="poi-form-lang-tabs">
-                            {LANGUAGES.map((lang, idx) => (
+                            {languages.map((lang, idx) => (
                                 <button
                                     key={lang.id}
                                     type="button"
@@ -423,7 +482,7 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
                         </div>
 
                         {/* Active language form */}
-                        {LANGUAGES.map((lang, idx) => (
+                        {languages.map((lang, idx) => (
                             <div
                                 key={lang.id}
                                 className="poi-form-lang-content"
@@ -434,7 +493,7 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
                                     <input
                                         className="poi-form-input"
                                         type="text"
-                                        value={form.translations[idx].name}
+                                        value={form.translations[idx]?.name ?? ''}
                                         onChange={e => setTranslation(idx, 'name', e.target.value)}
                                         placeholder={`POI name in ${lang.label}`}
                                     />
@@ -445,7 +504,7 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
                                     <input
                                         className="poi-form-input"
                                         type="text"
-                                        value={form.translations[idx].shortDescription}
+                                        value={form.translations[idx]?.shortDescription ?? ''}
                                         onChange={e => setTranslation(idx, 'shortDescription', e.target.value)}
                                         placeholder="One-line summary shown in list view"
                                     />
@@ -456,7 +515,7 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
                                     <textarea
                                         className="poi-form-input poi-form-textarea"
                                         rows={4}
-                                        value={form.translations[idx].fullDescription}
+                                        value={form.translations[idx]?.fullDescription ?? ''}
                                         onChange={e => setTranslation(idx, 'fullDescription', e.target.value)}
                                         placeholder="Detailed description shown on detail page"
                                     />
@@ -467,7 +526,7 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
                                     <textarea
                                         className="poi-form-input poi-form-textarea"
                                         rows={4}
-                                        value={form.translations[idx].narrationText}
+                                        value={form.translations[idx]?.narrationText ?? ''}
                                         onChange={e => setTranslation(idx, 'narrationText', e.target.value)}
                                         placeholder="Text used for TTS audio generation. Written for spoken delivery."
                                     />
@@ -491,6 +550,8 @@ export default function POIForm({ poi, onClose, onSaved, categories = [] }) {
                                 })()}
                             </div>
                         ))}
+                        </>
+                        )}
                     </div>
 
                     {/* ── Actions ────────────────────────────────────── */}
