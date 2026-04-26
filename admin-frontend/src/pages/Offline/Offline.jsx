@@ -66,6 +66,30 @@ export default function Offline() {
         }
     }, [packages, fetchPackages])
 
+    const handleDownload = async (pkg) => {
+        try {
+            const token = localStorage.getItem('accessToken')
+            const res = await fetch(`${API_BASE}/offlinepackages/${pkg.id}/download`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            })
+            if (!res.ok) throw new Error('Download failed')
+            const blob = await res.blob()
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `vk-offline-${pkg.id}.zip`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            URL.revokeObjectURL(url)
+            // Refresh to update DownloadCount in UI
+            fetchPackages()
+        } catch (err) {
+            console.error('[Offline] download error:', err)
+            message.error('Failed to download package.')
+        }
+    }
+
     const handleBuild = async (id) => {
         try {
             await pkgApi.build(id)
@@ -117,7 +141,10 @@ export default function Offline() {
         <div style={{ padding: '0 0 24px 0', animation: 'fadeIn 0.4s ease-out' }}>
             <Row align="middle" justify="space-between" style={{ marginBottom: 24 }}>
                 <Col>
-                    <Statistic title="Total Downloads" value={totalDownloads} />
+                    <Space size="large">
+                        <Statistic title="Total Packages" value={packages.length} />
+                        <Statistic title="Total Downloads" value={totalDownloads} />
+                    </Space>
                 </Col>
                 <Col>
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
@@ -145,7 +172,7 @@ export default function Offline() {
                                 actions={[
                                     isActive && (
                                         <Tooltip title="Download" key="download">
-                                            <Button type="link" href={`${API_BASE}/offlinepackages/${pkg.id}/download`} download icon={<DownloadOutlined />} />
+                                            <Button type="link" onClick={() => handleDownload(pkg)} icon={<DownloadOutlined />} />
                                         </Tooltip>
                                     ),
                                     isActive && (
