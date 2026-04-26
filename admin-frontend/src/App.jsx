@@ -21,7 +21,6 @@ import Users from './pages/Users/Users'
 import Categories from './pages/Categories/Categories'
 import Settings from './pages/Settings/Settings'
 import Audio from './pages/Audio/Audio'
-import Analytics from './pages/Analytics/Analytics'
 import Offline from './pages/Offline/Offline'
 import LiveMonitorPage from './pages/Monitor/LiveMonitorPage'
 import Languages from './pages/Languages/Languages'
@@ -71,7 +70,6 @@ export default function App() {
                     <Route path="pois"       element={<POIList />} />
                     <Route path="categories" element={<Categories />} />
                     <Route path="audio"      element={<Audio />} />
-                    <Route path="analytics"  element={<Analytics />} />
 
                     {/* Admin-only routes */}
                     <Route path="users"      element={<Users />} />

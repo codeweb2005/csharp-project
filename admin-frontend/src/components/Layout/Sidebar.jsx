@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Avatar } from 'antd'
 import {
   LayoutDashboard, MapPin, Tag as TagIcon, Volume2,
-  Users, BarChart3, Package, Settings, LogOut,
+  Users, Package, Settings, LogOut,
   ChevronLeft, ChevronRight, Radio, Globe
 } from 'lucide-react'
 
@@ -15,7 +15,6 @@ const allMenuItems = [
   { icon: MapPin,          label: 'Points of Interest', path: '/pois'       },
   { icon: TagIcon,         label: 'Categories',         path: '/categories' },
   { icon: Volume2,         label: 'Audio & Media',      path: '/audio'      },
-  { icon: BarChart3,       label: 'Analytics',          path: '/analytics'  },
   { icon: Radio,           label: 'Live Monitor',       path: '/monitor',  adminOnly: true, live: true },
   { icon: Users,           label: 'Users',              path: '/users',    adminOnly: true },
   { icon: Globe,           label: 'Languages',          path: '/languages', adminOnly: true },

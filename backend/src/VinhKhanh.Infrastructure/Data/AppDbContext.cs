@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<TouristSession> TouristSessions => Set<TouristSession>();
     public DbSet<TourQRCode> TourQRCodes => Set<TourQRCode>();
     public DbSet<ActivePresence> ActivePresence => Set<ActivePresence>();
+    public DbSet<WebSiteVisit> WebSiteVisits => Set<WebSiteVisit>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -196,6 +197,15 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.UpdatedAt);
             e.HasOne(x => x.Poi).WithMany().HasForeignKey(x => x.PoiId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ── Web Site Visits ────────────────────────────────────────────────────
+        mb.Entity<WebSiteVisit>(e =>
+        {
+            e.ToTable("WebSiteVisits");
+            e.Property(x => x.VisitorId).HasMaxLength(128).IsRequired();
+            e.HasIndex(x => x.VisitorId);
+            e.HasIndex(x => x.VisitedAt);
         });
     }
 

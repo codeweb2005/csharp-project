@@ -897,5 +897,22 @@ public class PresenceController(IPresenceService presenceSvc) : BaseApiControlle
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetStats()
         => ApiResult(await presenceSvc.GetDashboardStatsAsync());
+
+    // ================================
+    /// <summary>
+    /// Web visitor reports that they started playing an audio narration.
+    /// Increments NarrationCount on their current WebSiteVisit record so that
+    /// the Narrations Played metric on the analytics dashboard is accurate.
+    /// </summary>
+    [HttpPost("web-narration")]
+    [AllowAnonymous]
+    public async Task<IActionResult> WebNarration([FromBody] WebVisitorPresenceRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.VisitorId))
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "visitorId is required"));
+
+        await presenceSvc.TrackWebNarrationAsync(req.VisitorId);
+        return Ok(ApiResponse<object>.Ok(new { ok = true }));
+    }
 }
 

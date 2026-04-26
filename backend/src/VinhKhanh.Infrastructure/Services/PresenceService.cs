@@ -162,17 +162,24 @@ public class PresenceService(
         WebVisitorLastSeen[id] = DateTime.UtcNow;
         await BroadcastWebVisitorCountAsync();
 
-        // ── Notify dashboard about a brand-new web visitor ────────────────────
-        // Fire a dedicated event so Admin Dashboard can increment the Total Visits
-        // counter immediately without a DB round-trip.
         if (isNew)
         {
-            await hub.Clients.Group("Admins").SendAsync("WebVisitorJoined", new
+            // ── Persist to DB so Dashboard polling can count it ───────────────
+            // Dedup: only insert once per 2-hour window per visitor ID.
+            var cutoff = DateTime.UtcNow.AddHours(-2);
+            var alreadyLogged = await db.WebSiteVisits
+                .AnyAsync(v => v.VisitorId == id && v.VisitedAt >= cutoff);
+
+            if (!alreadyLogged)
             {
-                visitorId = id[..Math.Min(8, id.Length)] + "…",
-                timestamp = DateTime.UtcNow
-            });
-            logger.LogDebug("[Presence] New web visitor {V} — WebVisitorJoined broadcast", id[..Math.Min(8, id.Length)]);
+                db.WebSiteVisits.Add(new Domain.Entities.WebSiteVisit
+                {
+                    VisitorId = id,
+                    VisitedAt = DateTime.UtcNow
+                });
+                await db.SaveChangesAsync();
+                logger.LogInformation("[Presence] WebSiteVisit recorded for visitor {V}", id[..Math.Min(8, id.Length)]);
+            }
         }
     }
 
@@ -184,6 +191,39 @@ public class PresenceService(
         WebVisitorLastSeen.TryRemove(visitorId.Trim(), out _);
         WebVisitorLocations.TryRemove(visitorId.Trim(), out _);
         await BroadcastWebVisitorCountAsync();
+    }
+
+    /// <inheritdoc/>
+    public async Task TrackWebNarrationAsync(string visitorId)
+    {
+        if (string.IsNullOrWhiteSpace(visitorId)) return;
+
+        var id      = visitorId.Trim();
+        var cutoff  = DateTime.UtcNow.AddHours(-2);
+
+        // Find the most recent WebSiteVisit for this visitor (within the 2h dedup window)
+        var visit = await db.WebSiteVisits
+            .Where(v => v.VisitorId == id && v.VisitedAt >= cutoff)
+            .OrderByDescending(v => v.VisitedAt)
+            .FirstOrDefaultAsync();
+
+        if (visit != null)
+        {
+            visit.NarrationCount++;
+            await db.SaveChangesAsync();
+            logger.LogDebug("[Presence] NarrationCount++ for visitor {V} → {N}", id[..Math.Min(8, id.Length)], visit.NarrationCount);
+        }
+        else
+        {
+            // Visitor played audio before their first heartbeat was recorded; create a session now
+            db.WebSiteVisits.Add(new Domain.Entities.WebSiteVisit
+            {
+                VisitorId      = id,
+                VisitedAt      = DateTime.UtcNow,
+                NarrationCount = 1
+            });
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <inheritdoc/>

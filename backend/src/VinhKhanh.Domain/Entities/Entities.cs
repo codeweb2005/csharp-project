@@ -306,3 +306,17 @@ public class ActivePresence
     public POI? Poi { get; set; }
 }
 
+/// <summary>
+/// Tracks anonymous web visitor sessions for dashboard analytics.
+/// Created once per visitor ID per 2-hour window when they open the visitor website.
+/// Separate from VisitHistory (which requires a POI FK).
+/// </summary>
+public class WebSiteVisit
+{
+    public int Id { get; set; }
+    /// <summary>Anonymous UUID stored in visitor's localStorage.</summary>
+    public string VisitorId { get; set; } = string.Empty;
+    public DateTime VisitedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>Number of audio narrations played during this visit session.</summary>
+    public int NarrationCount { get; set; } = 0;
+}

@@ -35,15 +35,37 @@ public class AnalyticsService : IAnalyticsService
         var from     = now.AddDays(-days);
         var prevFrom = from.AddDays(-days);
 
+        // ── POI visits (scoped for Vendor, global for Admin) ──────────────────
         IQueryable<Domain.Entities.VisitHistory> h = _db.VisitHistory;
         if (vendorPOIIds != null)
             h = h.Where(v => vendorPOIIds.Contains(v.POIId));
 
-        var currentVisits    = await h.CountAsync(v => v.VisitedAt >= from);
-        var previousVisits   = await h.CountAsync(v => v.VisitedAt >= prevFrom && v.VisitedAt < from);
+        var currentPoiVisits  = await h.CountAsync(v => v.VisitedAt >= from);
+        var previousPoiVisits = await h.CountAsync(v => v.VisitedAt >= prevFrom && v.VisitedAt < from);
 
+        // ── Web site visits (Admin only — no POI scoping for web visitors) ────
+        var currentWebVisits  = 0;
+        var previousWebVisits = 0;
+        if (vendorPOIIds == null)
+        {
+            currentWebVisits  = await _db.WebSiteVisits.CountAsync(v => v.VisitedAt >= from);
+            previousWebVisits = await _db.WebSiteVisits.CountAsync(v => v.VisitedAt >= prevFrom && v.VisitedAt < from);
+        }
+
+        var currentVisits  = currentPoiVisits  + currentWebVisits;
+        var previousVisits = previousPoiVisits + previousWebVisits;
+
+        // ── Narrations: VisitHistory (mobile) + WebSiteVisits.NarrationCount (web) ─
         var currentNarrations  = await h.CountAsync(v => v.VisitedAt >= from && v.NarrationPlayed);
         var previousNarrations = await h.CountAsync(v => v.VisitedAt >= prevFrom && v.VisitedAt < from && v.NarrationPlayed);
+
+        if (vendorPOIIds == null)
+        {
+            currentNarrations  += await _db.WebSiteVisits.Where(v => v.VisitedAt >= from)
+                .SumAsync(v => (int?)v.NarrationCount) ?? 0;
+            previousNarrations += await _db.WebSiteVisits.Where(v => v.VisitedAt >= prevFrom && v.VisitedAt < from)
+                .SumAsync(v => (int?)v.NarrationCount) ?? 0;
+        }
 
         var currentUsers  = vendorPOIIds != null ? 0
             : await _db.Users.CountAsync(u => u.CreatedAt >= from);
@@ -88,29 +110,63 @@ public class AnalyticsService : IAnalyticsService
     public async Task<ApiResponse<List<VisitChartDto>>> GetVisitsByDayAsync(
         DateTime from, DateTime to, List<int>? vendorPOIIds = null)
     {
+        // ── POI visits ────────────────────────────────────────────────────────
         IQueryable<Domain.Entities.VisitHistory> q = _db.VisitHistory
             .Where(v => v.VisitedAt >= from && v.VisitedAt <= to);
 
         if (vendorPOIIds != null)
             q = q.Where(v => vendorPOIIds.Contains(v.POIId));
 
-        var rawData = await q
+        var poiByDay = await q
             .GroupBy(v => v.VisitedAt.Date)
             .Select(g => new
             {
                 Date       = g.Key,
                 Visits     = g.Count(),
+                // Narrations = audio played by mobile tourists — web visits don't play audio
                 Narrations = g.Count(v => v.NarrationPlayed)
             })
             .OrderBy(v => v.Date)
             .ToListAsync();
 
-        var data = rawData.Select(v => new VisitChartDto
+        // ── Web site visits + narrations (Admin only — vendor is POI-scoped) ──
+        var webByDay = new List<(DateTime Date, int Visits, int Narrations)>();
+        if (vendorPOIIds == null)
         {
-            Date       = v.Date.ToString("dd/MM"),
-            Visits     = v.Visits,
-            Narrations = v.Narrations
-        }).ToList();
+            webByDay = (await _db.WebSiteVisits
+                .Where(v => v.VisitedAt >= from && v.VisitedAt <= to)
+                .GroupBy(v => v.VisitedAt.Date)
+                .Select(g => new
+                {
+                    Date       = g.Key,
+                    Visits     = g.Count(),
+                    Narrations = g.Sum(v => v.NarrationCount)
+                })
+                .ToListAsync())
+                .Select(x => (x.Date, x.Visits, x.Narrations)).ToList();
+        }
+
+        // ── Merge by date ─────────────────────────────────────────────────────
+        var merged = poiByDay.ToDictionary(
+            x => x.Date,
+            x => (Visits: x.Visits, Narrations: x.Narrations));
+
+        foreach (var (date, visits, narrations) in webByDay)
+        {
+            if (merged.TryGetValue(date, out var existing))
+                merged[date] = (existing.Visits + visits, existing.Narrations + narrations);
+            else
+                merged[date] = (visits, narrations);
+        }
+
+        var data = merged
+            .OrderBy(kv => kv.Key)
+            .Select(kv => new VisitChartDto
+            {
+                Date       = kv.Key.ToString("dd/MM"),
+                Visits     = kv.Value.Visits,
+                Narrations = kv.Value.Narrations
+            }).ToList();
 
         return ApiResponse<List<VisitChartDto>>.Ok(data);
     }
@@ -130,6 +186,7 @@ public class AnalyticsService : IAnalyticsService
         var localMidnightUtc = date.Date.AddMinutes(-tzOffsetMinutes);
         var localEndOfDayUtc = localMidnightUtc.AddDays(1);
 
+        // ── POI visits ────────────────────────────────────────────────────────
         IQueryable<Domain.Entities.VisitHistory> q = _db.VisitHistory
             .Where(v => v.VisitedAt >= localMidnightUtc && v.VisitedAt < localEndOfDayUtc);
 
@@ -138,14 +195,28 @@ public class AnalyticsService : IAnalyticsService
 
         // Load raw VisitedAt values then convert to local hour in .NET
         // (EF Core / MySQL translate DateTime arithmetic but not TimeSpan offsets reliably)
-        var rawDates = await q.Select(v => v.VisitedAt).ToListAsync();
+        var poiDates = await q.Select(v => v.VisitedAt).ToListAsync();
 
-        var hourly = rawDates
+        // ── Web site visits (Admin only) ──────────────────────────────────────
+        var webDates = new List<DateTime>();
+        if (vendorPOIIds == null)
+        {
+            webDates = await _db.WebSiteVisits
+                .Where(v => v.VisitedAt >= localMidnightUtc && v.VisitedAt < localEndOfDayUtc)
+                .Select(v => v.VisitedAt)
+                .ToListAsync();
+        }
+
+        // ── Merge: count visits per local hour ────────────────────────────────
+        var allDates = poiDates.Concat(webDates);
+
+        var hourly = allDates
             .Select(utc => utc.AddMinutes(tzOffsetMinutes).Hour)   // → local hour
             .GroupBy(h => h)
             .Select(g => new HourlyVisitDto { Hour = g.Key, Visits = g.Count() })
             .ToList();
 
+        // Fill all 24 hours (zero for hours with no visits)
         var result = Enumerable.Range(0, 24)
             .Select(h => hourly.FirstOrDefault(x => x.Hour == h)
                         ?? new HourlyVisitDto { Hour = h, Visits = 0 })

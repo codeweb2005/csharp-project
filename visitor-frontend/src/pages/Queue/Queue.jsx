@@ -56,6 +56,7 @@ export default function Queue() {
   const [duration, setDuration]       = useState(0)
   const [muted, setMuted]             = useState(false)
   const [hasStarted, setHasStarted]   = useState(false) // user clicked "Bắt đầu nghe" at least once
+  const reportedNarrationRef          = useRef(new Set()) // set of audioIds already reported
 
   // Load audio src when currentIdx changes
   useEffect(() => {
@@ -95,7 +96,16 @@ export default function Queue() {
   }, [rawQueue]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Audio event handlers ───────────────────────────────────────────────────
-  const handlePlay    = () => setIsPlaying(true)
+  const handlePlay    = () => {
+    setIsPlaying(true)
+    // Report narration once per audio track (not on resume after pause)
+    const item = playableQueue[currentIdx]
+    if (item?.audio?.id && !reportedNarrationRef.current.has(item.audio.id)) {
+      reportedNarrationRef.current.add(item.audio.id)
+      const visitorId = localStorage.getItem(WEB_VISITOR_ID_KEY)
+      if (visitorId) api.presenceNarration(visitorId).catch(() => {})
+    }
+  }
   const handlePause   = () => setIsPlaying(false)
   const handleTimeUpdate = () => setCurrentTime(audioRef.current?.currentTime ?? 0)
   const handleLoadedMetadata = () => setDuration(audioRef.current?.duration ?? 0)

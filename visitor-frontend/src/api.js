@@ -124,4 +124,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ visitorId, latitude: lat, longitude: lng }),
     }),
+
+  /**
+   * Notify the server that this web visitor started playing an audio narration.
+   * Increments NarrationCount in WebSiteVisits so analytics dashboards show accurate data.
+   * Call once per audio item when the user presses play (not on resume/seek).
+   * @param {string} visitorId
+   */
+  presenceNarration: (visitorId) =>
+    request('/presence/web-narration', {
+      method: 'POST',
+      body: JSON.stringify({ visitorId }),
+    }),
 }

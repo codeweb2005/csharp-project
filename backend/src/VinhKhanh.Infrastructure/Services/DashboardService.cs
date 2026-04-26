@@ -55,14 +55,18 @@ public class DashboardService : IDashboardService
             });
         }
 
-        // ── Admin mode: system-wide ───────────────────────────────────
-        var allActivePOIs = await _db.POIs.CountAsync(p => p.IsActive);
-        var allVisits     = await _db.VisitHistory.CountAsync(v => v.VisitedAt >= thirtyDaysAgo);
-        var allPrevVisits = await _db.VisitHistory.CountAsync(v => v.VisitedAt >= sixtyDaysAgo && v.VisitedAt < thirtyDaysAgo);
-        var allLanguages  = await _db.Languages.CountAsync(l => l.IsActive);
-        var allAudio      = await _db.AudioNarrations.CountAsync(a => a.IsActive);
-        var allUsers      = await _db.Users.CountAsync();
-        var allVendors    = await _db.Users.CountAsync(u => u.Role == Domain.Enums.UserRole.Vendor);
+        // ── Admin mode: system-wide (POI visits + web site visits) ───────────
+        var allActivePOIs  = await _db.POIs.CountAsync(p => p.IsActive);
+        var poiVisits      = await _db.VisitHistory.CountAsync(v => v.VisitedAt >= thirtyDaysAgo);
+        var webVisits      = await _db.WebSiteVisits.CountAsync(v => v.VisitedAt >= thirtyDaysAgo);
+        var allVisits      = poiVisits + webVisits;
+        var poiPrevVisits  = await _db.VisitHistory.CountAsync(v => v.VisitedAt >= sixtyDaysAgo && v.VisitedAt < thirtyDaysAgo);
+        var webPrevVisits  = await _db.WebSiteVisits.CountAsync(v => v.VisitedAt >= sixtyDaysAgo && v.VisitedAt < thirtyDaysAgo);
+        var allPrevVisits  = poiPrevVisits + webPrevVisits;
+        var allLanguages   = await _db.Languages.CountAsync(l => l.IsActive);
+        var allAudio       = await _db.AudioNarrations.CountAsync(a => a.IsActive);
+        var allUsers       = await _db.Users.CountAsync();
+        var allVendors     = await _db.Users.CountAsync(u => u.Role == Domain.Enums.UserRole.Vendor);
 
         double change = allPrevVisits > 0
             ? Math.Round((double)(allVisits - allPrevVisits) / allPrevVisits * 100, 1)
@@ -112,30 +116,54 @@ public class DashboardService : IDashboardService
     public async Task<ApiResponse<List<VisitChartDto>>> GetVisitsChartAsync(
         DateTime from, DateTime to, List<int>? vendorPOIIds = null)
     {
-        var query = _db.VisitHistory
+        // ── POI visits (all callers) ──────────────────────────────────────────
+        var poiQuery = _db.VisitHistory
             .Where(v => v.VisitedAt >= from && v.VisitedAt <= to)
             .AsQueryable();
 
         if (vendorPOIIds != null)
-            query = query.Where(v => vendorPOIIds.Contains(v.POIId));
+            poiQuery = poiQuery.Where(v => vendorPOIIds.Contains(v.POIId));
 
-        var rawVisits = await query
+        var poiByDay = await poiQuery
             .GroupBy(v => v.VisitedAt.Date)
-            .Select(g => new
-            {
-                Date       = g.Key,
-                Visits     = g.Count(),
-                Narrations = g.Count(v => v.NarrationPlayed)
-            })
-            .OrderBy(v => v.Date)
+            .Select(g => new { Date = g.Key, Visits = g.Count(), Narrations = g.Count(v => v.NarrationPlayed) })
             .ToListAsync();
 
-        var visits = rawVisits.Select(v => new VisitChartDto
+        // ── Web site visits (Admin only — vendor chart stays POI-scoped) ───────
+        var webByDay = new List<(DateTime Date, int Visits, int Narrations)>();
+        if (vendorPOIIds == null)
         {
-            Date       = v.Date.ToString("dd/MM"),
-            Visits     = v.Visits,
-            Narrations = v.Narrations
-        }).ToList();
+            webByDay = (await _db.WebSiteVisits
+                .Where(v => v.VisitedAt >= from && v.VisitedAt <= to)
+                .GroupBy(v => v.VisitedAt.Date)
+                .Select(g => new
+                {
+                    Date       = g.Key,
+                    Visits     = g.Count(),
+                    Narrations = g.Sum(v => v.NarrationCount)
+                })
+                .ToListAsync())
+                .Select(x => (x.Date, x.Visits, x.Narrations)).ToList();
+        }
+
+        // ── Merge by date ─────────────────────────────────────────────────────
+        var merged = poiByDay.ToDictionary(x => x.Date, x => (Visits: x.Visits, Narrations: x.Narrations));
+        foreach (var (date, webVisits, webNarrations) in webByDay)
+        {
+            if (merged.TryGetValue(date, out var existing))
+                merged[date] = (existing.Visits + webVisits, existing.Narrations + webNarrations);
+            else
+                merged[date] = (webVisits, webNarrations);
+        }
+
+        var visits = merged
+            .OrderBy(kv => kv.Key)
+            .Select(kv => new VisitChartDto
+            {
+                Date       = kv.Key.ToString("dd/MM"),
+                Visits     = kv.Value.Visits,
+                Narrations = kv.Value.Narrations
+            }).ToList();
 
         return ApiResponse<List<VisitChartDto>>.Ok(visits);
     }
