@@ -156,8 +156,24 @@ public class PresenceService(
     {
         if (string.IsNullOrWhiteSpace(visitorId)) return;
 
-        WebVisitorLastSeen[visitorId.Trim()] = DateTime.UtcNow;
+        var id = visitorId.Trim();
+        var isNew = !WebVisitorLastSeen.ContainsKey(id);
+
+        WebVisitorLastSeen[id] = DateTime.UtcNow;
         await BroadcastWebVisitorCountAsync();
+
+        // ── Notify dashboard about a brand-new web visitor ────────────────────
+        // Fire a dedicated event so Admin Dashboard can increment the Total Visits
+        // counter immediately without a DB round-trip.
+        if (isNew)
+        {
+            await hub.Clients.Group("Admins").SendAsync("WebVisitorJoined", new
+            {
+                visitorId = id[..Math.Min(8, id.Length)] + "…",
+                timestamp = DateTime.UtcNow
+            });
+            logger.LogDebug("[Presence] New web visitor {V} — WebVisitorJoined broadcast", id[..Math.Min(8, id.Length)]);
+        }
     }
 
     /// <inheritdoc/>

@@ -91,6 +91,35 @@ export default function VendorDashboard() {
 
     useEffect(() => { fetchData() }, [fetchData])
 
+    // ── Polling 30s: tự động refresh visits chart + Total Visits KPI ───────────
+    // Vendor không thể kết nối SignalR hub (hub chỉ cho Admin role).
+    // Giải pháp: poll nhẹ 30s — fetch visits-by-day, visits-by-hour và stats
+    // để Total Visits card cũng cập nhật khi có visitor mới.
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            try {
+                const to = new Date().toISOString()
+                const from = new Date(Date.now() - daysFrom(period) * 86400000).toISOString()
+                const today = new Date().toISOString().split('T')[0]
+
+                const [statsRes, visitsRes, hourlyRes] = await Promise.all([
+                    dashboardApi.getStats(),
+                    analyticsApi.getVisitsByDay(from, to),
+                    analyticsApi.getVisitsByHour(today),
+                ])
+                if (statsRes.success) setStats(statsRes.data)
+                if (visitsRes.success) setVisitsByDay(visitsRes.data ?? [])
+                if (hourlyRes.success) setHourlyData(
+                    (hourlyRes.data ?? []).map(h => ({ hour: `${h.hour}h`, visits: h.visits }))
+                )
+            } catch (err) {
+                console.warn('[VendorDashboard] polling error:', err)
+            }
+        }, 30_000) // 30 giây
+
+        return () => clearInterval(interval)
+    }, [period])
+
     if (loading && !stats) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>

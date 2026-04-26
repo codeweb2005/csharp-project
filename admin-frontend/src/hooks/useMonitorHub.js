@@ -16,7 +16,7 @@ const HUB_URL = `${API_ORIGIN}/hubs/monitor`;
  * @param {object}   options
  * @param {boolean}  options.enabled    - Whether to establish the connection (default true)
  */
-export function useMonitorHub({ onEnter, onExit, onMove, onWebVisitorUpdate } = {}, { enabled = true } = {}) {
+export function useMonitorHub({ onEnter, onExit, onMove, onWebVisitorUpdate, onWebVisitorJoined } = {}, { enabled = true } = {}) {
   const connRef = useRef(null);
 
   const connect = useCallback(async () => {
@@ -35,10 +35,11 @@ export function useMonitorHub({ onEnter, onExit, onMove, onWebVisitorUpdate } = 
       .configureLogging(signalR.LogLevel.Warning)
       .build();
 
-    connection.on('TouristEnteredPOI',     msg => onEnter?.(msg));
-    connection.on('TouristExitedPOI',      msg => onExit?.(msg));
-    connection.on('TouristLocationUpdate', msg => onMove?.(msg));
-    connection.on('WebVisitorPresenceUpdated', msg => onWebVisitorUpdate?.(msg));
+    connection.on('TouristEnteredPOI',       msg => onEnter?.(msg));
+    connection.on('TouristExitedPOI',         msg => onExit?.(msg));
+    connection.on('TouristLocationUpdate',    msg => onMove?.(msg));
+    connection.on('WebVisitorPresenceUpdated',msg => onWebVisitorUpdate?.(msg));
+    connection.on('WebVisitorJoined',         msg => onWebVisitorJoined?.(msg));
 
     connection.onreconnecting(() =>
       console.info('[MonitorHub] Reconnecting…'));
@@ -57,7 +58,7 @@ export function useMonitorHub({ onEnter, onExit, onMove, onWebVisitorUpdate } = 
     } catch (err) {
       console.error('[MonitorHub] Failed to connect:', err);
     }
-  }, [onEnter, onExit, onMove, onWebVisitorUpdate]);
+  }, [onEnter, onExit, onMove, onWebVisitorUpdate, onWebVisitorJoined]);
 
   useEffect(() => {
     if (!enabled) return;

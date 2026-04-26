@@ -7,17 +7,17 @@ import { dashboard as dashboardApi } from '../../api'
 const CHART_COLORS = ['#C92127', '#E05B1A', '#D97706', '#2563EB', '#7C3AED']
 
 const statConfig = [
-  { key: 'activePOIs',  label: 'Active POIs',  icon: MapPin,   accent: 'indigo' },
-  { key: 'totalVisits', label: 'Total Visits',  icon: Eye,      accent: 'emerald', changeKey: 'totalVisitsChange' },
-  { key: 'languages',   label: 'Languages',     icon: Globe,    accent: 'amber' },
-  { key: 'audioFiles',  label: 'Audio Files',   icon: Volume2,  accent: 'rose' },
+  { key: 'activePOIs', label: 'Active POIs', icon: MapPin, accent: 'indigo' },
+  { key: 'totalVisits', label: 'Total Visits', icon: Eye, accent: 'emerald', changeKey: 'totalVisitsChange' },
+  { key: 'languages', label: 'Languages', icon: Globe, accent: 'amber' },
+  { key: 'audioFiles', label: 'Audio Files', icon: Volume2, accent: 'rose' },
 ]
 
 function StatCard({ label, value, icon: Icon, accent, change }) {
   return (
     <div className={`stat-card ${accent}`}>
       <div className={`stat-card-icon ${accent}`}>
-        <Icon size={18}/>
+        <Icon size={18} />
       </div>
       <div className="stat-card-value">{value ?? 0}</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
@@ -28,7 +28,7 @@ function StatCard({ label, value, icon: Icon, accent, change }) {
             fontSize: 11, fontWeight: 600,
             color: change >= 0 ? '#16a34a' : '#DC2626',
           }}>
-            {change >= 0 ? <TrendingUp size={12}/> : <TrendingDown size={12}/>}
+            {change >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
             {change > 0 ? '+' : ''}{change}%
           </div>
         )}
@@ -55,13 +55,19 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
+// Format ngày hôm nay theo "dd/MM" — khớp format backend trả về
+function todayLabel() {
+  const now = new Date()
+  return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
 export default function Dashboard() {
-  const [stats,          setStats]          = useState(null)
-  const [topPOIs,        setTopPOIs]        = useState([])
-  const [visitData,      setVisitData]      = useState([])
-  const [langData,       setLangData]       = useState([])
+  const [stats, setStats] = useState(null)
+  const [topPOIs, setTopPOIs] = useState([])
+  const [visitData, setVisitData] = useState([])
+  const [langData, setLangData] = useState([])
   const [recentActivity, setRecentActivity] = useState([])
-  const [loading,        setLoading]        = useState(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => { loadDashboard() }, [])
 
@@ -74,15 +80,23 @@ export default function Dashboard() {
         dashboardApi.getLanguageStats(),
         dashboardApi.getRecentActivity(10),
       ])
-      if (statsRes.success)  setStats(statsRes.data)
-      if (topRes.success)    setTopPOIs(topRes.data)
-      if (langRes.success)   setLangData(langRes.data)
+      if (statsRes.success) setStats(statsRes.data)
+      if (topRes.success) setTopPOIs(topRes.data)
+      if (langRes.success) setLangData(langRes.data)
       if (recentRes.success) setRecentActivity(recentRes.data)
 
-      const to   = new Date().toISOString()
+      const to = new Date().toISOString()
       const from = new Date(Date.now() - 30 * 86400000).toISOString()
       const vRes = await dashboardApi.getVisitsChart(from, to)
-      if (vRes.success) setVisitData(vRes.data)
+      if (vRes.success) {
+        // Backend chỉ trả ngày có data — đảm bảo ngày hôm nay luôn hiện trên chart
+        const today = todayLabel()
+        const data = vRes.data ?? []
+        if (!data.find(d => d.date === today)) {
+          data.push({ date: today, visits: 0, narrations: 0 })
+        }
+        setVisitData(data)
+      }
     } catch (err) {
       console.error('Dashboard load error:', err)
     } finally {
@@ -90,9 +104,40 @@ export default function Dashboard() {
     }
   }
 
+  // ── Polling 30s: tự động refresh Total Visits + Visits by Day ──────────────
+  // SignalR hub yêu cầu Admin JWT qua WebSocket — không đáng tin cậy với Vite dev
+  // proxy. Polling nhẹ 30s đảm bảo luôn cập nhật mà không cần WS connection.
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const [statsRes, vRes] = await Promise.all([
+          dashboardApi.getStats(),
+          dashboardApi.getVisitsChart(
+            new Date(Date.now() - 30 * 86400000).toISOString(),
+            new Date().toISOString()
+          ),
+        ])
+        if (statsRes.success) setStats(statsRes.data)
+        if (vRes.success) {
+          // Đảm bảo ngày hôm nay luôn xuất hiện trong chart
+          // (backend chỉ trả ngày có data, ngày chưa có visit sẽ không có entry)
+          const today = todayLabel()
+          const data = vRes.data ?? []
+          if (!data.find(d => d.date === today)) {
+            data.push({ date: today, visits: 0, narrations: 0 })
+          }
+          setVisitData(data)
+        }
+      } catch (err) {
+        console.warn('[Dashboard] polling error:', err)
+      }
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [])
+
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-      <Spin size="large"/>
+      <Spin size="large" />
     </div>
   )
 
@@ -112,7 +157,7 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {statConfig.map((s, i) => (
           <StatCard key={i} label={s.label} value={stats?.[s.key]} icon={s.icon}
-            accent={s.accent} change={s.changeKey ? stats?.[s.changeKey] : null}/>
+            accent={s.accent} change={s.changeKey ? stats?.[s.changeKey] : null} />
         ))}
       </div>
 
@@ -129,9 +174,9 @@ export default function Dashboard() {
               <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>Last 30 days</div>
             </div>
             <div style={{ display: 'flex', gap: 14 }}>
-              {[['#C92127','Visits'],['#E05B1A','Narrations']].map(([c,l]) => (
+              {[['#C92127', 'Visits'], ['#E05B1A', 'Narrations']].map(([c, l]) => (
                 <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#999' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: c }}/>
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
                   {l}
                 </div>
               ))}
@@ -141,19 +186,19 @@ export default function Dashboard() {
             <AreaChart data={visitData}>
               <defs>
                 <linearGradient id="gV" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#C92127" stopOpacity={0.15}/>
-                  <stop offset="100%" stopColor="#C92127" stopOpacity={0}/>
+                  <stop offset="0%" stopColor="#C92127" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="#C92127" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gN" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#E05B1A" stopOpacity={0.12}/>
-                  <stop offset="100%" stopColor="#E05B1A" stopOpacity={0}/>
+                  <stop offset="0%" stopColor="#E05B1A" stopOpacity={0.12} />
+                  <stop offset="100%" stopColor="#E05B1A" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#CCC' }} axisLine={false} tickLine={false}/>
-              <YAxis tick={{ fontSize: 10, fill: '#CCC' }} axisLine={false} tickLine={false}/>
-              <Tooltip content={<CustomTooltip/>}/>
-              <Area type="monotone" dataKey="visits"     name="Visits"     stroke="#C92127" fill="url(#gV)" strokeWidth={2}/>
-              <Area type="monotone" dataKey="narrations" name="Narrations" stroke="#E05B1A" fill="url(#gN)" strokeWidth={2}/>
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#CCC' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#CCC' }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="visits" name="Visits" stroke="#C92127" fill="url(#gV)" strokeWidth={2} />
+              <Area type="monotone" dataKey="narrations" name="Narrations" stroke="#E05B1A" fill="url(#gN)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -172,7 +217,7 @@ export default function Dashboard() {
                   <div style={{
                     width: 20, fontSize: 11, fontWeight: 700,
                     color: i === 0 ? '#C92127' : '#CCC',
-                  }}>#{i+1}</div>
+                  }}>#{i + 1}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                       <span style={{ fontSize: 12, fontWeight: 500, color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{poi.name}</span>
@@ -184,7 +229,7 @@ export default function Dashboard() {
                         height: '100%', borderRadius: 2,
                         width: `${(poi.visits / maxVisits) * 100}%`,
                         transition: 'width 0.6s ease',
-                      }}/>
+                      }} />
                     </div>
                   </div>
                 </div>
@@ -197,7 +242,7 @@ export default function Dashboard() {
       {/* ── Bottom Row ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 14 }}>
 
-        {/* Language Distribution */}
+        {/* Language Distribution
         <div style={{ ...cardStyle, padding: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', fontFamily: "'Manrope', sans-serif", marginBottom: 12 }}>
             Language Distribution
@@ -228,10 +273,10 @@ export default function Dashboard() {
             ))}
             {langData.length === 0 && <div style={{ fontSize: 12, color: '#CCC' }}>No data yet</div>}
           </div>
-        </div>
+        </div> */}
 
         {/* Recent Activity */}
-        <div style={{ ...cardStyle, padding: 20 }}>
+        {/* <div style={{ ...cardStyle, padding: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', fontFamily: "'Manrope', sans-serif", marginBottom: 16 }}>
             Recent Activity
           </div>
@@ -268,7 +313,7 @@ export default function Dashboard() {
               ))}
             </div>
           )}
-        </div>
+        </div> */}
       </div>
     </div>
   )
