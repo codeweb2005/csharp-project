@@ -150,7 +150,19 @@ function TouristMarkers({ positions }) {
 // ─── Web Visitor Position Markers ───────────────────────────────────────────
 function WebVisitorMarkers({ positions }) {
   return positions
-    .filter(p => p.latitude && p.longitude)
+    .map((p) => ({
+      ...p,
+      latitude: typeof p.latitude === 'string' ? Number(p.latitude) : p.latitude,
+      longitude: typeof p.longitude === 'string' ? Number(p.longitude) : p.longitude,
+    }))
+    .filter(p =>
+      p.latitude !== null &&
+      p.latitude !== undefined &&
+      p.longitude !== null &&
+      p.longitude !== undefined &&
+      !Number.isNaN(p.latitude) &&
+      !Number.isNaN(p.longitude)
+    )
     .map((p, i) => (
       <CircleMarker
         key={`web-${i}`}
@@ -333,7 +345,6 @@ export default function LiveMonitorPage() {
         {visitsToday > 0 && (
           <StatCard icon={Activity} value={visitsToday} label="Lượt thăm hôm nay" color="#16a34a" bg="rgba(22,163,74,0.08)" />
         )}
-        <StatCard icon={QrCode} value={activeQRCodes} label="Mã QR đang dùng" color="#7c3aed" bg="rgba(124,58,237,0.08)" />
       </div>
 
       {/* ── Map + Sidebar ── */}
@@ -362,38 +373,8 @@ export default function LiveMonitorPage() {
           </MapContainer>
         </div>
 
-        {/* Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-          {/* POI Presence */}
-          <div style={cardStyle}>
-            <div style={{
-              fontSize: 12, fontWeight: 700, color: '#555',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <Store size={13} color="#C92127" />
-              {hasRealtimePOI ? 'Du khách theo POI' : 'Lượt thăm theo POI hôm nay'}
-            </div>
-            <PoiPresenceList perPOI={perPOI} isHistorical={!hasRealtimePOI} />
-          </div>
-
-          {/* Event Log */}
-          <div style={{ ...cardStyle, flex: 1 }}>
-            <div style={{
-              fontSize: 12, fontWeight: 700, color: '#555',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#C92127' }} />
-              Sự kiện gần đây
-            </div>
-            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-              <LiveEventLog events={events} />
-            </div>
-          </div>
-
-        </div>
+        {/* Sidebar (currently hidden: event log removed) */}
+        <div />
       </div>
     </div>
   );

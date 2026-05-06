@@ -174,7 +174,7 @@ export default function Dashboard() {
               <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>Last 30 days</div>
             </div>
             <div style={{ display: 'flex', gap: 14 }}>
-              {[['#C92127', 'Visits'], ['#E05B1A', 'Narrations']].map(([c, l]) => (
+              {[['#C92127', 'Visits']].map(([c, l]) => (
                 <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#999' }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
                   {l}
@@ -189,16 +189,11 @@ export default function Dashboard() {
                   <stop offset="0%" stopColor="#C92127" stopOpacity={0.15} />
                   <stop offset="100%" stopColor="#C92127" stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="gN" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#E05B1A" stopOpacity={0.12} />
-                  <stop offset="100%" stopColor="#E05B1A" stopOpacity={0} />
-                </linearGradient>
               </defs>
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#CCC' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: '#CCC' }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Area type="monotone" dataKey="visits" name="Visits" stroke="#C92127" fill="url(#gV)" strokeWidth={2} />
-              <Area type="monotone" dataKey="narrations" name="Narrations" stroke="#E05B1A" fill="url(#gN)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
