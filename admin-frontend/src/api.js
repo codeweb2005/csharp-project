@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5015/api/v1'
+export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://18.142.183.131:8080/api/v1'
 
 /** Auth refresh endpoint (must match backend route). */
 const AUTH_REFRESH_PATH = '/auth/refresh'
