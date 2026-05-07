@@ -194,7 +194,7 @@ public class PresenceService(
     }
 
     /// <inheritdoc/>
-    public async Task TrackWebNarrationAsync(string visitorId)
+    public async Task TrackWebNarrationAsync(string visitorId, int? poiId = null, int? langId = null)
     {
         if (string.IsNullOrWhiteSpace(visitorId)) return;
 
@@ -223,6 +223,35 @@ public class PresenceService(
                 NarrationCount = 1
             });
             await db.SaveChangesAsync();
+        }
+
+        // Insert VisitHistory if POI and Language are provided
+        if (poiId.HasValue && langId.HasValue)
+        {
+            var historyCutoff = DateTime.UtcNow.AddMinutes(-5);
+            var alreadyRecorded = await db.VisitHistory.AnyAsync(v =>
+                v.DeviceId == id && v.POIId == poiId.Value && v.VisitedAt >= historyCutoff);
+
+            if (!alreadyRecorded)
+            {
+                db.VisitHistory.Add(new Domain.Entities.VisitHistory
+                {
+                    POIId           = poiId.Value,
+                    UserId          = null,
+                    LanguageId      = langId.Value,
+                    TriggerType     = Domain.Enums.TriggerType.Manual,
+                    NarrationPlayed = true,
+                    ListenDuration  = 0,
+                    VisitedAt       = DateTime.UtcNow,
+                    DeviceId        = id
+                });
+                await db.SaveChangesAsync();
+
+                // Bump POI TotalVisits
+                await db.POIs
+                    .Where(p => p.Id == poiId.Value)
+                    .ExecuteUpdateAsync(s => s.SetProperty(p => p.TotalVisits, p => p.TotalVisits + 1));
+            }
         }
     }
 

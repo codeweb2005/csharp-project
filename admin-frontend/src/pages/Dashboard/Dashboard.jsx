@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
 import { MapPin, Eye, Globe, Volume2, TrendingUp, TrendingDown } from 'lucide-react'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts'
 import { Spin, Avatar } from 'antd'
-import { dashboard as dashboardApi } from '../../api'
+import { dashboard as dashboardApi, analytics as analyticsApi } from '../../api'
 
 const CHART_COLORS = ['#C92127', '#E05B1A', '#D97706', '#2563EB', '#7C3AED']
 
 const statConfig = [
   { key: 'activePOIs', label: 'Active POIs', icon: MapPin, accent: 'indigo' },
   { key: 'totalVisits', label: 'Total Visits', icon: Eye, accent: 'emerald', changeKey: 'totalVisitsChange' },
+  { key: 'narrationsToday', label: 'Audio Plays Today', icon: Volume2, accent: 'rose' },
   { key: 'languages', label: 'Languages', icon: Globe, accent: 'amber' },
-  { key: 'audioFiles', label: 'Audio Files', icon: Volume2, accent: 'rose' },
+  { key: 'audioFiles', label: 'Total Audio Files', icon: Volume2, accent: 'purple' },
 ]
 
 function StatCard({ label, value, icon: Icon, accent, change }) {
@@ -63,7 +64,6 @@ function todayLabel() {
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null)
-  const [topPOIs, setTopPOIs] = useState([])
   const [visitData, setVisitData] = useState([])
   const [langData, setLangData] = useState([])
   const [recentActivity, setRecentActivity] = useState([])
@@ -74,14 +74,12 @@ export default function Dashboard() {
   async function loadDashboard() {
     setLoading(true)
     try {
-      const [statsRes, topRes, langRes, recentRes] = await Promise.all([
-        dashboardApi.getStats(),
-        dashboardApi.getTopPOIs(5),
-        dashboardApi.getLanguageStats(),
-        dashboardApi.getRecentActivity(10),
-      ])
-      if (statsRes.success) setStats(statsRes.data)
-      if (topRes.success) setTopPOIs(topRes.data)
+        const [statsRes, langRes, recentRes] = await Promise.all([
+          dashboardApi.getStats(),
+          dashboardApi.getLanguageStats(),
+          dashboardApi.getRecentActivity(10),
+        ])
+        if (statsRes.success) setStats(statsRes.data)
       if (langRes.success) setLangData(langRes.data)
       if (recentRes.success) setRecentActivity(recentRes.data)
 
@@ -110,14 +108,18 @@ export default function Dashboard() {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const [statsRes, vRes] = await Promise.all([
+        const [statsRes, vRes, langRes, recentRes] = await Promise.all([
           dashboardApi.getStats(),
           dashboardApi.getVisitsChart(
             new Date(Date.now() - 30 * 86400000).toISOString(),
             new Date().toISOString()
           ),
+          dashboardApi.getLanguageStats(),
+          dashboardApi.getRecentActivity(10),
         ])
         if (statsRes.success) setStats(statsRes.data)
+        if (langRes.success) setLangData(langRes.data)
+        if (recentRes.success) setRecentActivity(recentRes.data)
         if (vRes.success) {
           // Đảm bảo ngày hôm nay luôn xuất hiện trong chart
           // (backend chỉ trả ngày có data, ngày chưa có visit sẽ không có entry)
@@ -141,8 +143,6 @@ export default function Dashboard() {
     </div>
   )
 
-  const maxVisits = topPOIs.length > 0 ? Math.max(...topPOIs.map(p => p.visits), 1) : 1
-
   const cardStyle = {
     background: '#FFFFFF',
     border: '1px solid #EEEEEE',
@@ -154,7 +154,7 @@ export default function Dashboard() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, animation: 'fadeInUp 0.35s ease-out' }}>
 
       {/* ── Stat Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
         {statConfig.map((s, i) => (
           <StatCard key={i} label={s.label} value={stats?.[s.key]} icon={s.icon}
             accent={s.accent} change={s.changeKey ? stats?.[s.changeKey] : null} />
@@ -162,7 +162,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Charts Row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 14 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Area Chart */}
         <div style={{ ...cardStyle, padding: '20px 20px 12px' }}>
@@ -197,47 +197,12 @@ export default function Dashboard() {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-
-        {/* Top Locations */}
-        <div style={{ ...cardStyle, padding: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', fontFamily: "'Manrope', sans-serif", marginBottom: 18 }}>
-            Top Locations
-          </div>
-          {topPOIs.length === 0 ? (
-            <div style={{ color: '#CCC', fontSize: 13, textAlign: 'center', marginTop: 40 }}>No visit data yet</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {topPOIs.map((poi, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 20, fontSize: 11, fontWeight: 700,
-                    color: i === 0 ? '#C92127' : '#CCC',
-                  }}>#{i + 1}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 12, fontWeight: 500, color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{poi.name}</span>
-                      <span style={{ fontSize: 11, color: '#999', flexShrink: 0 }}>{poi.visits}</span>
-                    </div>
-                    <div style={{ background: '#F0F0F0', height: 4, borderRadius: 2, overflow: 'hidden' }}>
-                      <div style={{
-                        background: 'linear-gradient(90deg, #C92127, #E05B1A)',
-                        height: '100%', borderRadius: 2,
-                        width: `${(poi.visits / maxVisits) * 100}%`,
-                        transition: 'width 0.6s ease',
-                      }} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ── Bottom Row ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 14 }}>
 
-        {/* Language Distribution
+        {/* Language Distribution */}
         <div style={{ ...cardStyle, padding: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', fontFamily: "'Manrope', sans-serif", marginBottom: 12 }}>
             Language Distribution
@@ -268,10 +233,10 @@ export default function Dashboard() {
             ))}
             {langData.length === 0 && <div style={{ fontSize: 12, color: '#CCC' }}>No data yet</div>}
           </div>
-        </div> */}
+        </div>
 
         {/* Recent Activity */}
-        {/* <div style={{ ...cardStyle, padding: 20 }}>
+        <div style={{ ...cardStyle, padding: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', fontFamily: "'Manrope', sans-serif", marginBottom: 16 }}>
             Recent Activity
           </div>
@@ -308,7 +273,7 @@ export default function Dashboard() {
               ))}
             </div>
           )}
-        </div> */}
+        </div>
       </div>
     </div>
   )

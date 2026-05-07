@@ -19,7 +19,7 @@ import VendorDashboard from './pages/Dashboard/VendorDashboard'
 import POIList from './pages/POI/POIList'
 import Users from './pages/Users/Users'
 import Categories from './pages/Categories/Categories'
-import Settings from './pages/Settings/Settings'
+
 import Audio from './pages/Audio/Audio'
 import Offline from './pages/Offline/Offline'
 import LiveMonitorPage from './pages/Monitor/LiveMonitorPage'
@@ -75,7 +75,7 @@ export default function App() {
                     <Route path="users"      element={<Users />} />
                     <Route path="languages"  element={<Languages />} />
                     <Route path="offline"    element={<Offline />} />
-                    <Route path="settings"   element={<Settings />} />
+
 
                     {/* Admin-only: realtime tour monitor */}
                     <Route path="monitor"    element={<LiveMonitorPage />} />

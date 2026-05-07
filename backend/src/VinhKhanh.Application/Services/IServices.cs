@@ -302,10 +302,11 @@ public interface IPresenceService
     Task TrackWebVisitorLocationAsync(string visitorId, double lat, double lng);
 
     /// <summary>
-    /// Increment the narration count for the current web visitor session.
-    /// Called when a web visitor starts playing an audio narration.
+    /// Records that an anonymous web visitor played an audio narration.
+    /// Bumps the NarrationCount on their current web session.
+    /// If POI and Language data are provided, also creates a VisitHistory entry.
     /// </summary>
-    Task TrackWebNarrationAsync(string visitorId);
+    Task TrackWebNarrationAsync(string visitorId, int? poiId = null, int? langId = null);
 
     /// <summary>
     /// Get a snapshot of all currently active tourists (for admin heatmap).

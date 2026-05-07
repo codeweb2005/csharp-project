@@ -130,10 +130,12 @@ export const api = {
    * Increments NarrationCount in WebSiteVisits so analytics dashboards show accurate data.
    * Call once per audio item when the user presses play (not on resume/seek).
    * @param {string} visitorId
+   * @param {number} [poiId]
+   * @param {number} [languageId]
    */
-  presenceNarration: (visitorId) =>
+  presenceNarration: (visitorId, poiId, languageId) =>
     request('/presence/web-narration', {
       method: 'POST',
-      body: JSON.stringify({ visitorId }),
+      body: JSON.stringify({ visitorId, poiId, languageId }),
     }),
 }

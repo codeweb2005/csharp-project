@@ -14,7 +14,7 @@ const pageTitles = {
   '/monitor':    { title: 'Live Monitor',       subtitle: 'Real-time tourist tracking' },
   '/users':      { title: 'Users',              subtitle: 'Manage system accounts' },
   '/offline':    { title: 'Offline Packages',   subtitle: 'Mobile download packages' },
-  '/settings':   { title: 'Settings',           subtitle: 'System configuration' },
+
 }
 
 export default function TopBar() {

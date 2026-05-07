@@ -339,9 +339,7 @@ export default function LiveMonitorPage() {
         {touristsAtPOI > 0 && (
           <StatCard icon={MapPin} value={touristsAtPOI} label={stats?.touristsAtPOI > 0 ? "Đang tại điểm" : "Khách thăm hôm nay"} color="#E05B1A" bg="rgba(224,91,26,0.08)" />
         )}
-        {activePOIs > 0 && (
-          <StatCard icon={Store} value={activePOIs} label={stats?.activePOIs > 0 ? "POI có người" : "POI được thăm HN"} color="#2563EB" bg="rgba(37,99,235,0.08)" />
-        )}
+
         {visitsToday > 0 && (
           <StatCard icon={Activity} value={visitsToday} label="Lượt thăm hôm nay" color="#16a34a" bg="rgba(22,163,74,0.08)" />
         )}

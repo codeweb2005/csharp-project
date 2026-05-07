@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Avatar } from 'antd'
 import {
   LayoutDashboard, MapPin, Tag as TagIcon, Volume2,
-  Users, Package, Settings, LogOut,
+  Users, Package, LogOut,
   ChevronLeft, ChevronRight, Radio, Globe
 } from 'lucide-react'
 
@@ -19,7 +19,7 @@ const allMenuItems = [
   { icon: Users,           label: 'Users',              path: '/users',    adminOnly: true },
   { icon: Globe,           label: 'Languages',          path: '/languages', adminOnly: true },
   { icon: Package,         label: 'Offline Packages',   path: '/offline',  adminOnly: true },
-  { icon: Settings,        label: 'Settings',           path: '/settings', adminOnly: true },
+
 ]
 
 export default function Sidebar() {

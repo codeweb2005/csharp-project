@@ -66,7 +66,15 @@ export default function POIDetail() {
     }
 
     el.src = getAudioStreamUrl(audioId, true)
-    el.play().catch(() => {
+    el.play().then(() => {
+      const visitorId = localStorage.getItem('vk_web_visitor_id')
+      if (visitorId) {
+        const audioItem = data.audio?.find(a => a.id === audioId)
+        if (audioItem) {
+          api.presenceNarration(visitorId, poiId, audioItem.languageId).catch(() => {})
+        }
+      }
+    }).catch(() => {
       setPlayingId(null)
     })
     setPlayingId(audioId)

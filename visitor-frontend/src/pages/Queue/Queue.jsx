@@ -103,7 +103,7 @@ export default function Queue() {
     if (item?.audio?.id && !reportedNarrationRef.current.has(item.audio.id)) {
       reportedNarrationRef.current.add(item.audio.id)
       const visitorId = localStorage.getItem(WEB_VISITOR_ID_KEY)
-      if (visitorId) api.presenceNarration(visitorId).catch(() => {})
+      if (visitorId) api.presenceNarration(visitorId, item.poiId, langId).catch(() => {})
     }
   }
   const handlePause   = () => setIsPlaying(false)

@@ -43,6 +43,9 @@ public class DashboardService : IDashboardService
                 ? Math.Round((double)(totalVisits - prevVisits) / prevVisits * 100, 1)
                 : 0;
 
+            var narrationsToday = await _db.VisitHistory
+                .CountAsync(v => vendorPOIIds.Contains(v.POIId) && v.VisitedAt >= now.Date && v.NarrationPlayed);
+
             return ApiResponse<DashboardStatsDto>.Ok(new DashboardStatsDto
             {
                 ActivePOIs          = activePois,
@@ -51,7 +54,8 @@ public class DashboardService : IDashboardService
                 Languages           = await _db.Languages.CountAsync(l => l.IsActive),
                 AudioFiles          = audioFiles,
                 TotalUsers          = 0,
-                TotalVendors        = 0
+                TotalVendors        = 0,
+                NarrationsToday     = narrationsToday
             });
         }
 
@@ -72,6 +76,9 @@ public class DashboardService : IDashboardService
             ? Math.Round((double)(allVisits - allPrevVisits) / allPrevVisits * 100, 1)
             : 0;
 
+        var poiNarrationsToday = await _db.VisitHistory.CountAsync(v => v.VisitedAt >= now.Date && v.NarrationPlayed);
+        var webNarrationsToday = await _db.WebSiteVisits.Where(v => v.VisitedAt >= now.Date).SumAsync(v => v.NarrationCount);
+
         return ApiResponse<DashboardStatsDto>.Ok(new DashboardStatsDto
         {
             ActivePOIs        = allActivePOIs,
@@ -80,7 +87,8 @@ public class DashboardService : IDashboardService
             Languages         = allLanguages,
             AudioFiles        = allAudio,
             TotalUsers        = allUsers,
-            TotalVendors      = allVendors
+            TotalVendors      = allVendors,
+            NarrationsToday   = poiNarrationsToday + webNarrationsToday
         });
     }
 
@@ -171,28 +179,29 @@ public class DashboardService : IDashboardService
     /// <inheritdoc />
     public async Task<ApiResponse<List<LanguageStatDto>>> GetLanguageStatsAsync(List<int>? vendorPOIIds = null)
     {
-        var historyQuery = _db.VisitHistory.AsQueryable();
+        var allActiveLanguages = await _db.Languages.Where(l => l.IsActive).ToListAsync();
 
+        var historyQuery = _db.VisitHistory.AsQueryable();
         if (vendorPOIIds != null)
             historyQuery = historyQuery.Where(v => vendorPOIIds.Contains(v.POIId));
 
-        var total = await historyQuery.CountAsync();
+        var visitCounts = await historyQuery
+            .GroupBy(v => v.LanguageId)
+            .Select(g => new { LanguageId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.LanguageId, x => x.Count);
 
-        if (total == 0)
-            return ApiResponse<List<LanguageStatDto>>.Ok([]);
+        var total = visitCounts.Values.Sum();
 
-        var stats = await historyQuery
-            .Include(v => v.Language)
-            .GroupBy(v => new { v.Language.NativeName, v.Language.FlagEmoji })
-            .Select(g => new LanguageStatDto
-            {
-                Name       = g.Key.NativeName,
-                FlagEmoji  = g.Key.FlagEmoji,
-                Count      = g.Count(),
-                Percentage = Math.Round((double)g.Count() / total * 100, 1)
-            })
-            .OrderByDescending(s => s.Count)
-            .ToListAsync();
+        var stats = allActiveLanguages.Select(l => new LanguageStatDto
+        {
+            Name       = l.NativeName,
+            FlagEmoji  = l.FlagEmoji ?? "🌐",
+            Count      = visitCounts.GetValueOrDefault(l.Id, 0),
+            Percentage = total > 0 ? Math.Round((double)visitCounts.GetValueOrDefault(l.Id, 0) / total * 100, 1) : 0
+        })
+        .OrderByDescending(s => s.Count)
+        .ThenBy(s => s.Name)
+        .ToList();
 
         return ApiResponse<List<LanguageStatDto>>.Ok(stats);
     }

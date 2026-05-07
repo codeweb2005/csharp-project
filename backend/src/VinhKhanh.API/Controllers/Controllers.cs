@@ -906,12 +906,12 @@ public class PresenceController(IPresenceService presenceSvc) : BaseApiControlle
     /// </summary>
     [HttpPost("web-narration")]
     [AllowAnonymous]
-    public async Task<IActionResult> WebNarration([FromBody] WebVisitorPresenceRequest req)
+    public async Task<IActionResult> WebNarration([FromBody] WebVisitorNarrationRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.VisitorId))
             return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "visitorId is required"));
 
-        await presenceSvc.TrackWebNarrationAsync(req.VisitorId);
+        await presenceSvc.TrackWebNarrationAsync(req.VisitorId, req.PoiId, req.LanguageId);
         return Ok(ApiResponse<object>.Ok(new { ok = true }));
     }
 }
