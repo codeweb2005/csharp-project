@@ -353,6 +353,7 @@ sequenceDiagram
       par GET /api/v1/presence/stats - Authorize Admin
         API->>CTRL: GET /presence/stats
         activate CTRL
+        CTRL->>CTRL: GetStats()
         CTRL->>SVC: GetDashboardStatsAsync()
         activate SVC
         Note over SVC: stale15=UtcNow-15min - todayStart - weekStart - yesterday
@@ -384,6 +385,7 @@ sequenceDiagram
       and GET /api/v1/presence/snapshot - Authorize Admin
         API->>CTRL: GET /presence/snapshot
         activate CTRL
+        CTRL->>CTRL: GetSnapshot()
         CTRL->>SVC: GetSnapshotAsync()
         activate SVC
         Note over SVC: staleThreshold = UtcNow.AddMinutes(-15)

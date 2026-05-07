@@ -979,105 +979,106 @@ mermaid: `graph TB
 (function registerEndpointSequences() {
   if (!window.DIAGRAM_DATA || !window.DIAGRAM_DATA.diagrams) return;
 
+  // [group, key, httpMethod, route, ControllerClass, ControllerAction, ServiceInterface, ServiceMethod]
   const endpointDefs = [
     // Auth (8)
-    ["auth", "ep-auth-login", "POST", "/api/v1/auth/login", "AuthController", "IAuthService", "LoginAsync"],
-    ["auth", "ep-auth-refresh", "POST", "/api/v1/auth/refresh", "AuthController", "IAuthService", "RefreshTokenAsync"],
-    ["auth", "ep-auth-change-password", "POST", "/api/v1/auth/change-password", "AuthController", "IAuthService", "ChangePasswordAsync"],
-    ["auth", "ep-auth-me", "GET", "/api/v1/auth/me", "AuthController", "IAuthService", "GetCurrentUserAsync"],
-    ["auth", "ep-auth-register", "POST", "/api/v1/auth/register", "AuthController", "IAuthService", "RegisterAsync"],
-    ["auth", "ep-auth-forgot-password", "POST", "/api/v1/auth/forgot-password", "AuthController", "IAuthService", "ForgotPasswordAsync"],
-    ["auth", "ep-auth-reset-password", "POST", "/api/v1/auth/reset-password", "AuthController", "IAuthService", "ResetPasswordAsync"],
-    ["auth", "ep-auth-profile", "PUT", "/api/v1/auth/profile", "AuthController", "IAuthService", "UpdateProfileAsync"],
+    ["auth", "ep-auth-login", "POST", "/api/v1/auth/login", "AuthController", "Login", "IAuthService", "LoginAsync"],
+    ["auth", "ep-auth-refresh", "POST", "/api/v1/auth/refresh", "AuthController", "Refresh", "IAuthService", "RefreshTokenAsync"],
+    ["auth", "ep-auth-change-password", "POST", "/api/v1/auth/change-password", "AuthController", "ChangePassword", "IAuthService", "ChangePasswordAsync"],
+    ["auth", "ep-auth-me", "GET", "/api/v1/auth/me", "AuthController", "GetMe", "IAuthService", "GetCurrentUserAsync"],
+    ["auth", "ep-auth-register", "POST", "/api/v1/auth/register", "AuthController", "Register", "IAuthService", "RegisterAsync"],
+    ["auth", "ep-auth-forgot-password", "POST", "/api/v1/auth/forgot-password", "AuthController", "ForgotPassword", "IAuthService", "ForgotPasswordAsync"],
+    ["auth", "ep-auth-reset-password", "POST", "/api/v1/auth/reset-password", "AuthController", "ResetPassword", "IAuthService", "ResetPasswordAsync"],
+    ["auth", "ep-auth-profile", "PUT", "/api/v1/auth/profile", "AuthController", "UpdateProfile", "IAuthService", "UpdateProfileAsync"],
 
     // POIs (10)
-    ["pois", "ep-pois-list", "GET", "/api/v1/pois", "POIsController", "IPOIService", "GetListAsync"],
-    ["pois", "ep-pois-detail", "GET", "/api/v1/pois/{id}", "POIsController", "IPOIService", "GetDetailAsync"],
-    ["pois", "ep-pois-create", "POST", "/api/v1/pois", "POIsController", "IPOIService", "CreateAsync"],
-    ["pois", "ep-pois-update", "PUT", "/api/v1/pois/{id}", "POIsController", "IPOIService", "UpdateAsync"],
-    ["pois", "ep-pois-delete", "DELETE", "/api/v1/pois/{id}", "POIsController", "IPOIService", "DeleteAsync"],
-    ["pois", "ep-pois-toggle", "PATCH", "/api/v1/pois/{id}/toggle", "POIsController", "IPOIService", "ToggleActiveAsync"],
-    ["pois", "ep-pois-featured", "PATCH", "/api/v1/pois/{id}/featured", "POIsController", "IPOIService", "ToggleFeaturedAsync"],
-    ["pois", "ep-pois-nearby", "GET", "/api/v1/pois/nearby", "POIsController", "IPOIService", "GetNearbyAsync"],
-    ["pois", "ep-pois-public", "GET", "/api/v1/pois/{id}/public", "POIsController", "IPOIService", "GetPublicDetailAsync"],
-    ["pois", "ep-pois-audio-queue", "GET", "/api/v1/pois/audio-queue", "POIsController", "IPOIService", "GetAudioQueueAsync"],
+    ["pois", "ep-pois-list", "GET", "/api/v1/pois", "POIsController", "GetList", "IPOIService", "GetListAsync"],
+    ["pois", "ep-pois-detail", "GET", "/api/v1/pois/{id}", "POIsController", "GetDetail", "IPOIService", "GetDetailAsync"],
+    ["pois", "ep-pois-create", "POST", "/api/v1/pois", "POIsController", "Create", "IPOIService", "CreateAsync"],
+    ["pois", "ep-pois-update", "PUT", "/api/v1/pois/{id}", "POIsController", "Update", "IPOIService", "UpdateAsync"],
+    ["pois", "ep-pois-delete", "DELETE", "/api/v1/pois/{id}", "POIsController", "Delete", "IPOIService", "DeleteAsync"],
+    ["pois", "ep-pois-toggle", "PATCH", "/api/v1/pois/{id}/toggle", "POIsController", "Toggle", "IPOIService", "ToggleActiveAsync"],
+    ["pois", "ep-pois-featured", "PATCH", "/api/v1/pois/{id}/featured", "POIsController", "Featured", "IPOIService", "ToggleFeaturedAsync"],
+    ["pois", "ep-pois-nearby", "GET", "/api/v1/pois/nearby", "POIsController", "GetNearby", "IPOIService", "GetNearbyAsync"],
+    ["pois", "ep-pois-public", "GET", "/api/v1/pois/{id}/public", "POIsController", "GetPublicDetail", "IPOIService", "GetPublicDetailAsync"],
+    ["pois", "ep-pois-audio-queue", "GET", "/api/v1/pois/audio-queue", "POIsController", "GetAudioQueue", "IPOIService", "GetAudioQueueAsync"],
 
     // Languages (1)
-    ["languages", "ep-languages-get-all", "GET", "/api/v1/languages", "LanguagesController", "ILanguageService", "GetAllActiveAsync"],
+    ["languages", "ep-languages-get-all", "GET", "/api/v1/languages", "LanguagesController", "GetAll", "ILanguageService", "GetAllActiveAsync"],
 
     // Categories (6)
-    ["categories", "ep-categories-list", "GET", "/api/v1/categories", "CategoriesController", "ICategoryService", "GetAllAsync"],
-    ["categories", "ep-categories-detail", "GET", "/api/v1/categories/{id}", "CategoriesController", "ICategoryService", "GetByIdAsync"],
-    ["categories", "ep-categories-create", "POST", "/api/v1/categories", "CategoriesController", "ICategoryService", "CreateAsync"],
-    ["categories", "ep-categories-update", "PUT", "/api/v1/categories/{id}", "CategoriesController", "ICategoryService", "UpdateAsync"],
-    ["categories", "ep-categories-delete", "DELETE", "/api/v1/categories/{id}", "CategoriesController", "ICategoryService", "DeleteAsync"],
-    ["categories", "ep-categories-toggle", "PATCH", "/api/v1/categories/{id}/toggle", "CategoriesController", "ICategoryService", "ToggleActiveAsync"],
+    ["categories", "ep-categories-list", "GET", "/api/v1/categories", "CategoriesController", "GetAll", "ICategoryService", "GetAllAsync"],
+    ["categories", "ep-categories-detail", "GET", "/api/v1/categories/{id}", "CategoriesController", "GetById", "ICategoryService", "GetByIdAsync"],
+    ["categories", "ep-categories-create", "POST", "/api/v1/categories", "CategoriesController", "Create", "ICategoryService", "CreateAsync"],
+    ["categories", "ep-categories-update", "PUT", "/api/v1/categories/{id}", "CategoriesController", "Update", "ICategoryService", "UpdateAsync"],
+    ["categories", "ep-categories-delete", "DELETE", "/api/v1/categories/{id}", "CategoriesController", "Delete", "ICategoryService", "DeleteAsync"],
+    ["categories", "ep-categories-toggle", "PATCH", "/api/v1/categories/{id}/toggle", "CategoriesController", "Toggle", "ICategoryService", "ToggleActiveAsync"],
 
     // Audio (7)
-    ["audio", "ep-audio-by-poi", "GET", "/api/v1/audio/poi/{poiId}", "AudioController", "IAudioService", "GetByPOIAsync"],
-    ["audio", "ep-audio-upload", "POST", "/api/v1/audio/poi/{poiId}/upload", "AudioController", "IAudioService", "UploadAsync"],
-    ["audio", "ep-audio-generate-tts", "POST", "/api/v1/audio/poi/{poiId}/generate-tts", "AudioController", "IAudioService", "GenerateTTSAsync"],
-    ["audio", "ep-audio-stream", "GET", "/api/v1/audio/{id}/stream", "AudioController", "IAudioService", "GetStreamAsync or GetFileKeyAsync"],
-    ["audio", "ep-audio-qr", "GET", "/api/v1/audio/{id}/qr", "AudioController", "IAudioQrService", "GetAudioQrPngAsync"],
-    ["audio", "ep-audio-delete", "DELETE", "/api/v1/audio/{id}", "AudioController", "IAudioService", "DeleteAsync"],
-    ["audio", "ep-audio-set-default", "PATCH", "/api/v1/audio/{id}/set-default", "AudioController", "IAudioService", "SetDefaultAsync"],
+    ["audio", "ep-audio-by-poi", "GET", "/api/v1/audio/poi/{poiId}", "AudioController", "GetByPOI", "IAudioService", "GetByPOIAsync"],
+    ["audio", "ep-audio-upload", "POST", "/api/v1/audio/poi/{poiId}/upload", "AudioController", "Upload", "IAudioService", "UploadAsync"],
+    ["audio", "ep-audio-generate-tts", "POST", "/api/v1/audio/poi/{poiId}/generate-tts", "AudioController", "GenerateTTS", "IAudioService", "GenerateTTSAsync"],
+    ["audio", "ep-audio-stream", "GET", "/api/v1/audio/{id}/stream", "AudioController", "Stream", "IAudioService", "GetStreamAsync / GetFileKeyAsync"],
+    ["audio", "ep-audio-qr", "GET", "/api/v1/audio/{id}/qr", "AudioController", "Qr", "IAudioQrService", "GetAudioQrPngAsync"],
+    ["audio", "ep-audio-delete", "DELETE", "/api/v1/audio/{id}", "AudioController", "Delete", "IAudioService", "DeleteAsync"],
+    ["audio", "ep-audio-set-default", "PATCH", "/api/v1/audio/{id}/set-default", "AudioController", "SetDefault", "IAudioService", "SetDefaultAsync"],
 
     // Media (5)
-    ["media", "ep-media-by-poi", "GET", "/api/v1/media/poi/{poiId}", "MediaController", "IMediaService", "GetByPOIAsync"],
-    ["media", "ep-media-upload", "POST", "/api/v1/media/poi/{poiId}/upload", "MediaController", "IMediaService", "UploadAsync"],
-    ["media", "ep-media-delete", "DELETE", "/api/v1/media/{id}", "MediaController", "IMediaService", "DeleteAsync"],
-    ["media", "ep-media-set-primary", "PATCH", "/api/v1/media/{id}/set-primary", "MediaController", "IMediaService", "SetPrimaryAsync"],
-    ["media", "ep-media-reorder", "PUT", "/api/v1/media/poi/{poiId}/reorder", "MediaController", "IMediaService", "ReorderAsync"],
+    ["media", "ep-media-by-poi", "GET", "/api/v1/media/poi/{poiId}", "MediaController", "GetByPOI", "IMediaService", "GetByPOIAsync"],
+    ["media", "ep-media-upload", "POST", "/api/v1/media/poi/{poiId}/upload", "MediaController", "Upload", "IMediaService", "UploadAsync"],
+    ["media", "ep-media-delete", "DELETE", "/api/v1/media/{id}", "MediaController", "Delete", "IMediaService", "DeleteAsync"],
+    ["media", "ep-media-set-primary", "PATCH", "/api/v1/media/{id}/set-primary", "MediaController", "SetPrimary", "IMediaService", "SetPrimaryAsync"],
+    ["media", "ep-media-reorder", "PUT", "/api/v1/media/poi/{poiId}/reorder", "MediaController", "Reorder", "IMediaService", "ReorderAsync"],
 
     // Menu (7)
-    ["menu", "ep-menu-by-poi", "GET", "/api/v1/menu/poi/{poiId}", "MenuController", "IMenuService", "GetByPOIAsync"],
-    ["menu", "ep-menu-create", "POST", "/api/v1/menu/poi/{poiId}", "MenuController", "IMenuService", "CreateAsync"],
-    ["menu", "ep-menu-update", "PUT", "/api/v1/menu/{id}", "MenuController", "IMenuService", "UpdateAsync"],
-    ["menu", "ep-menu-delete", "DELETE", "/api/v1/menu/{id}", "MenuController", "IMenuService", "DeleteAsync"],
-    ["menu", "ep-menu-toggle-available", "PATCH", "/api/v1/menu/{id}/toggle-available", "MenuController", "IMenuService", "ToggleAvailableAsync"],
-    ["menu", "ep-menu-toggle-signature", "PATCH", "/api/v1/menu/{id}/toggle-signature", "MenuController", "IMenuService", "ToggleSignatureAsync"],
-    ["menu", "ep-menu-upload-image", "POST", "/api/v1/menu/{id}/upload-image", "MenuController", "IMenuService", "UploadImageAsync"],
+    ["menu", "ep-menu-by-poi", "GET", "/api/v1/menu/poi/{poiId}", "MenuController", "GetByPOI", "IMenuService", "GetByPOIAsync"],
+    ["menu", "ep-menu-create", "POST", "/api/v1/menu/poi/{poiId}", "MenuController", "Create", "IMenuService", "CreateAsync"],
+    ["menu", "ep-menu-update", "PUT", "/api/v1/menu/{id}", "MenuController", "Update", "IMenuService", "UpdateAsync"],
+    ["menu", "ep-menu-delete", "DELETE", "/api/v1/menu/{id}", "MenuController", "Delete", "IMenuService", "DeleteAsync"],
+    ["menu", "ep-menu-toggle-available", "PATCH", "/api/v1/menu/{id}/toggle-available", "MenuController", "ToggleAvailable", "IMenuService", "ToggleAvailableAsync"],
+    ["menu", "ep-menu-toggle-signature", "PATCH", "/api/v1/menu/{id}/toggle-signature", "MenuController", "ToggleSignature", "IMenuService", "ToggleSignatureAsync"],
+    ["menu", "ep-menu-upload-image", "POST", "/api/v1/menu/{id}/upload-image", "MenuController", "UploadImage", "IMenuService", "UploadImageAsync"],
 
     // Users (7)
-    ["users", "ep-users-list", "GET", "/api/v1/users", "UsersController", "IUserService", "GetListAsync"],
-    ["users", "ep-users-detail", "GET", "/api/v1/users/{id}", "UsersController", "IUserService", "GetByIdAsync"],
-    ["users", "ep-users-create", "POST", "/api/v1/users", "UsersController", "IUserService", "CreateAsync"],
-    ["users", "ep-users-update", "PUT", "/api/v1/users/{id}", "UsersController", "IUserService", "UpdateAsync"],
-    ["users", "ep-users-delete", "DELETE", "/api/v1/users/{id}", "UsersController", "IUserService", "DeleteAsync"],
-    ["users", "ep-users-toggle", "PATCH", "/api/v1/users/{id}/toggle", "UsersController", "IUserService", "ToggleActiveAsync"],
-    ["users", "ep-users-reset-password", "POST", "/api/v1/users/{id}/reset-password", "UsersController", "IUserService", "ResetPasswordAsync"],
+    ["users", "ep-users-list", "GET", "/api/v1/users", "UsersController", "GetList", "IUserService", "GetListAsync"],
+    ["users", "ep-users-detail", "GET", "/api/v1/users/{id}", "UsersController", "GetById", "IUserService", "GetByIdAsync"],
+    ["users", "ep-users-create", "POST", "/api/v1/users", "UsersController", "Create", "IUserService", "CreateAsync"],
+    ["users", "ep-users-update", "PUT", "/api/v1/users/{id}", "UsersController", "Update", "IUserService", "UpdateAsync"],
+    ["users", "ep-users-delete", "DELETE", "/api/v1/users/{id}", "UsersController", "Delete", "IUserService", "DeleteAsync"],
+    ["users", "ep-users-toggle", "PATCH", "/api/v1/users/{id}/toggle", "UsersController", "Toggle", "IUserService", "ToggleActiveAsync"],
+    ["users", "ep-users-reset-password", "POST", "/api/v1/users/{id}/reset-password", "UsersController", "ResetPassword", "IUserService", "ResetPasswordAsync"],
 
     // Dashboard (5)
-    ["dashboard", "ep-dashboard-stats", "GET", "/api/v1/dashboard/stats", "DashboardController", "IDashboardService", "GetStatsAsync"],
-    ["dashboard", "ep-dashboard-top-pois", "GET", "/api/v1/dashboard/top-pois", "DashboardController", "IDashboardService", "GetTopPOIsAsync"],
-    ["dashboard", "ep-dashboard-visits-chart", "GET", "/api/v1/dashboard/visits-chart", "DashboardController", "IDashboardService", "GetVisitsChartAsync"],
-    ["dashboard", "ep-dashboard-language-stats", "GET", "/api/v1/dashboard/language-stats", "DashboardController", "IDashboardService", "GetLanguageStatsAsync"],
-    ["dashboard", "ep-dashboard-recent-activity", "GET", "/api/v1/dashboard/recent-activity", "DashboardController", "IDashboardService", "GetRecentActivityAsync"],
+    ["dashboard", "ep-dashboard-stats", "GET", "/api/v1/dashboard/stats", "DashboardController", "GetStats", "IDashboardService", "GetStatsAsync"],
+    ["dashboard", "ep-dashboard-top-pois", "GET", "/api/v1/dashboard/top-pois", "DashboardController", "GetTopPOIs", "IDashboardService", "GetTopPOIsAsync"],
+    ["dashboard", "ep-dashboard-visits-chart", "GET", "/api/v1/dashboard/visits-chart", "DashboardController", "GetVisitsChart", "IDashboardService", "GetVisitsChartAsync"],
+    ["dashboard", "ep-dashboard-language-stats", "GET", "/api/v1/dashboard/language-stats", "DashboardController", "GetLanguageStats", "IDashboardService", "GetLanguageStatsAsync"],
+    ["dashboard", "ep-dashboard-recent-activity", "GET", "/api/v1/dashboard/recent-activity", "DashboardController", "GetRecentActivity", "IDashboardService", "GetRecentActivityAsync"],
 
     // Analytics (4)
-    ["analytics", "ep-analytics-trends", "GET", "/api/v1/analytics/trends", "AnalyticsController", "IAnalyticsService", "GetTrendsAsync"],
-    ["analytics", "ep-analytics-visits-by-day", "GET", "/api/v1/analytics/visits-by-day", "AnalyticsController", "IAnalyticsService", "GetVisitsByDayAsync"],
-    ["analytics", "ep-analytics-visits-by-hour", "GET", "/api/v1/analytics/visits-by-hour", "AnalyticsController", "IAnalyticsService", "GetVisitsByHourAsync"],
-    ["analytics", "ep-analytics-language-distribution", "GET", "/api/v1/analytics/language-distribution", "AnalyticsController", "IAnalyticsService", "GetLanguageDistributionAsync"],
+    ["analytics", "ep-analytics-trends", "GET", "/api/v1/analytics/trends", "AnalyticsController", "GetTrends", "IAnalyticsService", "GetTrendsAsync"],
+    ["analytics", "ep-analytics-visits-by-day", "GET", "/api/v1/analytics/visits-by-day", "AnalyticsController", "GetVisitsByDay", "IAnalyticsService", "GetVisitsByDayAsync"],
+    ["analytics", "ep-analytics-visits-by-hour", "GET", "/api/v1/analytics/visits-by-hour", "AnalyticsController", "GetVisitsByHour", "IAnalyticsService", "GetVisitsByHourAsync"],
+    ["analytics", "ep-analytics-language-distribution", "GET", "/api/v1/analytics/language-distribution", "AnalyticsController", "GetLanguageDistribution", "IAnalyticsService", "GetLanguageDistributionAsync"],
 
     // Offline Packages (7)
-    ["offlinepackages", "ep-offline-catalog", "GET", "/api/v1/offlinepackages/catalog", "OfflinePackagesController", "IOfflinePackageService", "GetPublicCatalogAsync"],
-    ["offlinepackages", "ep-offline-list", "GET", "/api/v1/offlinepackages", "OfflinePackagesController", "IOfflinePackageService", "GetAllAsync"],
-    ["offlinepackages", "ep-offline-create", "POST", "/api/v1/offlinepackages", "OfflinePackagesController", "IOfflinePackageService", "CreateAsync"],
-    ["offlinepackages", "ep-offline-build", "POST", "/api/v1/offlinepackages/{id}/build", "OfflinePackagesController", "IOfflinePackageService", "BuildAsync"],
-    ["offlinepackages", "ep-offline-status", "GET", "/api/v1/offlinepackages/{id}/status", "OfflinePackagesController", "IOfflinePackageService", "GetStatusAsync"],
-    ["offlinepackages", "ep-offline-download", "GET", "/api/v1/offlinepackages/{id}/download", "OfflinePackagesController", "IOfflinePackageService", "GetStatusAsync then DownloadAsync"],
-    ["offlinepackages", "ep-offline-delete", "DELETE", "/api/v1/offlinepackages/{id}", "OfflinePackagesController", "IOfflinePackageService", "DeleteAsync"],
+    ["offlinepackages", "ep-offline-catalog", "GET", "/api/v1/offlinepackages/catalog", "OfflinePackagesController", "GetPublicCatalog", "IOfflinePackageService", "GetPublicCatalogAsync"],
+    ["offlinepackages", "ep-offline-list", "GET", "/api/v1/offlinepackages", "OfflinePackagesController", "GetAll", "IOfflinePackageService", "GetAllAsync"],
+    ["offlinepackages", "ep-offline-create", "POST", "/api/v1/offlinepackages", "OfflinePackagesController", "Create", "IOfflinePackageService", "CreateAsync"],
+    ["offlinepackages", "ep-offline-build", "POST", "/api/v1/offlinepackages/{id}/build", "OfflinePackagesController", "Build", "IOfflinePackageService", "BuildAsync"],
+    ["offlinepackages", "ep-offline-status", "GET", "/api/v1/offlinepackages/{id}/status", "OfflinePackagesController", "GetStatus", "IOfflinePackageService", "GetStatusAsync"],
+    ["offlinepackages", "ep-offline-download", "GET", "/api/v1/offlinepackages/{id}/download", "OfflinePackagesController", "Download", "IOfflinePackageService", "GetStatusAsync + DownloadAsync"],
+    ["offlinepackages", "ep-offline-delete", "DELETE", "/api/v1/offlinepackages/{id}", "OfflinePackagesController", "Delete", "IOfflinePackageService", "DeleteAsync"],
 
     // Settings (4)
-    ["settings", "ep-settings-get-all", "GET", "/api/v1/settings", "SettingsController", "ISettingsService", "GetAllAsync"],
-    ["settings", "ep-settings-update", "PUT", "/api/v1/settings", "SettingsController", "ISettingsService", "UpdateAsync"],
-    ["settings", "ep-settings-maintenance", "PUT", "/api/v1/settings/maintenance", "SettingsController", "ISettingsService", "SetMaintenanceModeAsync"],
-    ["settings", "ep-settings-generate-api-key", "POST", "/api/v1/settings/generate-api-key", "SettingsController", "ISettingsService", "GenerateApiKeyAsync"],
+    ["settings", "ep-settings-get-all", "GET", "/api/v1/settings", "SettingsController", "GetAll", "ISettingsService", "GetAllAsync"],
+    ["settings", "ep-settings-update", "PUT", "/api/v1/settings", "SettingsController", "Update", "ISettingsService", "UpdateAsync"],
+    ["settings", "ep-settings-maintenance", "PUT", "/api/v1/settings/maintenance", "SettingsController", "SetMaintenance", "ISettingsService", "SetMaintenanceModeAsync"],
+    ["settings", "ep-settings-generate-api-key", "POST", "/api/v1/settings/generate-api-key", "SettingsController", "GenerateApiKey", "ISettingsService", "GenerateApiKeyAsync"],
 
     // Sync (2)
-    ["sync", "ep-sync-delta", "GET", "/api/v1/sync/delta", "SyncController", "ISyncService", "GetDeltaAsync"],
-    ["sync", "ep-sync-visits", "POST", "/api/v1/sync/visits", "SyncController", "ISyncService", "UploadVisitsAsync"]
+    ["sync", "ep-sync-delta", "GET", "/api/v1/sync/delta", "SyncController", "Delta", "ISyncService", "GetDeltaAsync"],
+    ["sync", "ep-sync-visits", "POST", "/api/v1/sync/visits", "SyncController", "UploadVisits", "ISyncService", "UploadVisitsAsync"]
   ];
 
   const groupLabels = {
@@ -1134,7 +1135,7 @@ mermaid: `graph TB
     return "Authorize";
   }
 
-  function buildDetailedMermaid(controller, service, method, route, operation) {
+  function buildDetailedMermaid(controller, controllerAction, service, method, route, operation) {
     const authNote = resolveAuthNote(route, method);
     const hasVendorScope = route.startsWith("/api/v1/pois") || route.startsWith("/api/v1/audio") || route.startsWith("/api/v1/dashboard") || route.startsWith("/api/v1/analytics");
     const hasCoordinatesValidation = route === "/api/v1/pois/nearby" || route === "/api/v1/pois/audio-queue";
@@ -1147,64 +1148,72 @@ mermaid: `graph TB
     const isSyncVisits = route === "/api/v1/sync/visits";
     const isPagedList = (method === "GET" && (route === "/api/v1/pois" || route === "/api/v1/users"));
 
+    const serviceCallLabel = (operation && typeof operation === "string")
+      ? (operation.includes("(") ? operation : (operation + "(...)"))
+      : "Operation(...)";
+
     const lines = [
       "sequenceDiagram",
       "    autonumber",
       "    participant Client",
-      "    participant Controller as " + controller,
-      "    participant Service as " + service,
+      "    participant CTRL as " + controller,
+      "    participant SVC as " + service,
       "    participant Repository",
       "    participant DB",
       "",
-      "    Client->>Controller: " + method + " " + route,
-      "    Note over Controller: " + authNote
+      "    Client->>CTRL: " + method + " " + route,
+      "    activate CTRL",
+      "    Note over CTRL: action " + controllerAction + "()",
+      "    Note over CTRL: " + authNote
     ];
 
     if (isUpload) {
-      lines.push("    Note over Controller: Request content-type is multipart/form-data");
+      lines.push("    Note over CTRL: Request content-type is multipart/form-data");
     }
     if (isPagedList) {
-      lines.push("    Note over Controller: Read page/size/filter query params");
+      lines.push("    Note over CTRL: Read page/size/filter query params");
     }
     if (hasCoordinatesValidation) {
-      lines.push("    Note over Controller: Validate lat/lng ranges before service call");
+      lines.push("    Note over CTRL: Validate lat/lng ranges before service call");
     }
     if (hasVendorScope) {
-      lines.push("    Note over Controller: Vendor flows may resolve vendor POI scope from DB");
+      lines.push("    Note over CTRL: Vendor flows may resolve vendor POI scope from DB");
     }
     if (isSyncVisits) {
-      lines.push("    Note over Controller: Attach authenticated userId to visit batch");
+      lines.push("    Note over CTRL: Attach authenticated userId to visit batch");
     }
 
     lines.push(
       "    alt AuthN/AuthZ failed",
-      "        Controller-->>Client: 401 Unauthorized or 403 Forbidden",
+      "        CTRL-->>Client: 401 Unauthorized or 403 Forbidden",
       "    else AuthN/AuthZ passed",
-      "        Controller->>Service: " + operation,
-      "        Service->>Repository: Execute business rules",
+      "        CTRL->>SVC: " + serviceCallLabel,
+      "        activate SVC",
+      "        SVC->>Repository: Execute business rules",
       "        Repository->>DB: Execute SQL query or command",
       "        DB-->>Repository: Data rows or affected count",
-      "        Repository-->>Service: Domain result",
+      "        Repository-->>SVC: Domain result",
       "",
       "        alt Validation/business error",
-      "            Service-->>Controller: ApiResponse<T> Success=false with Error.Code",
-      "            Note over Controller: ApiResult maps NOT_FOUND/FORBIDDEN/UNAUTHORIZED/VALIDATION_ERROR",
-      "            Controller-->>Client: 4xx with ApiResponse<T>",
+      "            SVC-->>CTRL: ApiResponse<T> Success=false with Error.Code",
+      "            Note over CTRL: ApiResult maps NOT_FOUND/FORBIDDEN/UNAUTHORIZED/VALIDATION_ERROR",
+      "            CTRL-->>Client: 4xx with ApiResponse<T>",
       "        else Success path",
-      "            Service-->>Controller: ApiResponse<T> Success=true",
-      "            Controller-->>Client: 200 OK with ApiResponse<T>",
+      "            SVC-->>CTRL: ApiResponse<T> Success=true",
+      "            CTRL-->>Client: 200 OK with ApiResponse<T>",
       "        end",
+      "        deactivate SVC",
       "    end"
     );
 
     if (isStream) {
       lines.push(
         "",
-        "    Note over Service: Stream endpoint may return redirect or audio stream",
+        "    Note over SVC: Stream endpoint may return redirect or audio stream",
         "    alt Cloud mode and proxy disabled",
-        "        Controller-->>Client: 302 Redirect to signed URL",
+        "        CTRL-->>Client: 302 Redirect to signed URL",
         "    else Proxy mode or local storage",
-        "        Controller-->>Client: 200 audio/mpeg stream (range enabled)",
+        "        CTRL-->>Client: 200 audio/mpeg stream (range enabled)",
         "    end"
       );
     }
@@ -1212,11 +1221,11 @@ mermaid: `graph TB
     if (isQr) {
       lines.push(
         "",
-        "    Note over Service: Build stream URL then generate QR PNG",
+        "    Note over SVC: Build stream URL then generate QR PNG",
         "    alt Audio not found",
-        "        Controller-->>Client: 404 NotFound",
+        "        CTRL-->>Client: 404 NotFound",
         "    else Found",
-        "        Controller-->>Client: 200 image/png file",
+        "        CTRL-->>Client: 200 image/png file",
         "    end"
       );
     }
@@ -1224,11 +1233,11 @@ mermaid: `graph TB
     if (isOfflineDownload) {
       lines.push(
         "",
-        "    Note over Service: Check package status before download",
+        "    Note over SVC: Check package status before download",
         "    alt Cloud storage active",
-        "        Controller-->>Client: 302 Redirect signed URL",
+        "        CTRL-->>Client: 302 Redirect signed URL",
         "    else Local storage",
-        "        Controller-->>Client: 200 application/zip stream",
+        "        CTRL-->>Client: 200 application/zip stream",
         "    end"
       );
     }
@@ -1247,13 +1256,14 @@ mermaid: `graph TB
     if (isSyncVisits) {
       lines.push(
         "",
-        "    Note over Service: Upsert visits and update denormalized counters"
+        "    Note over SVC: Upsert visits and update denormalized counters"
       );
     }
 
     lines.push(
       "",
-      "    Note over Controller,Client: Response envelope is always ApiResponse<T>"
+      "    deactivate CTRL",
+      "    Note over CTRL,Client: Response envelope is always ApiResponse<T>"
     );
 
     return lines.join("\n");
@@ -1375,12 +1385,13 @@ mermaid: `graph TB
     const method = def[2];
     const route = def[3];
     const controller = def[4];
-    const service = def[5];
-    const operation = def[6];
+    const controllerAction = def[5];
+    const service = def[6];
+    const operation = def[7];
 
     window.DIAGRAM_DATA.diagrams[key] = {
       title: "Sequence: " + method + " " + route,
-      mermaid: buildDetailedMermaid(controller, service, method, route, operation)
+      mermaid: buildDetailedMermaid(controller, controllerAction, service, method, route, operation)
     };
 
     window.DIAGRAM_DATA.endpointSequenceItems = window.DIAGRAM_DATA.endpointSequenceItems || [];
